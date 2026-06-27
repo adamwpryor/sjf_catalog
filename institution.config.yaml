@@ -43,12 +43,12 @@ supabase:
   # anon key + service key + DATABASE_URL → secret store only
 
 embedding:
-  provider: "qwen3-gcp"
-  model: "Qwen/Qwen3-Embedding-8B"
-  dimension: 1024                         # MRL-truncated; MUST match stored vectors
-  host: "gcp-cloud-run-l4"                # shared service, project ccsj-catalog-production, scale-to-zero
-  endpoint_env: "SJFU_EMBED_URL"
-  token_env: "EMBED_TOKEN"
+  provider: "gemini"                      # hosted API — matches CCSJ; NO self-hosted GPU
+  model: "gemini-embedding-001"
+  dimension: 1536                         # MRL output_dimensionality; HNSW-indexable
+  api_key_env: "GEMINI_API_KEY"           # or Vertex AI service account
+  reembed_on_load: true                   # spoke re-embeds hub chunks with Gemini (like CCSJ);
+                                          # query + stored vectors share one Gemini space
 
 swarm:
   fastapi_base_env: "SJFU_SWARM_URL"

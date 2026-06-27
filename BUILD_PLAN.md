@@ -4,7 +4,7 @@
 
 **How to use.** Review §0 pre-flight first ("checked for errors before beginning"). Each phase has **Actions → Acceptance gate → Rollback**. Do not advance past a phase whose acceptance gate fails. Phases P0–P2 are infra; P3+ is software. An agent executing this should stop and surface any gate failure rather than improvise.
 
-**Locked decisions (Adam):** internal tool · full CCSJ feature parity **minus accreditation/HLC** (`IMPLEMENTATION_PLAN.md §5.1`) · **dual-stack + full Python swarm** (incl. catalog-production agent) · **lift-and-adapt** · **AI (Claude) provisions** · **scripted generator** (Decision G2) · **separate FastAPI host for the Qwen3 embedding model** · brand tokens supplied as a required root artifact.
+**Locked decisions (Adam):** internal tool · full CCSJ feature parity **minus accreditation/HLC** (`IMPLEMENTATION_PLAN.md §5.1`) · **dual-stack + full Python swarm** (incl. catalog-production agent) · **lift-and-adapt** · **AI (Claude) provisions** · **scripted generator** (Decision G2) · **hosted `gemini-embedding-001` embeddings** (CCSJ pattern — no GPU/self-hosting) · brand tokens supplied as a required root artifact.
 
 ---
 
@@ -16,7 +16,7 @@
 | 0.2 | Hub data verified | SJFU live counts confirmed. ⚠️ **Now superseded** by the AIP-parity upgrade (`docs/HUB_UPGRADE_AIP_PARITY.md`): programs over-extracted (1,203, AIP≈99/yr), prereqs under-extracted, no logic blocks. **Hold P2 data-load until the hub block-model upgrade lands** so we load the corrected data once. |
 | 0.3 | **Brand artifact present** | ✅ `institution.config.yaml` created — Cardinal Red `#993333`, Gold `#FFCC33`, Book Antiqua/Libre Franklin fonts. ⏳ **Logo files pending** (SJF requires a Logo Request form; gates final P9 polish only, not the build). |
 | 0.4 | Spoke Supabase project | ✅ **`zkoimkcctqigisfeqlpv`** ("SJF-Catalog-Project", us-east-2) — fresh, **empty**, confirmed clean. This is the spoke target (NOT the AIP project `thsrwztyvqjkhcfzapnl`). Claude provisions schema into it. Still needs: the service/anon keys + `DATABASE_URL` in a secret channel for `db.ts`/migrations. |
-| 0.5 | Embedding host target | ✅ **GCP** (Adam) — Qwen3 FastAPI host on Google Cloud in the existing **`ccsj-catalog-production`** project, as a **shared** endpoint for all spokes (embeddings are tenant-agnostic). No Spark tunnel needed. Open sub-decision: GPU service type / warmth (see end of doc) |
+| 0.5 | Embeddings | ✅ **Hosted `gemini-embedding-001` @ 1536** (matches CCSJ; no GPU, no self-hosted service). The spoke re-embeds hub chunks with Gemini on load and queries with Gemini — one shared vector space. *(Supersedes the abandoned self-hosted Qwen3 plan: Cloud Run's L4 driver (CUDA 12.2) can't run a vLLM new enough for Qwen3-Embedding.)* Needs `GEMINI_API_KEY` in the secret store. |
 | 0.6 | Deploy target | Vercel vs Cloud Run for the Next.js spoke (Decision E) |
 | 0.7 | Secrets policy | No secrets committed; all via env/secret store; `deployment_config.yaml` stays gitignored on the hub |
 
@@ -27,16 +27,15 @@
 ## 1. Target topology
 
 ```
- Adam → [Next.js spoke  (Vercel/Cloud Run)] ──auth/SQL──> [SJFU Cloud Supabase: Postgres+pgvector(1024)+HNSW+RLS]
+ Adam → [Next.js spoke  (Vercel/Cloud Run)] ──auth/SQL──> [SJFU Cloud Supabase: Postgres+pgvector(1536)+HNSW+RLS]
               │  calls                                            ▲  data load (one-time + on re-ingest)
-              ├─► [Qwen3 Embedding host]  GCP Cloud Run + L4 GPU  │   (SHARED across all spokes; tenant-agnostic)
-              │       project: ccsj-catalog-production            │
+              ├─► gemini-embedding-001 (hosted API, no GPU) ──────┤   re-embed chunks @1536 on load + queries
               └─► [FastAPI Swarm host]  (catalog-production agent, remediation) ──┐
                          │ generation LLM ──► GCP-hosted (Vertex Gemini / Cloud Run GPU) │
         Hub (Spark): cdi-factory → deploy_client_db.py pushes hub Postgres ───────┘ SJFU Cloud Supabase
 ```
 
-Three runtime hosts, **all decoupled from Spark at runtime**: **(A)** Next.js web (Vercel/Cloud Run), **(B)** FastAPI swarm, **(C)** Qwen3 embedding host. **C is on GCP** (Cloud Run + L4 GPU, `ccsj-catalog-production`), **scale-to-zero (min=0)**, shared by every spoke since embeddings carry no tenant data. **B's generation LLM is also GCP-hosted** (Vertex Gemini or a self-hosted model on Cloud Run GPU — specific model chosen at P8). The hub (Spark) is now used only for *ingestion* and the one-time/`deploy_client_db` data push — no runtime spoke dependency on it.
+Two runtime hosts (no GPU anywhere), **decoupled from Spark at runtime**: **(A)** Next.js web (Vercel/Cloud Run), **(B)** FastAPI swarm (GCP). **Embeddings use the hosted `gemini-embedding-001` API** (exactly like CCSJ) — the spoke re-embeds hub chunks to 1536-d Gemini on load and embeds queries the same way, so both live in one Gemini space. **B's generation LLM is GCP-hosted** (Vertex Gemini or a self-hosted Cloud Run GPU model — chosen at P8). The hub (Spark) is used only for *ingestion* and the `deploy_client_db` data push — no runtime spoke dependency on it.
 
 ---
 
@@ -64,10 +63,11 @@ supabase:                           # generator fills project_ref/urls after pro
   # anon key + service key + DATABASE_URL live in the secret store ONLY, never here
 
 embedding:
-  provider: "qwen3-host"
-  model: "Qwen/Qwen3-Embedding-8B"
-  dimension: 1024                   # MRL-truncated; MUST match stored vectors
-  endpoint_env: "SJFU_EMBED_URL"    # resolved from secret store at runtime
+  provider: "gemini"                # hosted gemini-embedding-001 (CCSJ pattern, no GPU)
+  model: "gemini-embedding-001"
+  dimension: 1536                   # MRL output_dimensionality; HNSW-indexable
+  api_key_env: "GEMINI_API_KEY"
+  reembed_on_load: true             # re-embed hub chunks with Gemini; query+stored share one space
 
 swarm:
   fastapi_base_env: "SJFU_SWARM_URL"
