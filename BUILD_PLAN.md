@@ -13,10 +13,10 @@
 | # | Check | Must be true |
 |---|---|---|
 | 0.1 | Hub reachable | `ssh … adamwpryor@spark-6284.local hostname` → `spark-6284` |
-| 0.2 | Hub data verified | SJFU live counts: `program_requirement_courses=2402`, `course_prerequisite_links=2939`, `courses=5923`, `programs=1203` (✅ confirmed) |
-| 0.3 | **Brand artifact present** | `institution.config.yaml` exists at repo root and validates against §2 schema *(BLOCKER — Adam supplies)* |
-| 0.4 | Supabase admin creds | A Supabase access token / org for Claude to create the project *(BLOCKER — Adam supplies channel)* |
-| 0.5 | Embedding host target | Decision on where the Qwen3 FastAPI host runs (Spark GPU vs elsewhere) + how the deployed spoke reaches it (Tailscale/Cloudflare tunnel) — see §7 |
+| 0.2 | Hub data verified | SJFU live counts confirmed. ⚠️ **Now superseded** by the AIP-parity upgrade (`docs/HUB_UPGRADE_AIP_PARITY.md`): programs over-extracted (1,203, AIP≈99/yr), prereqs under-extracted, no logic blocks. **Hold P2 data-load until the hub block-model upgrade lands** so we load the corrected data once. |
+| 0.3 | **Brand artifact present** | ✅ `institution.config.yaml` created — Cardinal Red `#993333`, Gold `#FFCC33`, Book Antiqua/Libre Franklin fonts. ⏳ **Logo files pending** (SJF requires a Logo Request form; gates final P9 polish only, not the build). |
+| 0.4 | Spoke Supabase project | ✅ **`zkoimkcctqigisfeqlpv`** ("SJF-Catalog-Project", us-east-2) — fresh, **empty**, confirmed clean. This is the spoke target (NOT the AIP project `thsrwztyvqjkhcfzapnl`). Claude provisions schema into it. Still needs: the service/anon keys + `DATABASE_URL` in a secret channel for `db.ts`/migrations. |
+| 0.5 | Embedding host target | ✅ **GCP** (Adam) — Qwen3 FastAPI host on Google Cloud in the existing **`ccsj-catalog-production`** project, as a **shared** endpoint for all spokes (embeddings are tenant-agnostic). No Spark tunnel needed. Open sub-decision: GPU service type / warmth (see end of doc) |
 | 0.6 | Deploy target | Vercel vs Cloud Run for the Next.js spoke (Decision E) |
 | 0.7 | Secrets policy | No secrets committed; all via env/secret store; `deployment_config.yaml` stays gitignored on the hub |
 
@@ -29,13 +29,14 @@
 ```
  Adam → [Next.js spoke  (Vercel/Cloud Run)] ──auth/SQL──> [SJFU Cloud Supabase: Postgres+pgvector(1024)+HNSW+RLS]
               │  calls                                            ▲  data load (one-time + on re-ingest)
-              ├─► [FastAPI Swarm host]  (catalog-production agent, remediation)   │
-              └─► [Qwen3 Embedding host]  (FastAPI, /embed → 1024-d)  ────────────┘
-                         ▲ both Python hosts sit near the Spark GPU; reached via secure tunnel
-        Hub (Spark): cdi-factory → deploy_client_db.py pushes hub Postgres → SJFU Cloud Supabase
+              ├─► [Qwen3 Embedding host]  GCP Cloud Run + L4 GPU  │   (SHARED across all spokes; tenant-agnostic)
+              │       project: ccsj-catalog-production            │
+              └─► [FastAPI Swarm host]  (catalog-production agent, remediation) ──┐
+                         │ generation LLM ──► GCP-hosted (Vertex Gemini / Cloud Run GPU) │
+        Hub (Spark): cdi-factory → deploy_client_db.py pushes hub Postgres ───────┘ SJFU Cloud Supabase
 ```
 
-Three runtime hosts for the spoke: **(A)** Next.js web, **(B)** FastAPI swarm, **(C)** Qwen3 embedding FastAPI (dedicated, per Decision #3). B and C live on/near Spark (GPU + cached models); A is cloud-deployed and calls B/C over a tunnel.
+Three runtime hosts, **all decoupled from Spark at runtime**: **(A)** Next.js web (Vercel/Cloud Run), **(B)** FastAPI swarm, **(C)** Qwen3 embedding host. **C is on GCP** (Cloud Run + L4 GPU, `ccsj-catalog-production`), **scale-to-zero (min=0)**, shared by every spoke since embeddings carry no tenant data. **B's generation LLM is also GCP-hosted** (Vertex Gemini or a self-hosted model on Cloud Run GPU — specific model chosen at P8). The hub (Spark) is now used only for *ingestion* and the one-time/`deploy_client_db` data push — no runtime spoke dependency on it.
 
 ---
 
@@ -154,10 +155,11 @@ Built incrementally **while** doing SJFU, then hardened in P10. Location: `scrip
   `courses≈5923`, `programs≈1203`, `program_requirements≈932`, **`program_requirement_courses≈2402`**, **`course_prerequisite_links≈2939`**, `semantic_chunks≈34570`, `documents`=8 (grad+undergrad×4yr). Embeddings present and 1024-d (spot pgvector query returns sane neighbors). *This gate is the contract-boundary check that the silent-degradation class (IMPLEMENTATION_PLAN §3) cannot recur.*
 - **Rollback:** truncate SJFU tables in cloud; re-run load.
 
-### P3 — Qwen3 embedding FastAPI host *(Decision #3; needs 0.5)*
-- **Actions:** stand up `services/embed/` FastAPI app on/near Spark: loads `Qwen3-Embedding-8B`, exposes `POST /embed` (see §7 contract), MRL-truncates to 1024, L2-normalizes. Expose to the cloud spoke via secure tunnel; store URL in secret store as `SJFU_EMBED_URL`.
-- **Gate:** `POST /embed {"input":["nursing prerequisites"]}` → 1024-float vector; cosine vs a known SJFU chunk embedding is high for an on-topic query (proves shared vector space). Latency acceptable.
-- **Rollback:** independent service; toggle assistant off (`features.assistant:false`) if unavailable.
+### P3 — Qwen3 embedding host on GCP *(Decision #3 + 0.5 = GCP; shared service)*
+- **Actions:** build `services/embed/` FastAPI container: loads `Qwen3-Embedding-8B`, exposes `POST /embed` (§7 contract), MRL-truncates to **1024**, L2-normalizes, bearer-auth. Deploy to **Cloud Run with a GPU (NVIDIA L4)** in the **`ccsj-catalog-production`** project as a **shared** service (`embed-qwen3`), behind a stable HTTPS URL. Store URL + token in the spoke secret store as `SJFU_EMBED_URL` / `EMBED_TOKEN`. This is a factory-level asset: every spoke points at the same endpoint.
+- **Scaling:** **min-instances=0 (scale-to-zero)** — cheapest; first query after idle pays a ~30-60s GPU cold start (model load). The spoke assistant UI must show a "warming up" state on first call so the cold start reads as intentional, not a hang.
+- **Gate:** `POST /embed {"input":["nursing prerequisites"]}` → 1024-float vector; cosine vs a known SJFU chunk embedding is high for an on-topic query (**proves shared vector space**); `GET /healthz` ok; warm latency within target; cold-start UX verified in the spoke.
+- **Rollback:** independent service; toggle assistant off (`features.assistant:false`) if unavailable. (No impact on P0–P2, P4–P6.)
 
 ### P4 — Lift + de-CCSJ-ify the web template
 - **Actions:** copy `ccsj-catalog/src` (web layer); replace all hardcoded CCSJ branding/colors/strings with reads from `institution.config` via one theme module (`src/lib/brand.ts`); gate accreditation UI behind `accreditation` flag (off → ImprovementPlan in catalog-quality mode, no accreditor fields); port `db.ts`, `gcs.ts`, `catalogPdf.ts`, supabase client/server utils, login/update-password.
@@ -176,7 +178,7 @@ Built incrementally **while** doing SJFU, then hardened in P10. Location: `scrip
 - **Gate:** a submitted flag lands only in `corrections` (masters provably unchanged by query); assistant returns answers grounded in SJFU chunks with sane citations; hub `pull_corrections.py` can read the pending row.
 
 ### P8 — FastAPI swarm + catalog-production agent
-- **Actions:** stand up `services/swarm/` (FastAPI), port the production-agent lineage (`CatalogProductionWizard` + `/api/catalog/apply-deltas|publish|remediate` + `src/server/main.py`); wire to Spark vLLM for generation; track CCSJ's evolving version (don't fork).
+- **Actions:** stand up `services/swarm/` (FastAPI), port the production-agent lineage (`CatalogProductionWizard` + `/api/catalog/apply-deltas|publish|remediate` + `src/server/main.py`) via the §4A vendor-with-lock mechanism; wire generation to a **GCP-hosted LLM** (Vertex Gemini, or a self-hosted model on Cloud Run GPU — pick at P8 start); track CCSJ's evolving version (don't fork).
 - **Gate:** wizard drafts a next-year catalog from a prior year + deltas; apply-deltas writes a draft `documents` row without touching published rows; remediation runnable. *Note fidelity caveat:* requirement AND/OR/elective grouping is regex-quality until the hub routes ingestion through the standalone vLLM server (IMPLEMENTATION_PLAN §3 residual).
 
 ### P9 — Brand + deploy *(needs 0.6)*
@@ -213,7 +215,7 @@ POST /embed
 Rules: MRL-truncate to 1024 (must match stored), L2-normalize, batch up to N,
        auth via bearer token (secret), health at GET /healthz.
 ```
-The spoke's `llm.ts`/assistant calls this for **every** query embedding. Stored vectors (hub, Qwen3-1024) and query vectors (this host, Qwen3-1024) MUST share model + dimension or pgvector cosine search is meaningless — this is the single most important runtime invariant.
+**Hosting:** GCP **Cloud Run + L4 GPU**, project `ccsj-catalog-production`, deployed once as a **shared** service (`embed-qwen3`) reused by all spokes. Container pins the Qwen3 model + dim=1024. Scale-to-zero vs min-instances=1 is the one open cost/latency knob (see below). The spoke's `llm.ts`/assistant calls this for **every** query embedding. Stored vectors (hub, Qwen3-1024) and query vectors (this host, Qwen3-1024) MUST share model + dimension or pgvector cosine search is meaningless — this is the single most important runtime invariant.
 
 ---
 

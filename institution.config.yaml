@@ -1,0 +1,60 @@
+# ==============================================================================
+# Institution Config — the single required root artifact for every spoke.
+# The scripted generator (scripts/spoke/create-spoke) consumes this file.
+# Secrets (anon/service keys, DATABASE_URL, embed token) live in the secret
+# store ONLY — never here. See BUILD_PLAN.md §2.
+# ==============================================================================
+
+institution:
+  tenant_id: "SJFU"                       # canonical; matches hub rows (verified)
+  legal_name: "St. John Fisher University"
+  short_name: "Fisher"
+  domains: ["undergraduate", "graduate"]  # maps to documents.domain_id / version suffix
+  accreditation: false                    # omits accreditation schema + UI (BUILD_PLAN §3 delta #2)
+
+brand:                                    # source: https://www.sjf.edu/services/style-guide/
+  colors:
+    primary:   "#993333"   # Cardinal Red — official (PMS 201 C, RGB 153/51/51)
+    secondary: "#FFCC33"   # Gold        — official (PMS 116 C, RGB 255/204/51)
+    accent:    "#FFCC33"   # Gold
+    # --- below are sensible defaults (NOT in the official 2-color palette) — adjust to taste ---
+    bg:        "#FFFFFF"   # default: clean light catalog theme (distinct from CCSJ's dark maroon)
+    surface:   "#F7F5F2"   # warm off-white panel
+    ink:       "#1A1A1A"   # body text
+  typography:
+    # Official print fonts: Book Antiqua, Franklin Gothic Suite, Libre Gothic,
+    # Distinct Style Sans, Libre Franklin. Mapped to web-available equivalents:
+    serif: "'Book Antiqua', 'Palatino Linotype', Palatino, Georgia, serif"   # headings / display
+    sans:  "'Libre Franklin', 'Franklin Gothic', Arial, sans-serif"          # body (Libre Franklin = Google Font)
+    mono:  "ui-monospace, 'Cascadia Code', Menlo, monospace"
+  logo:
+    # PENDING: SJF logos are not directly downloadable — request via the official
+    # Logo Request form (Asana). Drop files here when received.
+    light:   "public/brand/fisher-logo-color.svg"     # for white/light backgrounds (color or black version)
+    dark:    "public/brand/fisher-logo-white.svg"     # white version for dark backgrounds
+    favicon: "public/brand/favicon.ico"
+    status:  "PENDING_LOGO_REQUEST_FORM"
+  app_title: "Fisher Catalog"
+
+supabase:
+  project_ref: "zkoimkcctqigisfeqlpv"     # fresh, empty spoke project (NOT the AIP project thsrwztyvqjkhcfzapnl)
+  url: "https://zkoimkcctqigisfeqlpv.supabase.co"
+  region: "us-east-2"
+  # anon key + service key + DATABASE_URL → secret store only
+
+embedding:
+  provider: "qwen3-gcp"
+  model: "Qwen/Qwen3-Embedding-8B"
+  dimension: 1024                         # MRL-truncated; MUST match stored vectors
+  host: "gcp-cloud-run-l4"                # shared service, project ccsj-catalog-production, scale-to-zero
+  endpoint_env: "SJFU_EMBED_URL"
+  token_env: "EMBED_TOKEN"
+
+swarm:
+  fastapi_base_env: "SJFU_SWARM_URL"
+  generation_llm: "gcp-hosted"            # Vertex Gemini or self-hosted Cloud Run GPU (picked at P8)
+  features: { production_agent: true, remediation: true, assistant: true, intake_gcs: true, pdf: true }
+
+deploy:
+  target: "vercel"                        # frontend; Decision E (Vercel vs Cloud Run) — confirm
+  gcs_bucket: "sjfu-assets"               # already exists hub-side

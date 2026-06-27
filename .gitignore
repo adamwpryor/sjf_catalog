@@ -1,0 +1,45 @@
+# ── Node / Next.js ────────────────────────────────────────────────
+/node_modules
+/.pnp
+.pnp.*
+/.next/
+/out/
+/build
+*.tsbuildinfo
+next-env.d.ts
+/coverage
+
+# ── Python / Conda ────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+.venv/
+env/
+
+# ── Secrets / environment ─────────────────────────────────────────
+# Zero-Trust: NO secrets in the repo. Real values live ONLY in an untracked
+# .env.local (or in Conda env config vars). The committed template is .env.example.
+.env
+.env.*
+!.env.example
+
+# Service-account / credential files
+*.pem
+*-credentials.json
+gcp-*.json
+service-account*.json
+
+# ── Tooling / OS ──────────────────────────────────────────────────
+.vercel
+.DS_Store
+Thumbs.db
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+/scratch

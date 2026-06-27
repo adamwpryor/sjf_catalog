@@ -1,0 +1,32 @@
+# Conda-First: the Python side of the dual stack (FastAPI swarm, scripts, generator).
+# Create:   conda env create -f environment.yml
+# Activate: conda activate sjfu-catalog
+#
+# Zero-Trust: do NOT put secrets here. Set them via:
+#   conda env config vars set -n sjfu-catalog DATABASE_URL="..."   (or use .env.local)
+# The Qwen3 embedding service has its own heavier env (services/embed/environment.yml).
+name: sjfu-catalog
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - nodejs=20
+  - python=3.12
+  - pandas
+  - pyarrow
+  - psycopg2
+  - pip
+  - pip:
+      - supabase
+      - fastapi
+      - uvicorn[standard]
+      - pydantic
+      - pyyaml
+      - python-dotenv
+      - python-json-logger   # JSON structured logging
+      - gitpython            # git commit/branch metadata in logs
+      - requests
+      - ruff                 # lint
+      - mypy                 # type-check
+      - black                # format
+      - pytest               # tests
