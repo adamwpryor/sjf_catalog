@@ -1,0 +1,5 @@
+# The base image (vllm/vllm-openai) already provides vllm + torch + CUDA.
+# These are the only extra runtime deps for the FastAPI wrapper.
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+huggingface_hub>=0.27.0
