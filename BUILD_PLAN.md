@@ -89,13 +89,13 @@ The spoke cloud DB schema = **hub core migrations** + **selected CCSJ-web migrat
 > **Mechanism (answers "how do we skip migrations"):** the generator does **not** blindly `supabase db push` either source directory. It executes an **explicit ordered allow-list** of migration files (the list below), copied into *this* repo's `supabase/migrations/` at P1. Omission = a file is simply absent from the allow-list. **Verified:** the hub's `supabase/migrations/` create **no** accreditation tables (the hub `deploy_client_db.py` TABLE_ORDER contains none) — accreditation exists only as the two named CCSJ-*web* migrations, so the omission is confined to the web side and dropping it cannot affect catalog data.
 
 **A. Hub core (`cdi-factory/supabase/migrations/`)** — run all EXCEPT as noted:
-`init_schema` → `add_programs_and_courses` → `add_institutions` → `add_corrections_table` (cloud-only feedback table) → `add_program_faculty_tables` → `add_seven_lookup_tables` → `add_numeric_lookup_tables` → `add_lookup_sync_triggers` → `add_policy_linkages` → `add_markdown_url_columns` → `add_prerequisites_json` → `prune_denormalized_columns` → `production_readiness` → **`resize_embedding_to_1024`** (KEEP — this sets `vector(1024)` + HNSW; the embedding space we standardize on).
+`init_schema` → `add_programs_and_courses` → `add_institutions` → `add_corrections_table` (cloud-only feedback table) → `add_program_faculty_tables` → `add_seven_lookup_tables` → `add_numeric_lookup_tables` → `add_lookup_sync_triggers` → `add_policy_linkages` → `add_markdown_url_columns` → `add_prerequisites_json` → `prune_denormalized_columns` → `production_readiness`. (The hub's `resize_embedding_to_1024` is moot here — see delta #1; the spoke standardizes on Gemini-1536.)
 
 **B. CCSJ-web migrations (`ccsj-catalog/supabase/migrations/`)** — port these app tables/policies:
 - `user_roles` (from `rls_policies.sql` / auth model), `improvement_plans` (base only), `catalog_agent_usage`, relationship-table RLS, corrections audit columns, `documents_catalog_pdf_url`, `documents_presentation_overrides`, `add_hnsw_index` (reconcile with A's HNSW — keep one).
 
 **C. The three deliberate deltas:**
-1. **🚫 OMIT `embedding_1536_hnsw.sql`.** It resizes to `vector(1536)` (Gemini) and clears Spark vectors. We are 1024-d Qwen3 end-to-end. Keeping it would destroy the hub embeddings and break query/stored alignment.
+1. **✅ KEEP `embedding_1536_hnsw.sql`.** It sets `vector(1536)` + HNSW and clears the hub's Qwen3 vectors — which is exactly what we want: the spoke **re-embeds with `gemini-embedding-001` @ 1536** on load (P3), like CCSJ, so query and stored vectors share one Gemini space. (This reverses the earlier self-hosted-Qwen3 plan, which Cloud Run's L4 driver can't support.)
 2. **🚫 OMIT accreditation migrations** (`improvement_plans_accreditor.sql`, `accreditation_criteria_unique.sql`) and any `accreditor_*` columns. `institution.config.accreditation:false` drives this. Improvement Plan ships in catalog-internal-quality form only.
 3. **🔁 RECONCILE RLS to single-tenant auth model.** The spoke DB is single-tenant (SJFU only). DROP the hub's `app.current_tenant` tenant-isolation policies from `init_schema`/`add_programs_and_courses` and apply the CCSJ-web `auth.uid()` + `user_roles` policies (`rls_policies.sql`, `relationship_tables_rls.sql`). Result: `db.ts`/`queryWithAuth` (which sets `request.jwt.claim.sub` + `SET LOCAL ROLE authenticated`) is the only RLS regime — no `app.current_tenant` needed on the spoke.
 
@@ -140,33 +140,32 @@ Built incrementally **while** doing SJFU, then hardened in P10. Location: `scrip
 ## 5. Build phases
 
 ### P0 — Bootstrap repo + tooling *(no external deps)*
-- **Actions:** scaffold Next.js 16 / React 19 / Tailwind v4 (mirror CCSJ `tsconfig`/`eslint`/`next.config`); add `environment.yml` (conda `sjfu-catalog`: fastapi, uvicorn, pandas, pyarrow, psycopg2, openai, supabase, transformers/torch for Qwen3); port `DEVELOPER_GUIDELINES.md`; create `scripts/spoke/` skeleton; write `docs/HUB_SPOKE_CONTRACT.md` + `docs/DATA_CONTRACT.md` from verified schema/counts.
+- **Actions:** scaffold Next.js 16 / React 19 / Tailwind v4 (mirror CCSJ `tsconfig`/`eslint`/`next.config`); add `environment.yml` (conda `sjfu-catalog`: fastapi, uvicorn, pandas, pyarrow, psycopg2, supabase — no torch/GPU deps); port `DEVELOPER_GUIDELINES.md`; create `scripts/spoke/` skeleton; write `docs/HUB_SPOKE_CONTRACT.md` + `docs/DATA_CONTRACT.md` from verified schema/counts.
 - **Gate:** `npm run dev` boots an empty shell; `conda env create` succeeds; `git grep` finds no secrets.
 - **Rollback:** n/a (greenfield).
 
 ### P1 — Provision cloud Supabase + assemble schema *(Claude provisions; needs 0.4)*
 - **Actions:** `create-spoke --phase provision` (create project, capture ref/url/keys→secret store, write non-secret ref/url back to config). Then `--phase schema` runs the §3 migration set.
-- **Gate:** all §3-A/B tables exist; `embedding` column is `vector(1024)`; HNSW index present; `corrections` present with its CHECK constraint; **no `accreditor_*` columns, no 1536 column**; `\d semantic_chunks` shows expected shape. RLS: a no-auth `SELECT` returns 0 rows; an authed `SELECT` returns rows.
+- **Gate:** all §3-A/B tables exist; `embedding` column is `vector(1536)`; HNSW index present; `corrections` present with its CHECK constraint; **no `accreditor_*` columns**; `\d semantic_chunks` shows expected shape. RLS: a no-auth `SELECT` returns 0 rows; an authed `SELECT` returns rows.
 - **Rollback:** delete the Supabase project; re-run.
 
 ### P2 — Load SJFU data + data-quality gates *(needs hub SSH)*
 - **Actions:** add SJFU to hub `deployment_config.yaml` (gitignored, on hub); `create-spoke --phase load` → runs `deploy_client_db.py --tenant-id SJFU`.
 - **Gate (hard):** cloud counts match hub within tolerance and the **fixed link tables are non-zero**:
-  `courses≈5923`, `programs≈1203`, `program_requirements≈932`, **`program_requirement_courses≈2402`**, **`course_prerequisite_links≈2939`**, `semantic_chunks≈34570`, `documents`=8 (grad+undergrad×4yr). Embeddings present and 1024-d (spot pgvector query returns sane neighbors). *This gate is the contract-boundary check that the silent-degradation class (IMPLEMENTATION_PLAN §3) cannot recur.*
+  `courses≈5923`, `programs≈1203`, `program_requirements≈932`, **`program_requirement_courses≈2402`**, **`course_prerequisite_links≈2939`**, `semantic_chunks≈34570`, `documents`=8 (grad+undergrad×4yr). (Chunk `embedding` is cleared to `vector(1536)` by the schema; it gets re-populated by Gemini in P3 — so don't gate on hub vectors here.) *This gate is the contract-boundary check that the silent-degradation class (IMPLEMENTATION_PLAN §3) cannot recur.*
 - **Rollback:** truncate SJFU tables in cloud; re-run load.
 
-### P3 — Qwen3 embedding host on GCP *(Decision #3 + 0.5 = GCP; shared service)*
-- **Actions:** build `services/embed/` FastAPI container: loads `Qwen3-Embedding-8B`, exposes `POST /embed` (§7 contract), MRL-truncates to **1024**, L2-normalizes, bearer-auth. Deploy to **Cloud Run with a GPU (NVIDIA L4)** in the **`ccsj-catalog-production`** project as a **shared** service (`embed-qwen3`), behind a stable HTTPS URL. Store URL + token in the spoke secret store as `SJFU_EMBED_URL` / `EMBED_TOKEN`. This is a factory-level asset: every spoke points at the same endpoint.
-- **Scaling:** **min-instances=0 (scale-to-zero)** — cheapest; first query after idle pays a ~30-60s GPU cold start (model load). The spoke assistant UI must show a "warming up" state on first call so the cold start reads as intentional, not a hang.
-- **Gate:** `POST /embed {"input":["nursing prerequisites"]}` → 1024-float vector; cosine vs a known SJFU chunk embedding is high for an on-topic query (**proves shared vector space**); `GET /healthz` ok; warm latency within target; cold-start UX verified in the spoke.
-- **Rollback:** independent service; toggle assistant off (`features.assistant:false`) if unavailable. (No impact on P0–P2, P4–P6.)
+### P3 — Re-embed chunks with `gemini-embedding-001` (CCSJ pattern; no GPU)
+- **Actions:** port CCSJ's embedding helper (`llm.ts generateEmbedding` already calls `gemini-embedding-001`) + its `reembed` script. Run a one-time job that embeds every SJFU `semantic_chunks.content` (and `course_metadata`/`program_metadata` text as CCSJ does) with `gemini-embedding-001` @ **1536** and writes the `embedding` column. Queries use the identical call → one shared Gemini space. Needs `GEMINI_API_KEY` in the secret store. No service to deploy.
+- **Gate:** every chunk row has a non-null `vector(1536)` embedding; a pgvector cosine query for an on-topic phrase returns sane nearest-neighbor chunks (**proves query+stored share the Gemini space**).
+- **Rollback:** re-run the re-embed job; assistant features degrade gracefully if `GEMINI_API_KEY` is unset (`features.assistant:false`).
 
 ### P4 — Lift + de-CCSJ-ify the web template
 - **Actions:** copy `ccsj-catalog/src` (web layer); replace all hardcoded CCSJ branding/colors/strings with reads from `institution.config` via one theme module (`src/lib/brand.ts`); gate accreditation UI behind `accreditation` flag (off → ImprovementPlan in catalog-quality mode, no accreditor fields); port `db.ts`, `gcs.ts`, `catalogPdf.ts`, supabase client/server utils, login/update-password.
 - **Gate:** `npm run build` clean; ESLint/TS clean; no literal "Calumet"/"CCSJ"/HLC strings remain (`git grep -i` clean except in docs).
 
 ### P5 — Data layer + auth + RLS isolation test
-- **Actions:** point `db.ts` at SJFU `DATABASE_URL`; confirm `queryWithAuth` sets `request.jwt.claim.sub` + role; seed `user_roles`; **replace CCSJ's `llm.ts generateEmbedding()` (Gemini@1536) with a call to the Qwen3 host** (`SJFU_EMBED_URL`, 1024).
+- **Actions:** point `db.ts` at SJFU `DATABASE_URL`; confirm `queryWithAuth` sets `request.jwt.claim.sub` + role; seed `user_roles`; **keep CCSJ's `llm.ts generateEmbedding()` as-is** — it already uses `gemini-embedding-001 @ 1536` (this is the whole reason we pivoted to the CCSJ pattern).
 - **Gate (security):** automated test — unauth write rejected; authed viewer can read, cannot write; registrar can write; `corrections` insert allowed, client `UPDATE/DELETE` blocked; generic error bodies + correlation IDs; structured logs.
 
 ### P6 — Read surface (browse / inspect / graphs)
@@ -174,7 +173,7 @@ Built incrementally **while** doing SJFU, then hardened in P10. Location: `scrip
 - **Gate:** browse SJFU undergrad+grad end to end; prerequisite graph renders (non-empty — relies on P2's 2,939 links); program→required-courses renders (relies on 2,402 links); diagnostics counts match P2.
 
 ### P7 — Corrections + assistant
-- **Actions:** build correction-flag UI to existing `corrections` table (never mutates masters; matches the hub round-trip model); port `CatalogAssistantChat` + `/api/assistant`, grounding retrieval on `semantic_chunks.embedding` via Qwen3 query embeddings (P3 host).
+- **Actions:** build correction-flag UI to existing `corrections` table (never mutates masters; matches the hub round-trip model); port `CatalogAssistantChat` + `/api/assistant` ~as-is — it already grounds retrieval on `semantic_chunks.embedding` via `gemini-embedding-001` query embeddings.
 - **Gate:** a submitted flag lands only in `corrections` (masters provably unchanged by query); assistant returns answers grounded in SJFU chunks with sane citations; hub `pull_corrections.py` can read the pending row.
 
 ### P8 — FastAPI swarm + catalog-production agent
@@ -182,7 +181,7 @@ Built incrementally **while** doing SJFU, then hardened in P10. Location: `scrip
 - **Gate:** wizard drafts a next-year catalog from a prior year + deltas; apply-deltas writes a draft `documents` row without touching published rows; remediation runnable. *Note fidelity caveat:* requirement AND/OR/elective grouping is regex-quality until the hub routes ingestion through the standalone vLLM server (IMPLEMENTATION_PLAN §3 residual).
 
 ### P9 — Brand + deploy *(needs 0.6)*
-- **Actions:** apply `institution.config.brand` tokens/logo; `create-spoke --phase app` finalizes; deploy to target; inject env from secret store (`DATABASE_URL`, anon/service keys, `SJFU_EMBED_URL`, `SJFU_SWARM_URL`, GCS creds).
+- **Actions:** apply `institution.config.brand` tokens/logo; `create-spoke --phase app` finalizes; deploy to target; inject env from secret store (`DATABASE_URL`, anon/service keys, `GEMINI_API_KEY`, `SJFU_SWARM_URL`, GCS creds).
 - **Gate:** live URL loads, login works, a catalog renders, assistant responds, a correction round-trips. Smoke test green.
 
 ### P10 — Harvest the generator + docs
@@ -195,7 +194,7 @@ Built incrementally **while** doing SJFU, then hardened in P10. Location: `scrip
 
 | Layer | Automated gate | Where |
 |---|---|---|
-| Schema correctness | table presence, `vector(1024)`, no 1536/accreditor cols | P1 |
+| Schema correctness | table presence, `vector(1536)`, no accreditor cols | P1 |
 | Data completeness | the 7 count checks incl. both fixed link tables | P2 |
 | Embedding alignment | cosine of on-topic query vs stored chunk is high | P3 |
 | Branding cleanliness | `git grep -i 'calumet\|ccsj\|hlc'` clean (sans docs) | P4 |
@@ -205,17 +204,13 @@ Built incrementally **while** doing SJFU, then hardened in P10. Location: `scrip
 
 ---
 
-## 7. Qwen3 embedding host — API contract (§P3)
+## 7. Embeddings — hosted `gemini-embedding-001` (CCSJ pattern)
 
-```
-POST /embed
-  body:  { "input": ["text1", "text2", ...] }
-  resp:  { "model": "Qwen/Qwen3-Embedding-8B", "dimension": 1024,
-           "embeddings": [[...1024 floats...], ...] }
-Rules: MRL-truncate to 1024 (must match stored), L2-normalize, batch up to N,
-       auth via bearer token (secret), health at GET /healthz.
-```
-**Hosting:** GCP **Cloud Run + L4 GPU**, project `ccsj-catalog-production`, deployed once as a **shared** service (`embed-qwen3`) reused by all spokes. Container pins the Qwen3 model + dim=1024. Scale-to-zero vs min-instances=1 is the one open cost/latency knob (see below). The spoke's `llm.ts`/assistant calls this for **every** query embedding. Stored vectors (hub, Qwen3-1024) and query vectors (this host, Qwen3-1024) MUST share model + dimension or pgvector cosine search is meaningless — this is the single most important runtime invariant.
+No self-hosted service. The spoke uses Google's hosted `gemini-embedding-001` API for **both** stored re-embedding (P3, one-time on load) and query embedding (runtime), at `output_dimensionality = 1536` (HNSW-indexable). This is CCSJ's exact, proven approach (`llm.ts generateEmbedding`, `/api/assistant`, `reembed`), ported ~unchanged.
+
+**The runtime invariant:** stored and query vectors must come from the same model/dimension. Because both sides call `gemini-embedding-001 @ 1536`, they share one space by construction — no GPU, no driver constraints, no per-spoke service.
+
+**Why not the hub's Qwen3 vectors:** matching them would require self-hosting Qwen3-Embedding-8B on a GPU; Cloud Run's L4 driver (CUDA 12.2) can't run a vLLM new enough for Qwen3-Embedding, and CCSJ already established the re-embed-with-Gemini pattern. So we discard the hub's Qwen3 embeddings (the chunks/relations are what we use) and re-embed with Gemini. Factory bonus: every spoke shares one hosted embedder — nothing to provision per tenant.
 
 ---
 
@@ -223,8 +218,8 @@ Rules: MRL-truncate to 1024 (must match stored), L2-normalize, batch up to N,
 
 | Risk | Mitigation |
 |---|---|
-| Accidentally running the 1536 migration → destroys hub embeddings | §3 delta #1 is explicit; P1 gate asserts column is 1024 and fails if 1536 |
-| Cloud spoke reaches embedding/swarm hosts (cloud → Spark) | secure tunnel (Tailscale/Cloudflare) decided at 0.5; assistant/agent degrade-gracefully if host down |
+| Forgetting to re-embed → empty/stale vectors, broken search | P3 gate asserts every chunk has a non-null `vector(1536)` and cosine search returns sane neighbors |
+| `GEMINI_API_KEY` cost / rate limits on bulk re-embed of 34,570 chunks | batch + backoff in the re-embed job (port CCSJ's); one-time per catalog load |
 | RLS double-regime (hub `app.current_tenant` + web `auth.uid`) left permissive | §3 delta #3 drops hub tenant policies on the spoke; P5 isolation test is the proof |
 | Production-agent output low-fidelity (regex requirement semantics) | known/deferred; fix = hub vLLM-server routing before agent GA |
 | Generator hardcodes SJFU/CCSJ | P10 dry-run with a fake institution is the acceptance gate |
@@ -235,7 +230,7 @@ Rules: MRL-truncate to 1024 (must match stored), L2-normalize, batch up to N,
 ## 9. What unblocks execution right now
 1. **`institution.config.yaml` at repo root** with SJFU brand tokens + logo assets (Adam). *(gate 0.3)*
 2. **Supabase provisioning credential/channel** for Claude. *(gate 0.4)*
-3. **Embedding/swarm host location + cloud→Spark tunnel** decision. *(gate 0.5)*
-4. **Deploy target** Vercel vs Cloud Run. *(gate 0.6)*
+3. **`GEMINI_API_KEY`** (or Vertex AI service account) for `gemini-embedding-001`. *(gate 0.5)*
+4. **Deploy target** Vercel vs Cloud Run (frontend); swarm generation-LLM host decided at P8. *(gate 0.6)*
 
 With those, P0 (repo bootstrap + contract docs) and P1 (provision + schema) can run immediately; P0 can in fact start now without any of them.

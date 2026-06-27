@@ -14,8 +14,8 @@ This is the **first spoke** of a repeatable spoke-generation process (see `BUILD
 |---|---|---|
 | Web | Next.js 16 / React 19 / Tailwind v4 | Gated catalog UI, corrections, assistant |
 | Swarm | FastAPI (Python/Conda) | Catalog-production agent, remediation |
-| Embedding | GCP Cloud Run + L4 GPU (shared) | Qwen3-1024 query embeddings |
-| DB | Supabase Postgres + pgvector(1024) + RLS | Catalog data + corrections |
+| Embedding | Hosted `gemini-embedding-001` API (no GPU) | 1536-d chunk + query embeddings (CCSJ pattern) |
+| DB | Supabase Postgres + pgvector(1536) + RLS | Catalog data + corrections |
 
 Upstream: the **CDI Factory hub** ingests catalog PDFs and pushes data to the spoke DB via
 `deploy_client_db.py`. The running spoke has **no runtime dependency on Spark**.

@@ -14,7 +14,7 @@ Three premises from earlier versions are now **falsified or sharpened by evidenc
 
 2. **🔁 The real deliverable is a *spoke factory*, not just an app.** Adam's framing: *"build a process that streamlines the development of a spoke, assuming this hub architecture is in place for ingestion of a catalog directly from PDF."* SJFU is **instance #1**. So we produce two things: **(I)** the running SJFU spoke, and **(II)** a parameterized template + runbook so spoke #2…#N is hours of config, not weeks of code. See §4.
 
-3. **✅ The spoke keeps the heavier Python (Adam confirmed) — because the catalog-production agent lives in the spoke, not the hub.** The hub owns *ingestion* of existing PDFs and the corrections round-trip (`deploy_client_db.py`, `pull_corrections.py`). But a marquee in-scope feature is the **catalog-production agent** (currently *in development in CCSJ*) that **synthesizes a new year's catalog** from a prior year + deltas. That is an agentic, LLM-driven authoring workload that belongs in the spoke's FastAPI layer (it's the `CatalogProductionWizard` + `/api/catalog/apply-deltas|publish|remediate` + `src/server/main.py` lineage). So we **port CCSJ's full dual-stack swarm**, not a thin embedding service. (This reverses the C′ idea floated in v3; see Decision C.) Note: the spoke also still needs Qwen3-1024 query embedding for the RAG assistant (§3 gotcha #1) — that's now one job among several for the spoke's Python.
+3. **✅ The spoke keeps the heavier Python (Adam confirmed) — because the catalog-production agent lives in the spoke, not the hub.** The hub owns *ingestion* of existing PDFs and the corrections round-trip (`deploy_client_db.py`, `pull_corrections.py`). But a marquee in-scope feature is the **catalog-production agent** (currently *in development in CCSJ*) that **synthesizes a new year's catalog** from a prior year + deltas. That is an agentic, LLM-driven authoring workload that belongs in the spoke's FastAPI layer (it's the `CatalogProductionWizard` + `/api/catalog/apply-deltas|publish|remediate` + `src/server/main.py` lineage). So we **port CCSJ's full dual-stack swarm**, not a thin embedding service. (This reverses the C′ idea floated in v3; see Decision C.) Note: embeddings use the **hosted `gemini-embedding-001` API** (CCSJ pattern, no GPU — see Decision I / §3 gotcha #1), so the spoke's Python is for the agent/swarm, not for hosting an embedder.
 
 "Lift-and-adapt" (Decision F) is confirmed and is exactly right given how much of the contract already exists. **One caveat on the production agent: it is a moving target in CCSJ** — we're porting something still being built, so the SJF copy must track CCSJ's version rather than fork it.
 
@@ -36,12 +36,12 @@ Three premises from earlier versions are now **falsified or sharpened by evidenc
                                         │ pond push / corrections pull (Python, on hub)
                                         ▼
    ┌──────────────────── Cloud Supabase (per-tenant SPOKE DB) ────────────────┐
-   │  Postgres + pgvector(1024) + HNSW + RLS (app.current_tenant GUC)          │
+   │  Postgres + pgvector(1536 Gemini) + HNSW + RLS (auth.uid model)          │
    └───────────────────────────────────▲──────────────────────────────────────┘
                                         │ pg / supabase-js
    ┌──────────────────── sjf_catalog (the SPOKE — what we build) ─────────────┐
    │  Next.js 16 / React 19 (lift-and-adapt CCSJ), parameterized by spoke config│
-   │  Reads catalog data; writes flags to `corrections`; RAG assistant (Qwen3) │
+   │  Reads catalog data; writes flags to `corrections`; RAG assistant (Gemini)│
    └───────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -61,7 +61,7 @@ Three premises from earlier versions are now **falsified or sharpened by evidenc
 | F | Build method = lift-and-adapt | ✅ Locked |
 | G | Spoke factory shape | ✅ Locked — **G2 scripted generator** (`scripts/spoke/create-spoke`), harvested while building SJFU |
 | H | Who provisions | ✅ Locked — **Claude provisions** the SJFU cloud Supabase |
-| I | Assistant query embedding | ✅ Locked — **separate FastAPI Qwen3 host** (1024-d), per `BUILD_PLAN.md §7` |
+| I | Embeddings | ✅ Locked — **hosted `gemini-embedding-001` @ 1536** (CCSJ pattern; re-embed chunks + queries, no GPU). *Reversed from the self-hosted-Qwen3 idea after Cloud Run's L4 driver proved too old for vLLM+Qwen3.* See `BUILD_PLAN.md §7`. |
 
 > **Execution detail now lives in `BUILD_PLAN.md`** — the step-by-step runbook (phases P0–P10, per-phase acceptance gates, the schema-assembly include/omit list, the institution-config contract, and the embedding-host API). This section remains the decision/strategy record.
 
@@ -81,7 +81,7 @@ Three premises from earlier versions are now **falsified or sharpened by evidenc
 
 ### 🚧 Live gotchas / risks remaining for Phase 0:
 
-1. **Embeddings are Qwen3-Embedding-8B at `vector(1024)` with an HNSW cosine index.** The runtime RAG assistant **must embed user queries with the same Qwen3 model** or similarity is garbage. OpenAI/Vertex embeddings are incompatible. Options: call the hub's vLLM embedding endpoint, stand up a small Qwen3 embedder for the spoke, or use a hosted Qwen3 endpoint.
+1. **~~Embeddings are Qwen3-Embedding-8B at `vector(1024)`~~ — RESOLVED by adopting CCSJ's pattern (re-embed with Gemini).** The hub stores Qwen3-1024 vectors, but matching them at query time requires self-hosting Qwen3-Embedding-8B on a GPU — and **Cloud Run's L4 driver (CUDA 12.2) can't run a vLLM new enough for Qwen3-Embedding** (verified by a full deploy attempt). CCSJ already solved this: it discards the Spark/Qwen vectors and **re-embeds everything with hosted `gemini-embedding-001` @ 1536**, querying the same way. The SJF spoke does likewise — no GPU, no self-hosted service, one shared Gemini space. (Decision I below; `BUILD_PLAN` §7 + P3.)
 
 2. **RLS mechanism mismatch — RESOLVED in favor of the single-tenant auth model.** The hub schema isolates tenants via `current_setting('app.current_tenant', true)` (multi-tenant hub Postgres). CCSJ's web `db.ts`/`queryWithAuth` instead use `request.jwt.claim.sub` (`auth.uid()`) + `SET LOCAL ROLE authenticated` + a `user_roles` table. Because **each spoke gets its own dedicated single-tenant cloud DB**, we **drop the hub's `app.current_tenant` policies on the spoke** and apply the CCSJ-web `auth.uid()`+`user_roles` policies — which `db.ts` already speaks, unchanged. (The QA's earlier framing of "replace jwt.claim with `app.current_tenant`" is reversed by this.) Proven by `BUILD_PLAN` P5's isolation test. See `BUILD_PLAN` §3 delta #3.
 
@@ -119,12 +119,12 @@ Full CCSJ feature parity. Because the schema is identical, "adaptation" is mostl
 | `DataInspector` (courses/programs/policies) | **Port ~as-is** | Same tables; add grad/undergrad (`domain_id`) filter |
 | `GraphViewer` (prereq + policy graphs) | **Port ~as-is** | Same `course_prerequisite_links` / `policy_mentions_*` tables |
 | `AstExplorer`, `DiagnosticsDashboard` | **Port ~as-is** | Re-point to SJFU; metrics gain a domain dimension |
-| `CatalogAssistantChat` + assistant API | **Port + rewire embeddings** | **Qwen3 query embedding** (gotcha #1) — the one substantive change |
+| `CatalogAssistantChat` + assistant API | **Port ~as-is** | Already uses `gemini-embedding-001`; no rewire needed (gotcha #1 / Decision I) |
 | `DiffLog`, `TrackingDashboard`, `ImprovementPlan` | **Port** | Confirm draft/publish concept maps to SJFU catalogs |
 | **Catalog-production agent** (`CatalogProductionWizard` + `/api/catalog/apply-deltas\|publish\|remediate` + FastAPI) | **Port — flagship feature** | Synthesizes a new year's catalog from prior year + deltas. *In active development in CCSJ — track, don't fork.* Requirement links now populated (gotcha #3 ✅); high-fidelity AND/OR/elective semantics depend on the Option-A vLLM-server fix |
 | Corrections flow | **Port — build UI to existing table** | Insert into `corrections` per §3; never mutate masters |
 | Intake/GCS, `CatalogPdfView` | **Port** | SJFU `gcs_bucket: sjfu-assets` already exists; re-point creds |
-| FastAPI swarm + agents | **Port in full** | Hosts the production agent, remediation, and Qwen3 query embedding for the assistant (Decision C) |
+| FastAPI swarm + agents | **Port in full** | Hosts the production agent + remediation (Decision C). Embeddings are the hosted Gemini API, not the swarm |
 | Auth (`user_roles`, login, RLS) | **Port + reconcile RLS GUC** | Use `app.current_tenant` (gotcha #2) |
 | ~~Accreditation / HLC compliance layer~~ | **🚫 OUT OF SCOPE** | See §5.1 |
 
@@ -143,7 +143,7 @@ SJFU's hub instantiation does **not** subscribe to the accreditor/compliance lay
 ## 6. Phased plan (lift-and-adapt; effort + exit criteria)
 
 ### Phase 0 — Contract verification & provisioning *(hard gate; ~1 day)*
-- Resolve all five §3 gotchas. Specifically: confirm canonical `tenant_id`; confirm SJFU pond is deployable (or trigger re-export on hub); stand up the SJFU cloud Supabase; run `supabase/migrations/`; add SJFU to `deployment_config.yaml`; run `deploy_client_db.py --tenant-id SJFU`; verify row counts per table; decide the Qwen3 query-embedding path.
+- Resolve all five §3 gotchas. Specifically: confirm canonical `tenant_id`; confirm SJFU pond is deployable (or trigger re-export on hub); stand up the SJFU cloud Supabase; run `supabase/migrations/`; add SJFU to `deployment_config.yaml`; run `deploy_client_db.py --tenant-id SJFU`; verify row counts per table. (Embeddings: hosted Gemini — see Decision I; no Qwen3 path to decide.)
 - Write `docs/HUB_SPOKE_CONTRACT.md` + `docs/DATA_CONTRACT.md`.
 - **Exit:** SJFU data is live in a cloud Supabase, per-table counts verified, embedding path chosen. *No app code before this.*
 
@@ -157,7 +157,7 @@ SJFU's hub instantiation does **not** subscribe to the accreditor/compliance lay
 
 ### Phase 3 — Corrections + assistant *(~1–2 days)*
 - Build the correction-flag UI to the existing `corrections` table (RLS-correct, masters untouched).
-- Port `CatalogAssistantChat`; wire Qwen3 query embedding (thin Python service or hub endpoint).
+- Port `CatalogAssistantChat` ~as-is (already uses `gemini-embedding-001`); re-embed chunks with Gemini on load.
 - **Exit:** a flag lands in `corrections`; assistant answers from SJFU chunks with matching vectors.
 
 ### Phase 4 — Remaining parity (wizard, intake, PDF, improvement) *(~1–2 days)*
@@ -186,18 +186,18 @@ SJFU's hub instantiation does **not** subscribe to the accreditor/compliance lay
 
 | Risk | Mitigation |
 |---|---|
-| Qwen3 1024-dim embedding mismatch breaks assistant | Standardize spoke on Qwen3-1024 end-to-end via the dedicated embedding host; `BUILD_PLAN` P3 cosine gate proves shared vector space |
+| Embedding space mismatch breaks assistant | Re-embed stored chunks + queries with the same `gemini-embedding-001` @ 1536 (CCSJ pattern); `BUILD_PLAN` P3 cosine gate proves shared space |
 | Single-tenant RLS reconciliation (drop hub `app.current_tenant`, keep `auth.uid()`+`user_roles`) done wrong → silent empty results *or* over-permissive | `BUILD_PLAN` §3 delta #3 + **P5 automated isolation test** (unauth write rejected, role matrix, cross-tenant 0 rows) as a hard gate |
 | Production-agent fidelity limited by regex-quality requirement semantics (OOM root fix only logged, not fixed) | Route hub ingestion through the standalone vLLM server (Option A) before the agent ships |
 | "Track, don't fork" drift on the shared engine | **Vendor-with-lock** mechanism (`BUILD_PLAN` §4A): `UPSTREAM.lock` + `sync_upstream.py --report`; SJFU deltas only via `overrides/`; extract to a versioned package later |
 | Accreditation/HLC scope creeps back via ported CCSJ components | §5.1 exclusion enforced by an **explicit migration allow-list** (`BUILD_PLAN` §3), not blind directory execution |
-| Backend (FastAPI swarm + Qwen3 host) infra forgotten — only frontend deployed | `BUILD_PLAN` §1 topology + P3/P8 provision both Python hosts near Spark with a cloud→Spark tunnel; P9 injects their URLs |
+| Backend (FastAPI swarm) infra forgotten — only frontend deployed | `BUILD_PLAN` §1 topology + P8 provision the GCP-hosted swarm; embeddings are a hosted API (no host); P9 injects URLs/keys |
 
 ---
 
 ## 9. Status of decisions & remaining asks
 
-**Resolved (hub inspection + Adam's calls — no longer open):** canonical `tenant_id = SJFU`; data loaded & deployable (ponds aren't the deploy source); **`program_requirement_courses` 0→2,402 and `course_prerequisite_links` 46→2,939 fixed by the hub** (gotchas #3/#4 ✅); full Python swarm (C); lift-and-adapt (F); **G2 scripted generator** (G); **Claude provisions** (H); **separate FastAPI Qwen3 embedding host** (I); accreditation omitted from the SJFU schema (§5.1); "track, don't fork" → vendor-with-lock (`BUILD_PLAN` §4A).
+**Resolved (hub inspection + Adam's calls — no longer open):** canonical `tenant_id = SJFU`; data loaded & deployable (ponds aren't the deploy source); **`program_requirement_courses` 0→2,402 and `course_prerequisite_links` 46→2,939 fixed by the hub** (gotchas #3/#4 ✅); full Python swarm (C); lift-and-adapt (F); **G2 scripted generator** (G); **Claude provisions** (H); **hosted `gemini-embedding-001` embeddings** (I — CCSJ pattern, no GPU); accreditation omitted from the SJFU schema (§5.1); "track, don't fork" → vendor-with-lock (`BUILD_PLAN` §4A).
 
 **Still genuinely open (these gate execution — see `BUILD_PLAN` §0/§9):**
 1. **Brand artifact** — Adam supplies `institution.config.yaml` + logo assets at repo root (Decision D). *(BUILD_PLAN gate 0.3)*
