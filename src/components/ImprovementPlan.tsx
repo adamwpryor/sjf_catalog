@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import ImprovementPlanFlow, { type PlanItem } from '@/components/ImprovementPlanFlow';
+import { FEATURES } from '@/lib/brand';
 
 interface ChatMessage {
   id: string;
@@ -115,7 +116,9 @@ export default function ImprovementPlan({ catalogId, catalogs = [], canEdit = fa
     setMessages([{
       id: 'welcome',
       role: 'assistant',
-      content: `Hi — I'm your **Catalog Improvement Assistant**. I review the selected catalog against your accreditor's criteria and turn it into a planning document.\n\nClick **Generate Plan** to draft 2–5 sequenced improvements for each relevant accreditation criterion, mapped out with dependencies on the right. Then select, amend, or schedule each item for a future year. You can also ask me questions about accreditation or specific catalog sections.`,
+      content: FEATURES.accreditation
+        ? `Hi — I'm your **Catalog Improvement Assistant**. I review the selected catalog against your accreditor's criteria and turn it into a planning document.\n\nClick **Generate Plan** to draft 2–5 sequenced improvements for each relevant accreditation criterion, mapped out with dependencies on the right. Then select, amend, or schedule each item for a future year. You can also ask me questions about accreditation or specific catalog sections.`
+        : `Hi — I'm your **Catalog Improvement Assistant**. I review the selected catalog for quality, clarity, and consistency and turn it into a planning document.\n\nClick **Generate Plan** to draft 2–5 sequenced improvements across the catalog's weakest areas, mapped out with dependencies on the right. Then select, amend, or schedule each item for a future year. You can also ask me questions about specific catalog sections.`,
     }]);
   }, [refresh, catalogId]);
 
@@ -247,10 +250,12 @@ export default function ImprovementPlan({ catalogId, catalogs = [], canEdit = fa
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
               Catalog {currentVersion || '—'} · {currentYear}
             </p>
-            <p className={`text-[10px] font-mono tracking-wide mt-0.5 flex items-center gap-1 ${grounding.grounded ? 'text-[#B6CFD6]' : 'text-slate-500'}`}>
-              <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-              {grounding.label}
-            </p>
+            {FEATURES.accreditation && (
+              <p className={`text-[10px] font-mono tracking-wide mt-0.5 flex items-center gap-1 ${grounding.grounded ? 'text-[#B6CFD6]' : 'text-slate-500'}`}>
+                <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                {grounding.label}
+              </p>
+            )}
           </div>
         </div>
 
@@ -312,7 +317,7 @@ export default function ImprovementPlan({ catalogId, catalogs = [], canEdit = fa
               type="text"
               value={chatInput}
               onChange={e => setChatInput(e.target.value)}
-              placeholder="Ask about accreditation or a catalog section…"
+              placeholder={FEATURES.accreditation ? 'Ask about accreditation or a catalog section…' : 'Ask about catalog quality or a specific section…'}
               className="w-full bg-black/50 border border-white/10 rounded-full pl-4 pr-12 py-2.5 text-sm text-white outline-none focus:border-[#B6CFD6]/50 transition-colors"
               disabled={isThinking}
             />

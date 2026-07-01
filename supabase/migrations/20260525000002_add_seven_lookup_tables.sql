@@ -11,7 +11,6 @@ BEGIN;
 -- ------------------------------------------------------------------------------
 INSERT INTO public.institutions (code, name, created_at) VALUES
 ('GLOBAL', 'Global / Shared Accreditation Data', NOW()),
-('CCSJ', 'Calumet College of Saint Joseph', NOW()),
 ('SJFU', 'St. John Fisher University', NOW())
 ON CONFLICT (code) DO NOTHING;
 

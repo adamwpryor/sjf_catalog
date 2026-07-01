@@ -3,7 +3,7 @@
 
 CREATE TABLE institutions (
     id   SERIAL PRIMARY KEY,
-    code TEXT UNIQUE NOT NULL,  -- matches tenant_id values (e.g. 'CCSJ', 'GLOBAL')
+    code TEXT UNIQUE NOT NULL,  -- matches tenant_id values (e.g. 'SJFU', 'GLOBAL')
     name TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -16,10 +16,10 @@ CREATE POLICY "Service role manages institutions"
     ON institutions FOR ALL
     USING (true);
 
--- Seed known institutions
+-- Seed known institutions for this spoke (create-spoke templates the tenant row).
 INSERT INTO institutions (code, name) VALUES
     ('GLOBAL', 'Global / Shared Accreditation Data'),
-    ('CCSJ',   'Cardinal Stritch University');
+    ('SJFU',   'St. John Fisher University');
 
 -- Add institution_id FK to semantic_chunks alongside tenant_id (which stays for RLS)
 ALTER TABLE semantic_chunks

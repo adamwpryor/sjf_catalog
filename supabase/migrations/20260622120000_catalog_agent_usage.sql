@@ -4,7 +4,7 @@
 CREATE TABLE IF NOT EXISTS catalog_agent_usage (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL,
-  tenant_id text NOT NULL DEFAULT 'CCSJ',
+  tenant_id text NOT NULL DEFAULT 'SJFU',
   document_id uuid,
   kind text NOT NULL,                 -- 'propose' | 'apply'
   vision_pages int NOT NULL DEFAULT 0,

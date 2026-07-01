@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { FEATURES } from '@/lib/brand';
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -90,7 +91,7 @@ function InitiativeNode({ data }: NodeProps) {
             className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded uppercase tracking-wider"
             style={{ background: `${color}22`, color }}
           >
-            {[item.accreditor_code, item.criterion_code].filter(Boolean).join(' ') || 'General'}
+            {[FEATURES.accreditation ? item.accreditor_code : null, item.criterion_code].filter(Boolean).join(' ') || 'General'}
           </span>
           <span className="text-[9px] font-mono text-slate-400">{item.target_year || '—'}</span>
         </div>
@@ -295,7 +296,7 @@ function DetailDrawer({ item, currentYear, yearOptions, canEdit, onClose, onPatc
     <div className="absolute top-0 right-0 h-full w-full sm:w-[380px] bg-[#0b0f1d] border-l border-[#B6CFD6]/20 shadow-2xl z-20 flex flex-col animate-in slide-in-from-right duration-200">
       <div className="px-4 py-3 border-b border-white/10 bg-black/40 flex items-center justify-between shrink-0">
         <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded uppercase tracking-wider" style={{ background: `${color}22`, color }}>
-          {[item.accreditor_code, item.criterion_code].filter(Boolean).join(' ') || 'General'} {item.criterion_title ? `· ${item.criterion_title}` : ''}
+          {[FEATURES.accreditation ? item.accreditor_code : null, item.criterion_code].filter(Boolean).join(' ') || 'General'} {item.criterion_title ? `· ${item.criterion_title}` : ''}
         </span>
         <button onClick={onClose} className="text-slate-500 hover:text-white transition-colors">
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
