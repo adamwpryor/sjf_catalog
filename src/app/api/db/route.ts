@@ -72,9 +72,14 @@ export async function POST(req: Request) {
           [tenantId, catalogId]
         );
 
-        // 4. Fetch all program course linkages (Program -> Course)
+        // 4. Fetch all program course linkages (Program -> Course), grouped by requirement.
+        // This is the authoritative, P2-gated `program_requirement_courses` link table; the
+        // curriculum graph builds its Requirement Block -> Course edges from these rows
+        // (DB-first, like get_program_details), falling back to text parsing only when a
+        // program has no relational requirement rows.
         const programRequirementLinks = await query(
-          `SELECT pr.program_id as source, prc.course_id as target, prc.is_required
+          `SELECT pr.program_id as source, prc.course_id as target, prc.is_required,
+                  prc.requirement_id, prc.group_name, prc.or_group_id
            FROM program_requirement_courses prc
            JOIN program_requirements pr ON prc.requirement_id = pr.id
            JOIN courses c ON prc.course_id = c.id
@@ -458,6 +463,76 @@ export async function POST(req: Request) {
           
           // Faculty links are now handled in a separate pass below
 
+
+          // 1b. Authoritative Requirement Blocks (DB-first).
+          // Build Requirement Block -> Course edges from the program_requirement_courses
+          // rows (the P2-gated link table), grouped by requirement + group_name so each
+          // logical requirement renders as one block. is_required comes straight from the
+          // DB flag rather than being guessed from narrative keywords. Only when a program
+          // has zero relational requirement rows do we fall through to the legacy
+          // page-scoping text parser below (mirrors get_program_details / get_program_ast).
+          const authGroups = new Map<string, { reqId: string; groupName: string | null; orGroup: string | null; courses: { courseId: string; isRequired: boolean }[] }>();
+          programRequirementLinks.forEach((l: any) => {
+            if (l.source !== p.id || !courseIdSet.has(l.target)) return;
+            const key = `${l.requirement_id}::${l.group_name || ''}`;
+            if (!authGroups.has(key)) {
+              authGroups.set(key, { reqId: l.requirement_id, groupName: l.group_name, orGroup: l.or_group_id, courses: [] });
+            }
+            authGroups.get(key)!.courses.push({ courseId: l.target, isRequired: l.is_required !== false });
+          });
+
+          if (authGroups.size > 0) {
+            const reqById = new Map<string, any>(programRequirements.map((r: any) => [r.id, r]));
+            let aBlockIdx = 0;
+            authGroups.forEach((grp) => {
+              aBlockIdx++;
+              const blockNodeId = `block_${p.id}_${aBlockIdx}`;
+              const req: any = reqById.get(grp.reqId);
+              let title = (grp.groupName || (req && req.degree_name) || '').trim();
+              if ((!title || title.length < 3) && req && req.logic_tree) {
+                const firstLine = String(req.logic_tree).split('\n')[0];
+                const m = firstLine.match(/Header\s*\d+:\s*([^\]>\n]+)/);
+                if (m) title = m[1].trim();
+              }
+              if (!title || title.length < 3) title = `Requirement Block ${aBlockIdx}`;
+
+              // OR-groups and any-optional membership render as a CHOOSE_N block; an
+              // all-required group is ALL_OF. required_value is left 0 (unknown N).
+              const anyOptional = grp.courses.some((c) => !c.isRequired);
+              const logicType = grp.orGroup || anyOptional ? 'CHOOSE_N' : 'ALL_OF';
+
+              nodes.push({
+                id: blockNodeId,
+                label: title.substring(0, 25) + (title.length > 25 ? '...' : ''),
+                title,
+                description: `Requirement group for ${p.name}.`,
+                group: 'block',
+                logic_type: logicType,
+                required_value: 0
+              });
+
+              links.push({
+                source: `program_${p.id}`,
+                target: blockNodeId,
+                type: 'GOVERNS',
+                is_required: !anyOptional
+              });
+
+              const seenCourse = new Set<string>();
+              grp.courses.forEach((c) => {
+                if (seenCourse.has(c.courseId)) return;
+                seenCourse.add(c.courseId);
+                links.push({
+                  source: blockNodeId,
+                  target: `course_${c.courseId}`,
+                  type: 'BELONGS_TO',
+                  is_required: c.isRequired
+                });
+              });
+            });
+            // Authoritative blocks built for this program; skip the legacy text parser.
+            return;
+          }
 
           // 2. Parse Requirement Blocks dynamically via in-memory page-scoping
           const pReqs = programRequirements.filter((r: any) => r.program_id === p.id);
