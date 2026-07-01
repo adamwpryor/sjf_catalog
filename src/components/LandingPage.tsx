@@ -40,15 +40,15 @@ export default function LandingPage({ onTabChange, catalogId }: LandingPageProps
           <div className="pt-4 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs md:text-sm font-semibold uppercase tracking-widest text-[#B6CFD6] font-serif-title">
             <span className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-[#8C2232] shadow-glow"></span>
-              Be Known
+              Browse
             </span>
             <span className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-slate-500"></span>
-              Be Successful
+              Analyze
             </span>
             <span className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-[#B6CFD6]"></span>
-              Belong
+              Improve
             </span>
           </div>
         </div>

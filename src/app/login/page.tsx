@@ -232,11 +232,11 @@ export default function LoginPage() {
 
         {/* Tagline footer */}
         <div className="text-center mt-8 text-xs text-slate-500 uppercase tracking-widest font-semibold font-serif-title flex items-center justify-center gap-4">
-          <span>Be Known</span>
+          <span>Browse</span>
           <span className="w-1.5 h-1.5 bg-[#8C2232] rounded-full"></span>
-          <span>Be Successful</span>
+          <span>Analyze</span>
           <span className="w-1.5 h-1.5 bg-[#B6CFD6] rounded-full"></span>
-          <span>Belong</span>
+          <span>Improve</span>
         </div>
       </div>
     </div>
