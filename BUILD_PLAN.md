@@ -13,7 +13,7 @@
 | # | Check | Must be true |
 |---|---|---|
 | 0.1 | Hub reachable | `ssh … adamwpryor@spark-6284.local hostname` → `spark-6284` |
-| 0.2 | Hub data verified | SJFU live counts confirmed. ⚠️ **Now superseded** by the AIP-parity upgrade (`docs/HUB_UPGRADE_AIP_PARITY.md`): programs over-extracted (1,203, AIP≈99/yr), prereqs under-extracted, no logic blocks. **Hold P2 data-load until the hub block-model upgrade lands** so we load the corrected data once. |
+| 0.2 | Hub data verified | ✅ **Resolved.** AIP-parity upgrade landed (`docs/HUB_UPGRADE_AIP_PARITY.md`): program de-dup (1,203→601), prereq/requirement logic blocks present. Data was loaded **once** from the corrected hub; live counts re-baselined in `docs/DATA_CONTRACT.md` (2026-07-01). |
 | 0.3 | **Brand artifact present** | ✅ `institution.config.yaml` created — Cardinal Red `#993333`, Gold `#FFCC33`, Book Antiqua/Libre Franklin fonts. ⏳ **Logo files pending** (SJF requires a Logo Request form; gates final P9 polish only, not the build). |
 | 0.4 | Spoke Supabase project | ✅ **`zkoimkcctqigisfeqlpv`** ("SJF-Catalog-Project", us-east-2) — fresh, **empty**, confirmed clean. This is the spoke target (NOT the AIP project `thsrwztyvqjkhcfzapnl`). Claude provisions schema into it. Still needs: the service/anon keys + `DATABASE_URL` in a secret channel for `db.ts`/migrations. |
 | 0.5 | Embeddings | ✅ **Hosted `gemini-embedding-001` @ 1536** (matches CCSJ; no GPU, no self-hosted service). The spoke re-embeds hub chunks with Gemini on load and queries with Gemini — one shared vector space. *(Supersedes the abandoned self-hosted Qwen3 plan: Cloud Run's L4 driver (CUDA 12.2) can't run a vLLM new enough for Qwen3-Embedding.)* Needs `GEMINI_API_KEY` in the secret store. |
@@ -151,8 +151,8 @@ Built incrementally **while** doing SJFU, then hardened in P10. Location: `scrip
 
 ### P2 — Load SJFU data + data-quality gates *(needs hub SSH)*
 - **Actions:** add SJFU to hub `deployment_config.yaml` (gitignored, on hub); `create-spoke --phase load` → runs `deploy_client_db.py --tenant-id SJFU`.
-- **Gate (hard):** cloud counts match hub within tolerance and the **fixed link tables are non-zero**:
-  `courses≈5923`, `programs≈1203`, `program_requirements≈932`, **`program_requirement_courses≈2402`**, **`course_prerequisite_links≈2939`**, `semantic_chunks≈34570`, `documents`=8 (grad+undergrad×4yr). (Chunk `embedding` is cleared to `vector(1536)` by the schema; it gets re-populated by Gemini in P3 — so don't gate on hub vectors here.) *This gate is the contract-boundary check that the silent-degradation class (IMPLEMENTATION_PLAN §3) cannot recur.*
+- **Gate (hard):** cloud counts match hub within tolerance and the **fixed link tables are non-zero**. Re-baselined **2026-07-01** to the post-AIP-parity hub (see `docs/DATA_CONTRACT.md` for the authoritative table; captured live from `zkoimkcctqigisfeqlpv`):
+  `courses≈6397`, `programs≈601` (de-duped from 1203), `program_requirements≈705`, **`program_requirement_courses≈1366`**, **`course_prerequisite_links≈3527`**, `semantic_chunks≈39544`, `documents`=8 (grad+undergrad×4yr). (Chunk `embedding` is cleared to `vector(1536)` by the schema; it gets re-populated by Gemini in P3 — so don't gate on hub vectors here.) *This gate is the contract-boundary check that the silent-degradation class (IMPLEMENTATION_PLAN §3) cannot recur — the invariant is that both link tables are non-zero.* *(Pre-upgrade baseline was courses≈5923/programs≈1203/prc≈2402/cpl≈2939/chunks≈34570 — superseded.)*
 - **Rollback:** truncate SJFU tables in cloud; re-run load.
 
 ### P3 — Re-embed chunks with `gemini-embedding-001` (CCSJ pattern; no GPU)
