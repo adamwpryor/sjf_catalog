@@ -31,13 +31,8 @@ def hash_file(file_path: Path) -> str:
             h.update(chunk)
     return h.hexdigest()
 
-def sync_upstream(upstream_path: Path, source_rel_path: str, target_dir: Path, lock_file: Path, report_only: bool = False):
+def sync_upstream(upstream_path: Path, source_rel_paths: list, target_dir: Path, lock_file: Path, report_only: bool = False):
     """Sync files from upstream and update lock file."""
-    source_dir = upstream_path / source_rel_path
-    if not source_dir.exists():
-        print(f"Error: Upstream source {source_dir} does not exist.", file=sys.stderr)
-        sys.exit(1)
-
     upstream_commit = get_git_commit(upstream_path)
 
     # Load existing lock file if it exists
@@ -82,34 +77,41 @@ def sync_upstream(upstream_path: Path, source_rel_path: str, target_dir: Path, l
 
     print(f"Vendoring from {upstream_path} at commit {upstream_commit}...")
 
-    # Copy files
-    for root, dirs, files in os.walk(source_dir):
-        # Skip pycache
-        if '__pycache__' in dirs:
-            dirs.remove('__pycache__')
-            
-        for file in files:
-            if not file.endswith('.py'):
-                continue
+    for source_rel_path in source_rel_paths:
+        source_dir = upstream_path / source_rel_path
+        if not source_dir.exists():
+            print(f"Warning: Upstream source {source_dir} does not exist.", file=sys.stderr)
+            continue
+
+        # Copy files
+        for root, dirs, files in os.walk(source_dir):
+            # Skip pycache
+            if '__pycache__' in dirs:
+                dirs.remove('__pycache__')
                 
-            src_file = Path(root) / file
-            rel_path = src_file.relative_to(upstream_path)
-            
-            # Destination path inside vendor dir
-            # e.g. services/swarm/vendor/main.py
-            dest_rel_path = src_file.relative_to(source_dir)
-            dest_file = target_dir / dest_rel_path
-            
-            os.makedirs(dest_file.parent, exist_ok=True)
-            shutil.copy2(src_file, dest_file)
-            
-            new_lock_data['files'].append({
-                "upstream_path": str(rel_path).replace("\\", "/"),
-                "vendored_path": str(dest_rel_path).replace("\\", "/"),
-                "commit": upstream_commit,
-                "hash": hash_file(src_file)
-            })
-            print(f"  Vendored: {rel_path}")
+            for file in files:
+                if not file.endswith('.py'):
+                    continue
+                    
+                src_file = Path(root) / file
+                rel_path = src_file.relative_to(upstream_path)
+                
+                # Destination path inside vendor dir
+                dest_rel_path = src_file.relative_to(upstream_path)
+                # Note: dest_rel_path will be something like "src/server/main.py". 
+                # We want it inside target_dir as "src/server/main.py"
+                dest_file = target_dir / dest_rel_path
+                
+                os.makedirs(dest_file.parent, exist_ok=True)
+                shutil.copy2(src_file, dest_file)
+                
+                new_lock_data['files'].append({
+                    "upstream_path": str(rel_path).replace("\\", "/"),
+                    "vendored_path": str(dest_rel_path).replace("\\", "/"),
+                    "commit": upstream_commit,
+                    "hash": hash_file(src_file)
+                })
+                print(f"  Vendored: {rel_path}")
 
     with open(lock_file, 'w') as f:
         json.dump(new_lock_data, f, indent=2)
@@ -127,10 +129,10 @@ def main():
     target_dir = workspace_root / "services" / "swarm" / "vendor"
     lock_file = workspace_root / "services" / "swarm" / "UPSTREAM.lock"
     
-    # We want to vendor src/server from ccsj-catalog
+    # We want to vendor src/server and src/utils from ccsj-catalog
     sync_upstream(
         upstream_path=Path(args.upstream),
-        source_rel_path="src/server",
+        source_rel_paths=["src/server", "src/utils"],
         target_dir=target_dir,
         lock_file=lock_file,
         report_only=args.report

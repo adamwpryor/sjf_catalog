@@ -26,6 +26,7 @@ dependencies:
       - python-json-logger   # JSON structured logging
       - gitpython            # git commit/branch metadata in logs
       - requests
+      - google-genai         # Google Cloud Vertex AI natively
       - ruff                 # lint
       - mypy                 # type-check
       - black                # format

@@ -1,0 +1,12 @@
+{
+  "source_repo": "ccsj-catalog",
+  "last_sync_commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
+  "files": [
+    {
+      "upstream_path": "src/server/main.py",
+      "vendored_path": "main.py",
+      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
+      "hash": "dae27ba528c25319122f196095125f5f68133418f940a6ea261dfe478f70a8e8"
+    }
+  ]
+}
