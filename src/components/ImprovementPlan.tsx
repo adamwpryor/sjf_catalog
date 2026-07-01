@@ -60,7 +60,7 @@ function buildYearOptions(currentYear: string, count = 5): string[] {
 
 /**
  * Catalog Improvement Plan tab: a Catalog Improvement Assistant (left) that
- * generates and explains HLC-aligned recommendations, feeding a persistent,
+ * generates and explains quality-aligned recommendations, feeding a persistent,
  * multi-year dependency flowchart — the Catalog Improvement Plan (right).
  */
 export default function ImprovementPlan({ catalogId, catalogs = [], canEdit = false }: ImprovementPlanProps) {
@@ -123,7 +123,7 @@ export default function ImprovementPlan({ catalogId, catalogs = [], canEdit = fa
   const handleGenerate = async () => {
     if (!catalogId) return;
     setGenerating(true);
-    setMessages(prev => [...prev, { id: Date.now().toString(), role: 'assistant', content: '_Scanning the catalog against HLC criteria and drafting a sequenced plan…_' }]);
+    setMessages(prev => [...prev, { id: Date.now().toString(), role: 'assistant', content: '_Scanning the catalog against quality criteria and drafting a sequenced plan…_' }]);
     try {
       const res = await fetch('/api/improvement-plan', {
         method: 'POST',
@@ -135,12 +135,12 @@ export default function ImprovementPlan({ catalogId, catalogs = [], canEdit = fa
         const next: PlanItem[] = data.plans || [];
         setPlans(next);
         const suggested = next.filter(p => p.plan_state === 'suggested').length;
-        const crits = Array.from(new Set(next.map(p => p.hlc_criterion).filter(Boolean)));
+        const crits = Array.from(new Set(next.map(p => p.criterion_code).filter(Boolean)));
         setMessages(prev => [...prev, {
           id: Date.now().toString() + 'r',
           role: 'assistant',
           content: suggested > 0
-            ? `Done. I drafted **${suggested} improvement${suggested === 1 ? '' : 's'}** across **${crits.length} HLC criteria** (${crits.join(', ')}). They're on the map to the right with dependencies drawn in. Click any card to see the rationale, get a detailed explanation, or schedule it.`
+            ? `Done. I drafted **${suggested} improvement${suggested === 1 ? '' : 's'}** across **${crits.length} improvement criteria** (${crits.join(', ')}). They're on the map to the right with dependencies drawn in. Click any card to see the rationale, get a detailed explanation, or schedule it.`
             : `I couldn't draft new suggestions right now — please confirm an AI provider is configured on the server. Your existing plan items are unchanged.`,
         }]);
       } else {
@@ -330,7 +330,7 @@ export default function ImprovementPlan({ catalogId, catalogs = [], canEdit = fa
           <div>
             <h2 className="text-xl font-bold text-white serif-title">Catalog Improvement Plan</h2>
             <p className="text-xs text-slate-400 font-medium mt-1">
-              A multi-year, dependency-mapped plan of HLC-aligned catalog improvements. Items stay here until you select or amend them.
+              A multi-year, dependency-mapped plan of quality-aligned catalog improvements. Items stay here until you select or amend them.
             </p>
           </div>
           <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#8C2232]/10 border border-[#8C2232]/30">
@@ -376,7 +376,7 @@ interface ManualAddModalProps {
 /** Modal for manually adding an improvement item to the plan. */
 function ManualAddModal({ yearOptions, currentYear, catalogId, onClose, onSaved }: ManualAddModalProps) {
   const [form, setForm] = useState({
-    title: '', description: '', hlc_criterion: '', category: 'Policy',
+    title: '', description: '', criterion_code: '', category: 'Policy',
     status: 'planned', target_year: currentYear,
   });
   const [saving, setSaving] = useState(false);
@@ -413,8 +413,8 @@ function ManualAddModal({ yearOptions, currentYear, catalogId, onClose, onSaved 
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-[10px] font-bold text-[#B6CFD6] uppercase tracking-widest mb-1 font-mono">HLC Criterion</label>
-              <input value={form.hlc_criterion} onChange={e => setForm({ ...form, hlc_criterion: e.target.value })}
+              <label className="block text-[10px] font-bold text-[#B6CFD6] uppercase tracking-widest mb-1 font-mono">Criterion</label>
+              <input value={form.criterion_code} onChange={e => setForm({ ...form, criterion_code: e.target.value })}
                 className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-white outline-none focus:border-[#8C2232]" placeholder="e.g. 2.A" />
             </div>
             <div>

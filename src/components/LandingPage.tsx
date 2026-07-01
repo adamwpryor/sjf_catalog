@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { INSTITUTION } from '@/lib/brand';
 
 interface LandingPageProps {
   onTabChange: (tab: string) => void;
@@ -32,7 +33,7 @@ export default function LandingPage({ onTabChange, catalogId }: LandingPageProps
           </h2>
           
           <p className="text-slate-400 text-sm md:text-base leading-relaxed font-medium">
-            Welcome to the Calumet College of St. Joseph catalog auditing dashboard. Explore structural course pathways, program requirements, and check catalog errors easily.
+            Welcome to the {INSTITUTION.legalName} catalog auditing dashboard. Explore structural course pathways, program requirements, and check catalog errors easily.
           </p>
 
           {/* Glowing Branded Taglines */}

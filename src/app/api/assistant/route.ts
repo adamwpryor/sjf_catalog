@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { query, queryWithAuth } from '@/lib/db';
 import { createClient } from '@/utils/supabase/server';
+import { TENANT_ID, INSTITUTION } from '@/lib/brand';
 import { getGcpCredentials } from '@/lib/llm';
 
 /**
@@ -47,7 +48,7 @@ function isReadOnlyQuery(sql: string): boolean {
  * @returns An object containing the target course and its impacted courses and programs.
  */
 async function getCourseBlastRadius(courseCode: string, catalogId: string) {
-  const tenantId = 'CCSJ';
+  const tenantId = TENANT_ID;
   const cleanCode = courseCode.toUpperCase().trim().replace('-', ' ');
   
   // Find course first
@@ -100,7 +101,7 @@ async function getCourseBlastRadius(courseCode: string, catalogId: string) {
  * @returns An object detailing the course and its multi-hop prerequisites.
  */
 async function getPrerequisiteTree(courseCode: string, catalogId: string) {
-  const tenantId = 'CCSJ';
+  const tenantId = TENANT_ID;
   const cleanCode = courseCode.toUpperCase().trim().replace('-', ' ');
   
   // Find course first
@@ -521,7 +522,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing message or catalogId." }, { status: 400 });
     }
 
-    const tenantId = 'CCSJ';
+    const tenantId = TENANT_ID;
     const terminalLogs: any[] = [];
 
     // Resolve pooled GCP credentials (OIDC workload identity, private key, or local ADC)
@@ -620,7 +621,7 @@ export async function POST(req: Request) {
         ? retrievedChunks.map((c, idx) => `[Chunk ${idx + 1} - ${c.section_header || 'Narrative'}]:\n${c.content}`).join('\n\n')
         : "No specific catalog chunks found for this query.";
 
-      const systemPrompt = `You are the AI Catalog Assistant for Calumet College of St. Joseph (CCSJ) (Mode: STRICT RAG).
+      const systemPrompt = `You are the AI Catalog Assistant for ${INSTITUTION.legalName} (Mode: STRICT RAG).
 Your task is to answer user questions about courses, credits, and policies.
 You MUST answer user questions based STRICTLY on the official academic policies, course details, and program requirements provided in the Grounded Catalog Chunks below.
 Do not assume or hallucinate. Scan ALL the provided chunks to compile a complete, comprehensive, and exhaustive list of all answers to the user's question (for example, if asked what programs require or list a course, trace every program requirement chunk provided and list every match found).
@@ -632,8 +633,6 @@ IMPORTANT CITATION RULE: Whenever you reference a specific policy code (e.g., FR
 - Requested Answer Format: ${intent.answerShape || 'Narrative'}
 - Exclusions/Negations to honor: ${intent.negations.join(', ') || 'None'}
 
-CCSJ Brand Values:
-- Be Known. Be Successful. Belong.
 Keep your tone academic, helpful, professional, and slightly warm.
 
 Grounded Catalog Chunks:
@@ -840,9 +839,9 @@ ${contextText}`;
         }
       };
 
-      const systemPrompt = `You are the AI Catalog Assistant Agent for Calumet College of St. Joseph (CCSJ) (Mode: General Reasoning).
+      const systemPrompt = `You are the AI Catalog Assistant Agent for ${INSTITUTION.legalName} (Mode: General Reasoning).
 IMPORTANT: You are assisting the user with Catalog Version ID: ${catalogId}.
-When executing custom database queries, you MUST strictly filter by document_id = ${catalogId} and tenant_id = 'CCSJ' to prevent bleeding across catalogs.
+When executing custom database queries, you MUST strictly filter by document_id = ${catalogId} and tenant_id = '${TENANT_ID}' to prevent bleeding across catalogs.
 
 Core Available Tables:
 - courses: Master course catalogs (id, course_code, title, credits, description, document_id)
@@ -866,7 +865,7 @@ IMPORTANT CITATION RULE: Whenever you reference a specific policy code or course
           functionDeclarations: [
             {
               name: "query_catalog_database",
-              description: "Execute a SELECT read-only SQL query against the Calumet College database to explore courses, programs, or policies. Always include 'document_id = <catalogId>' filter.",
+              description: "Execute a SELECT read-only SQL query against the catalog database to explore courses, programs, or policies. Always include 'document_id = <catalogId>' filter.",
               parameters: {
                 type: "OBJECT",
                 properties: {
@@ -913,7 +912,7 @@ IMPORTANT CITATION RULE: Whenever you reference a specific policy code or course
       // Execute Agent Loop (up to 8 turns)
       let turn = 0;
       const maxTurns = 8;
-      let agentConversation: any[] = [
+      const agentConversation: any[] = [
         ...history.slice(-10).map((h: any) => ({
           role: h.role === 'user' ? 'user' : 'model',
           parts: [{ text: h.content }]

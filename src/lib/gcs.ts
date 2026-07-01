@@ -1,4 +1,5 @@
 import { Storage } from '@google-cloud/storage';
+import { GCS_BUCKET } from '@/lib/brand';
 
 /**
  * Securely exchanges Vercel's dynamic OIDC token for a Google STS federated token.
@@ -136,15 +137,9 @@ export async function getStorageClient(req?: Request): Promise<Storage> {
 }
 
 /**
- * Retrieves the base bucket name, defaulting to 'ccsj-catalog-assets' or resolving legacy mappings.
+ * Retrieves the base bucket name, defaulting to the institution's configured
+ * asset bucket (`GCS_BUCKET`), overridable per-call or via `GCP_BUCKET_NAME`.
  */
 export function resolveBucketName(overrideName?: string): string {
-  let bucketName = overrideName || process.env.GCP_BUCKET_NAME || 'ccsj-catalog-assets';
-  
-  if (bucketName === 'ccsj-assets') {
-    console.log(`[GCS SDK] Translating legacy bucket name "ccsj-assets" to "ccsj-catalog-assets"`);
-    bucketName = 'ccsj-catalog-assets';
-  }
-  
-  return bucketName;
+  return overrideName || process.env.GCP_BUCKET_NAME || GCS_BUCKET;
 }

@@ -15,7 +15,7 @@
  * @returns An object containing the GCP projectId, location, and an access token.
  */
 export async function getGcpCredentials(req: Request) {
-  const gcpProjectId = process.env.GCP_PROJECT_ID || 'ccsj-catalog-app';
+  const gcpProjectId = process.env.GCP_PROJECT_ID || 'sjf-catalog-app';
   const gcpLocation = process.env.GCP_LOCATION || 'us-central1';
   let accessToken = process.env.VERTEX_AI_ACCESS_TOKEN || '';
 

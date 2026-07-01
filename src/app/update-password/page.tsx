@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
+import { INSTITUTION } from '@/lib/brand';
 
 /**
  * Renders the update password page.
@@ -62,7 +63,7 @@ export default function UpdatePasswordPage() {
             Set Your Password
           </h1>
           <p className="text-sm text-slate-400 mt-3 font-medium">
-            Welcome to the CCSJ Ingestion Portal.
+            Welcome to the {INSTITUTION.appTitle} Portal.
           </p>
         </div>
 

@@ -1,17 +1,18 @@
--- Catalog Improvement Plans: persistent, multi-year, HLC-aligned improvement
+-- Catalog Improvement Plans: persistent, multi-year, quality-aligned improvement
 -- initiatives with dependency mapping. Replaces the previous hardcoded prototype.
+-- Criterion columns are accreditor-neutral (accreditation UI is feature-gated).
 
 CREATE TABLE IF NOT EXISTS public.improvement_plans (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id text NOT NULL DEFAULT 'CCSJ',
+  tenant_id text NOT NULL DEFAULT 'SJFU',
   catalog_id uuid,                          -- source catalog the plan was generated against
   title text NOT NULL,
   description text,
   rationale text,                           -- short AI link: recommendation -> criterion
   ai_detail text,                           -- cached deeper explanation (lazy generated)
   category text,
-  hlc_criterion text,                       -- e.g. '2.A'
-  hlc_criterion_title text,
+  criterion_code text,                      -- generic criterion code (any framework), e.g. '2.A'
+  criterion_title text,
   status text NOT NULL DEFAULT 'planned'
     CHECK (status IN ('planned', 'in_progress')),   -- never 'completed'
   target_year text,

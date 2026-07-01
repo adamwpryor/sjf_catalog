@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import ReportErrorModal from './ReportErrorModal';
+import { INSTITUTION, TENANT_ID, GCS_BUCKET } from '@/lib/brand';
 
 // Helper to compile beautiful fallback markdown for a program when GCS is private or 403s
 /**
@@ -17,7 +18,7 @@ const compileProgramFallbackMarkdown = (program: any, details: any) => {
   if (!program) return '';
 
   let md = `> [!NOTE]
-> **Database Fallback:** The high-fidelity markdown curriculum guide could not be retrieved from the GCS bucket (\`ccsj-assets\`). Displaying live records compiled dynamically from the Calumet College of St. Joseph catalog database.
+> **Database Fallback:** The high-fidelity markdown curriculum guide could not be retrieved from the GCS bucket (\`${GCS_BUCKET}\`). Displaying live records compiled dynamically from the ${INSTITUTION.legalName} catalog database.
 
 # ${program.name || 'Academic Program'}
 
@@ -111,7 +112,7 @@ const compilePolicyFallbackMarkdown = (chunk: any) => {
 ${chunk.content || '*No content available for this section.*'}
 
 ---
-*Source: Calumet College of St. Joseph catalog records (Page ${chunk.page_number || 'N/A'})*
+*Source: ${INSTITUTION.legalName} catalog records (Page ${chunk.page_number || 'N/A'})*
 `;
 };
 
@@ -266,13 +267,13 @@ export default function DataInspector({ catalogId, initialView }: DataInspectorP
         targetUrl = selectedEntity.markdown_url;
       } else if (currentPage !== null) {
         const paddedPage = String(currentPage).padStart(4, '0');
-        targetUrl = `gs://ccsj-catalog-assets/${currentCatalogVersion}-CCSJ-Catalog/page_${paddedPage}.md`;
+        targetUrl = `gs://${GCS_BUCKET}/${currentCatalogVersion}-${TENANT_ID}-Catalog/page_${paddedPage}.md`;
       }
 
       if (!targetUrl) {
         setMarkdownError(
           view === 'programs'
-            ? `No Markdown Guide URL linked yet. Set the "markdown_url" column in Supabase programs table (e.g. gs://ccsj-assets/catalogs/${currentCatalogVersion}/programs/...).`
+            ? `No Markdown Guide URL linked yet. Set the "markdown_url" column in Supabase programs table (e.g. gs://${GCS_BUCKET}/catalogs/${currentCatalogVersion}/programs/...).`
             : `No GCS Page URL linked. Add "markdown_url" in Supabase, or ensure a "page_number" is defined on the semantic chunk.`
         );
         setMarkdownLoading(false);
@@ -301,7 +302,7 @@ export default function DataInspector({ catalogId, initialView }: DataInspectorP
           setMarkdownError(null);
         } else {
           setMarkdownError(
-            `Could not load document from GCS: ${err.message}. \n\nEnsure the GCS bucket "ccsj-assets" is set to public-read access and your markdown file exists at: \n${targetUrl}`
+            `Could not load document from GCS: ${err.message}. \n\nEnsure the GCS bucket "${GCS_BUCKET}" is set to public-read access and your markdown file exists at: \n${targetUrl}`
           );
         }
       } finally {

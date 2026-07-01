@@ -3,6 +3,7 @@ import { query } from '@/lib/db';
 import { createClient } from '@/utils/supabase/server';
 import { getStorageClient, resolveBucketName } from '@/lib/gcs';
 import { buildCatalogHtml, renderCatalogPdf, getCatalogMeta } from '@/lib/catalogPdf';
+import { TENANT_ID } from '@/lib/brand';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
@@ -33,12 +34,12 @@ export async function GET(req: Request) {
 
   const stored = (await query('SELECT catalog_pdf_url FROM documents WHERE id = $1', [catalogId]))[0]?.catalog_pdf_url;
   const filenameSlug = meta.version.replace(/[^a-zA-Z0-9]+/g, '-').toLowerCase() + (meta.isDraft ? '-draft' : '');
-  const disposition = `${download ? 'attachment' : 'inline'}; filename="ccsj-catalog-${filenameSlug}.pdf"`;
+  const disposition = `${download ? 'attachment' : 'inline'}; filename="${TENANT_ID.toLowerCase()}-catalog-${filenameSlug}.pdf"`;
 
   try {
     // Use the stored published PDF when available and not explicitly regenerating a non-draft.
     if (stored && !fresh && !meta.isDraft) {
-      let raw = String(stored).replace(/^gs:\/\//, '');
+      const raw = String(stored).replace(/^gs:\/\//, '');
       const slash = raw.indexOf('/');
       const bucketName = raw.startsWith('catalogs/') || slash === -1 ? resolveBucketName() : resolveBucketName(raw.substring(0, slash));
       const filePath = raw.startsWith('catalogs/') || slash === -1 ? raw : raw.substring(slash + 1);

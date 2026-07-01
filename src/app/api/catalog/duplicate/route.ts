@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { query, getClient } from '@/lib/db';
 import { createClient } from '@/utils/supabase/server';
+import { TENANT_ID } from '@/lib/brand';
 import { randomUUID } from 'crypto';
 
 /**
@@ -44,7 +45,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Missing required fields." }, { status: 400 });
   }
 
-  const tenantId = 'CCSJ';
+  const tenantId = TENANT_ID;
   const newCatalogId = randomUUID();
 
   const client = await getClient();

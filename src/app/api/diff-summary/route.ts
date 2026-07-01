@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { callLLM } from '@/lib/llm';
+import { INSTITUTION } from '@/lib/brand';
 
 /**
  * A single field-level change between two catalog versions, as computed by the
@@ -60,7 +61,7 @@ The following fields differ between the two catalog versions:
 ${lines.join('\n\n')}`;
 }
 
-const EDITORIAL_SYSTEM_PROMPT = `You are an editorial assistant helping a non-technical college catalog editor at Calumet College of St. Joseph review changes between two catalog versions.
+const EDITORIAL_SYSTEM_PROMPT = `You are an editorial assistant helping a non-technical college catalog editor at ${INSTITUTION.legalName} review changes between two catalog versions.
 
 You will be given the field-level differences for a single course, program, or policy. Write a short, plain-language editorial review aimed at a reader who is NOT technical. Structure your response in Markdown with exactly these sections:
 

@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server';
 import { query, getClient } from '@/lib/db';
 import { createClient } from '@/utils/supabase/server';
+import { TENANT_ID } from '@/lib/brand';
 import { randomUUID } from 'crypto';
 import { norm, extractCodes, auditDocument } from '@/app/api/catalog/audit/route';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 120;
 
-const TENANT = 'CCSJ';
+const TENANT = TENANT_ID;
 
 const numberOf = (code: string) => norm(code).split(' ')[1] || '';
 const prefixOf = (code: string) => norm(code).split(' ')[0] || '';

@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 import { query, queryWithAuth } from '@/lib/db';
 import { createClient } from '@/utils/supabase/server';
+import { TENANT_ID, FEATURES } from '@/lib/brand';
 import { callLLM, extractJson, getGcpCredentials } from '@/lib/llm';
 import { retrieveGroundedChunks } from '@/app/api/assistant/route';
 
-const TENANT_ID = 'CCSJ';
 const WRITE_ROLES = ['admin', 'registrar', 'owner'];
 
 /** A normalized improvement-plan row as stored/returned. */
@@ -17,8 +17,8 @@ interface PlanRow {
   ai_detail: string | null;
   category: string | null;
   accreditor_code: string | null;
-  hlc_criterion: string | null;        // generic criterion code (any accreditor)
-  hlc_criterion_title: string | null;  // generic criterion title (any accreditor)
+  criterion_code: string | null;        // generic criterion code (any accreditor)
+  criterion_title: string | null;  // generic criterion title (any accreditor)
   status: string;
   target_year: string | null;
   plan_state: string;
@@ -54,7 +54,7 @@ interface AccreditorDoc {
 }
 
 const SELECT_COLS = `id, catalog_id, title, description, rationale, ai_detail, category,
-  accreditor_code, hlc_criterion, hlc_criterion_title, status, target_year, plan_state,
+  accreditor_code, criterion_code, criterion_title, status, target_year, plan_state,
   depends_on, node_x, node_y, source`;
 
 /**
@@ -93,6 +93,9 @@ async function listPlans(userId: string): Promise<PlanRow[]> {
  * @returns The accreditors with a count of how many criteria are loaded.
  */
 async function resolveAccreditors(userId: string): Promise<AccreditorInfo[]> {
+  // Accreditation schema (accreditors / accreditation_criteria / compliance_obligations)
+  // is omitted from spokes with accreditation disabled — never query it there.
+  if (!FEATURES.accreditation) return [];
   const all: AccreditorInfo[] = await queryWithAuth(
     `SELECT a.id, a.code, a.name,
             (SELECT count(*)::int FROM accreditation_criteria c WHERE c.accreditor_id = a.id) AS criteria_count,
@@ -134,6 +137,7 @@ async function resolveAccreditors(userId: string): Promise<AccreditorInfo[]> {
  * @returns One reference document per accreditor code, newest first.
  */
 async function resolveAccreditorDocuments(userId: string): Promise<AccreditorDoc[]> {
+  if (!FEATURES.accreditation) return [];
   return await queryWithAuth(
     `SELECT DISTINCT ON (a.code) a.code, a.name, d.id AS document_id
      FROM accreditors a
@@ -187,7 +191,7 @@ async function fetchAccreditorReference(
  * @returns The criterion rows (capped to a prompt-safe size).
  */
 async function fetchCriteria(userId: string, accreditorIds: string[]): Promise<CriterionRow[]> {
-  if (accreditorIds.length === 0) return [];
+  if (!FEATURES.accreditation || accreditorIds.length === 0) return [];
   return await queryWithAuth(
     `SELECT a.code AS accreditor_code, c.standard_code, c.title, c.description, c.hierarchy_level
      FROM accreditation_criteria c
@@ -255,9 +259,9 @@ Return ONLY a single valid JSON object with this exact shape:
       "title": "string (short, action-oriented)",
       "description": "string (1-3 sentences on the concrete catalog change)",
       "category": "Formatting | Organizational | Policy | Accessibility | Assessment",
-      "accreditor_code": "string (the accreditor code, e.g. 'HLC')",
-      "hlc_criterion": "string (the criterion's standard code, e.g. '2.A')",
-      "hlc_criterion_title": "string (the criterion's title)",
+      "accreditor_code": "string (optional framework code, or null)",
+      "criterion_code": "string (the criterion's standard code, e.g. '2.A')",
+      "criterion_title": "string (the criterion's title)",
       "rationale": "string (explicitly how this change helps satisfy the cited criterion)",
       "status": "planned | in_progress",
       "target_year": "string academic year, e.g. '2026-2027'",
@@ -301,9 +305,9 @@ const VALID_STATUS = ['planned', 'in_progress'];
 function sanitizeInitiative(raw: any): Omit<PlanRow, 'id' | 'depends_on' | 'node_x' | 'node_y'> & { dependsOnTitles: string[] } {
   const status = VALID_STATUS.includes(String(raw?.status)) ? String(raw.status) : 'planned';
   const accreditorCode = raw?.accreditor_code ? String(raw.accreditor_code).trim() : null;
-  // The model sometimes prefixes the code with the accreditor (e.g. "HLC 2.A");
+  // The model sometimes prefixes the code with the accreditor (e.g. "STD 2.A");
   // strip it so the stored standard_code matches accreditation_criteria.
-  let criterion = raw?.hlc_criterion ? String(raw.hlc_criterion).trim() : null;
+  let criterion = raw?.criterion_code ? String(raw.criterion_code).trim() : null;
   if (criterion && accreditorCode && criterion.toUpperCase().startsWith(accreditorCode.toUpperCase() + ' ')) {
     criterion = criterion.slice(accreditorCode.length).trim();
   }
@@ -315,8 +319,8 @@ function sanitizeInitiative(raw: any): Omit<PlanRow, 'id' | 'depends_on' | 'node
     ai_detail: null,
     category: raw?.category ? String(raw.category) : null,
     accreditor_code: accreditorCode,
-    hlc_criterion: criterion,
-    hlc_criterion_title: raw?.hlc_criterion_title ? String(raw.hlc_criterion_title) : null,
+    criterion_code: criterion,
+    criterion_title: raw?.criterion_title ? String(raw.criterion_title) : null,
     status,
     target_year: raw?.target_year ? String(raw.target_year) : null,
     plan_state: 'suggested',
@@ -410,11 +414,11 @@ async function handleGenerate(userId: string, catalogId: string, req: Request): 
     const rows = await queryWithAuth(
       `INSERT INTO improvement_plans
         (tenant_id, catalog_id, title, description, rationale, category,
-         accreditor_code, hlc_criterion, hlc_criterion_title, status, target_year, plan_state, source)
+         accreditor_code, criterion_code, criterion_title, status, target_year, plan_state, source)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,'suggested','ai')
        RETURNING id;`,
       [TENANT_ID, catalogId, s.title, s.description, s.rationale, s.category,
-       accreditorCode, s.hlc_criterion, s.hlc_criterion_title, s.status, s.target_year],
+       accreditorCode, s.criterion_code, s.criterion_title, s.status, s.target_year],
       userId
     );
     const id = rows[0].id;
@@ -470,7 +474,7 @@ async function handleExplain(userId: string, id: string, req: Request): Promise<
 
   // Pull the authoritative criterion definition if it's loaded for this accreditor.
   let criterionText = '';
-  if (item.hlc_criterion) {
+  if (item.criterion_code) {
     try {
       const critRows = await queryWithAuth(
         `SELECT a.code AS accreditor_code, a.name AS accreditor_name, c.standard_code, c.title, c.description
@@ -478,7 +482,7 @@ async function handleExplain(userId: string, id: string, req: Request): Promise<
          JOIN accreditors a ON a.id = c.accreditor_id
          WHERE c.standard_code = $1 ${item.accreditor_code ? 'AND a.code = $2' : ''}
          LIMIT 1;`,
-        item.accreditor_code ? [item.hlc_criterion, item.accreditor_code] : [item.hlc_criterion],
+        item.accreditor_code ? [item.criterion_code, item.accreditor_code] : [item.criterion_code],
         userId
       );
       if (critRows.length > 0) {
@@ -499,7 +503,7 @@ async function handleExplain(userId: string, id: string, req: Request): Promise<
     try {
       const refDocs = (await resolveAccreditorDocuments(userId)).filter(d => d.code === item.accreditor_code);
       if (refDocs.length > 0) {
-        const q = `${item.hlc_criterion || ''} ${item.hlc_criterion_title || ''} ${item.title}`;
+        const q = `${item.criterion_code || ''} ${item.criterion_title || ''} ${item.title}`;
         const ref = await fetchAccreditorReference(refDocs, q, gcp, geminiKey, 6);
         if (ref) criterionText = ref;
       }
@@ -510,7 +514,7 @@ async function handleExplain(userId: string, id: string, req: Request): Promise<
   let contextText = '';
   if (item.catalog_id) {
     try {
-      const q = `${item.hlc_criterion || ''} ${item.hlc_criterion_title || ''} ${item.title} ${item.description || ''}`;
+      const q = `${item.criterion_code || ''} ${item.criterion_title || ''} ${item.title} ${item.description || ''}`;
       const { chunks } = await retrieveGroundedChunks(q, TENANT_ID, item.catalog_id, gcp, geminiKey);
       contextText = chunks.slice(0, 8).map((c: any) => `- ${c.section_header || 'Policy'}: ${(c.content || '').slice(0, 600)}`).join('\n');
     } catch (err: any) {
@@ -522,7 +526,7 @@ async function handleExplain(userId: string, id: string, req: Request): Promise<
 - Title: ${item.title}
 - Description: ${item.description || '(none)'}
 - Accreditor: ${item.accreditor_code || '(unspecified)'}
-- Criterion: ${item.hlc_criterion || '(unspecified)'} — ${item.hlc_criterion_title || ''}
+- Criterion: ${item.criterion_code || '(unspecified)'} — ${item.criterion_title || ''}
 - Current rationale: ${item.rationale || '(none)'}
 - Target year: ${item.target_year || '(unset)'}; Status: ${item.status}
 
@@ -584,11 +588,11 @@ export async function POST(req: Request) {
       const rows = await queryWithAuth(
         `INSERT INTO improvement_plans
           (tenant_id, catalog_id, title, description, rationale, category,
-           accreditor_code, hlc_criterion, hlc_criterion_title, status, target_year, plan_state, source, created_by)
+           accreditor_code, criterion_code, criterion_title, status, target_year, plan_state, source, created_by)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'manual',$13)
          RETURNING ${SELECT_COLS};`,
         [TENANT_ID, i.catalog_id || null, i.title, i.description || null, i.rationale || null,
-         i.category || null, i.accreditor_code || null, i.hlc_criterion || null, i.hlc_criterion_title || null,
+         i.category || null, i.accreditor_code || null, i.criterion_code || null, i.criterion_title || null,
          status, i.target_year || null, planState, session.user.email],
         userId
       );

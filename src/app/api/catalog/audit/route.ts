@@ -9,7 +9,7 @@ export const norm = (s: any): string => String(s ?? '').trim().toUpperCase().rep
 export type AuditFinding = { severity: 'critical' | 'warning'; type: string; course: string; detail: string };
 
 // Conjunctions / short words that look like a 2-4 letter subject but never are one.
-const CODE_STOPWORDS = new Set(['AND', 'OR', 'THE', 'FOR', 'GPA', 'CCSJ', 'ONE', 'TWO', 'SEE', 'FEE', 'NOT', 'ANY', 'ALL', 'MIN', 'MAX', 'PER', 'NONE']);
+const CODE_STOPWORDS = new Set(['AND', 'OR', 'THE', 'FOR', 'GPA', 'SJF', 'ONE', 'TWO', 'SEE', 'FEE', 'NOT', 'ANY', 'ALL', 'MIN', 'MAX', 'PER', 'NONE']);
 
 /**
  * Extract catalog course codes from prerequisite text, honoring the catalog's shorthand where a bare

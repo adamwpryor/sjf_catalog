@@ -26,7 +26,7 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     // `dataset` ('criteria' for accreditation-criteria parquets) and `accreditor`
-    // (e.g. 'HLC') are optional; when omitted the agent auto-detects by columns.
+    // are optional; when omitted the agent auto-detects by columns.
     const { tenantId, fileName, dataset, accreditor } = body;
 
     if (!fileName || !tenantId) {

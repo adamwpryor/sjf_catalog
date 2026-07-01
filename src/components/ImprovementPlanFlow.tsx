@@ -30,8 +30,8 @@ export interface PlanItem {
   ai_detail: string | null;
   category: string | null;
   accreditor_code: string | null;
-  hlc_criterion: string | null;
-  hlc_criterion_title: string | null;
+  criterion_code: string | null;
+  criterion_title: string | null;
   status: 'planned' | 'in_progress';
   target_year: string | null;
   plan_state: 'suggested' | 'selected_current' | 'amended_current' | 'amended_future';
@@ -53,7 +53,7 @@ interface ImprovementPlanFlowProps {
   onAddManual: () => void;
 }
 
-// Stable color per HLC criterion so the same criterion reads consistently.
+// Stable color per criterion so the same criterion reads consistently.
 const CRITERION_COLORS = ['#8C2232', '#B6CFD6', '#d9a441', '#5b8c5a', '#7b6cb0', '#3b82a0', '#c0673a'];
 function criterionColor(criterion: string | null): string {
   if (!criterion) return '#64748b';
@@ -74,7 +74,7 @@ type InitiativeNodeData = { item: PlanItem; selected: boolean };
 /** Custom React Flow node rendering an initiative as a styled card. */
 function InitiativeNode({ data }: NodeProps) {
   const { item, selected } = data as unknown as InitiativeNodeData;
-  const color = criterionColor(item.hlc_criterion);
+  const color = criterionColor(item.criterion_code);
   const suggested = item.plan_state === 'suggested';
   return (
     <div
@@ -90,7 +90,7 @@ function InitiativeNode({ data }: NodeProps) {
             className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded uppercase tracking-wider"
             style={{ background: `${color}22`, color }}
           >
-            {[item.accreditor_code, item.hlc_criterion].filter(Boolean).join(' ') || 'General'}
+            {[item.accreditor_code, item.criterion_code].filter(Boolean).join(' ') || 'General'}
           </span>
           <span className="text-[9px] font-mono text-slate-400">{item.target_year || '—'}</span>
         </div>
@@ -257,7 +257,7 @@ interface DetailDrawerProps {
 
 /** The right-hand pop-out card with details, state actions, and AI explanation. */
 function DetailDrawer({ item, currentYear, yearOptions, canEdit, onClose, onPatch, onExplain, onDelete }: DetailDrawerProps) {
-  const color = criterionColor(item.hlc_criterion);
+  const color = criterionColor(item.criterion_code);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState({
     title: item.title,
@@ -295,7 +295,7 @@ function DetailDrawer({ item, currentYear, yearOptions, canEdit, onClose, onPatc
     <div className="absolute top-0 right-0 h-full w-full sm:w-[380px] bg-[#0b0f1d] border-l border-[#B6CFD6]/20 shadow-2xl z-20 flex flex-col animate-in slide-in-from-right duration-200">
       <div className="px-4 py-3 border-b border-white/10 bg-black/40 flex items-center justify-between shrink-0">
         <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded uppercase tracking-wider" style={{ background: `${color}22`, color }}>
-          {[item.accreditor_code, item.hlc_criterion].filter(Boolean).join(' ') || 'General'} {item.hlc_criterion_title ? `· ${item.hlc_criterion_title}` : ''}
+          {[item.accreditor_code, item.criterion_code].filter(Boolean).join(' ') || 'General'} {item.criterion_title ? `· ${item.criterion_title}` : ''}
         </span>
         <button onClick={onClose} className="text-slate-500 hover:text-white transition-colors">
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
@@ -316,7 +316,7 @@ function DetailDrawer({ item, currentYear, yearOptions, canEdit, onClose, onPatc
             {item.description && <p className="text-sm text-slate-300 leading-relaxed">{item.description}</p>}
             {item.rationale && (
               <div className="border-l-2 border-[#8C2232] bg-[#8C2232]/5 p-3 rounded-r-lg">
-                <div className="text-[9px] uppercase tracking-widest text-[#8C2232] font-mono font-bold mb-1">Why this maps to {item.hlc_criterion || 'the criterion'}</div>
+                <div className="text-[9px] uppercase tracking-widest text-[#8C2232] font-mono font-bold mb-1">Why this maps to {item.criterion_code || 'the criterion'}</div>
                 <p className="text-xs text-slate-300 leading-relaxed">{item.rationale}</p>
               </div>
             )}

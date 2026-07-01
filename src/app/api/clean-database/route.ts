@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
+import { INSTITUTION } from '@/lib/brand';
 
 export const dynamic = 'force-dynamic';
 
@@ -147,7 +148,7 @@ export async function GET(req: Request) {
     // ----------------------------------------------------------------
     console.log('[DB Cleanup Agent] Patching null values with sensible standards...');
     
-    // Default null/0 course credits to 3 (most common course format at CCSJ)
+    // Default null/0 course credits to 3 (most common course format at the institution)
     const patchedCoursesCredits = await query(`
       UPDATE courses 
       SET credits = 3 
@@ -157,7 +158,7 @@ export async function GET(req: Request) {
     // Standardize empty mission statements and outcome objectives to safe placeholders
     const patchedProgramsMission = await query(`
       UPDATE programs 
-      SET mission_statement = 'Academic program guidelines compiled under Calumet College of St. Joseph active curricula.'
+      SET mission_statement = 'Academic program guidelines compiled under ${INSTITUTION.legalName} active curricula.'
       WHERE mission_statement IS NULL OR mission_statement = '' OR mission_statement = 'NULL';
     `);
 
@@ -171,7 +172,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json({
       status: "success",
-      message: "Calumet College of St. Joseph catalog database successfully sanitized, standardized, and repaired.",
+      message: `${INSTITUTION.legalName} catalog database successfully sanitized, standardized, and repaired.`,
       timestamp: new Date().toISOString(),
       deduplicated: {
         coursesRemovedCount: coursesRemoved,

@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server';
 import { query, getClient } from '@/lib/db';
 import { createClient } from '@/utils/supabase/server';
+import { TENANT_ID } from '@/lib/brand';
 import { getGcpCredentials } from '@/lib/llm';
 import { generateEmbedding } from '@/app/api/assistant/route';
 import { randomUUID } from 'crypto';
 
 export const dynamic = 'force-dynamic';
 
-const TENANT = 'CCSJ';
+const TENANT = TENANT_ID;
 const API_BASE_URL = process.env.NEXT_PUBLIC_SWARM_API_URL || 'http://localhost:8080';
 
 const norm = (s: any): string => String(s ?? '').trim().toUpperCase().replace(/\s+/g, ' ');
@@ -164,7 +165,7 @@ export async function POST(req: Request) {
   const insertRows = await Promise.all(
     inserts.map(async (ins) => ({ ...ins, emb: await embedLiteral(ins.content) }))
   );
-  let embedded = updateRows.filter((r) => r.emb).length + insertRows.filter((r) => r.emb).length;
+  const embedded = updateRows.filter((r) => r.emb).length + insertRows.filter((r) => r.emb).length;
 
   // Apply all narrative writes in one RLS transaction.
   const client = await getClient();

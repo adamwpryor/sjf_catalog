@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { query, queryWithAuth } from '@/lib/db';
 import { createClient } from '@/utils/supabase/server';
+import { TENANT_ID } from '@/lib/brand';
 
 /**
  * Cleans the description text by removing header markdown artifacts.
@@ -38,7 +39,7 @@ export async function POST(req: Request) {
     const userId = session?.user?.id;
 
     // Enforce Tenant Scope Isolation
-    const tenantId = 'CCSJ';
+    const tenantId = TENANT_ID;
 
     // 2. Route Action to corresponding SQL Transaction
     switch (action) {

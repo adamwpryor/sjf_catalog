@@ -3,6 +3,7 @@ import path from 'path';
 import { promises as fs } from 'fs';
 import { queryWithAuth } from '@/lib/db';
 import { createClient } from '@/utils/supabase/server';
+import { TENANT_ID } from '@/lib/brand';
 import os from 'os';
 import { getStorageClient, resolveBucketName } from '@/lib/gcs';
 import { Blob } from 'buffer';
@@ -79,7 +80,7 @@ export async function POST(req: Request) {
           await queryWithAuth(
             `INSERT INTO corrections (tenant_id, target_table, target_row_id, field_name, current_value, proposed_value, reason, status, submitted_by) VALUES ($1, $2, NULL, $3, $4, $5, $6, 'pending', 'Intake Agent')`,
             [
-              'CCSJ',
+              TENANT_ID,
               'programs',
               'requirements',
               null,

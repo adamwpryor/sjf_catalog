@@ -155,7 +155,7 @@ export default function AstExplorer({ catalogId }: AstExplorerProps) {
     setHoverNode(node || null);
   }, []);
 
-  // Colors based on CCSJ brand colors
+  // Colors based on institution brand colors
   const getNodeColor = (node: AstNode) => {
     switch (node.group) {
       case 'program':

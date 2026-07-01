@@ -207,7 +207,7 @@ export default function DiffLog({ catalogs, activeCatalogId }: DiffLogProps) {
   const toggleCard = (key: string) =>
     setOpenCards(prev => ({ ...prev, [key]: !prev[key] }));
 
-  const filteredCatalogs = catalogs.filter(cat => !(cat.version + (cat.domain_id || '')).toLowerCase().includes('hlc'));
+  const filteredCatalogs = catalogs;
 
   // When base catalog or node type changes, fetch the list of available nodes
   useEffect(() => {

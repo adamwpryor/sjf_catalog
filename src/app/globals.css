@@ -10,12 +10,12 @@
 }
 
 @theme {
-  --color-ccsj-crimson: #993333;
-  --color-ccsj-crimson-dark: #7a2929;
-  --color-ccsj-gray: #808285;
-  --color-ccsj-gray-dark: #4f5154;
-  --color-ccsj-slate: #B6CFD6;
-  --color-ccsj-slate-dark: #8ba7b0;
+  --color-brand-crimson: #993333;
+  --color-brand-crimson-dark: #7a2929;
+  --color-brand-gray: #808285;
+  --color-brand-gray-dark: #4f5154;
+  --color-brand-slate: #B6CFD6;
+  --color-brand-slate-dark: #8ba7b0;
   
   --font-sans: var(--font-lato);
   --font-serif: var(--font-source-serif);

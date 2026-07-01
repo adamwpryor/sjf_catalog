@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Providers from "@/components/Providers";
+import { INSTITUTION } from "@/lib/brand";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -14,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CCSJ Catalog Auditing & Corrections Platform",
-  description: "Calumet College of St. Joseph Academic Knowledge Graph & Delta Corrections Log",
+  title: `${INSTITUTION.appTitle} — Auditing & Corrections Platform`,
+  description: `${INSTITUTION.legalName} Academic Knowledge Graph & Delta Corrections Log`,
 };
 
 /**

@@ -9,7 +9,8 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "reembed": "node scripts/reembed.mjs"
+    "reembed": "node scripts/reembed.mjs",
+    "test:rls": "node scripts/test-rls.mjs"
   },
   "dependencies": {
     "@google-cloud/storage": "^7.19.0",

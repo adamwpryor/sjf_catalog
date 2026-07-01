@@ -1,4 +1,5 @@
 import { query } from '@/lib/db';
+import { INSTITUTION } from '@/lib/brand';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_SWARM_API_URL || 'http://localhost:8080';
 
@@ -132,7 +133,7 @@ const isProgramsLabel = (label: string): boolean =>
 function disciplineOf(h2: string, known: string[]): string {
   // Strip ALL parentheticals — trailing "(120 hours)" and descriptors like "(Master of Arts in
   // Teaching)" that would otherwise mislead the "after in" extraction below.
-  let s = String(h2 ?? '').replace(/\s*\([^)]*\)\s*/g, ' ').replace(/\s+/g, ' ').trim();
+  const s = String(h2 ?? '').replace(/\s*\([^)]*\)\s*/g, ' ').replace(/\s+/g, ' ').trim();
   if (!s) return '';
   if (!isDegreeHeader(s)) return s;
   const m = s.match(/\bin\b\s+(.+)$/i);
@@ -513,7 +514,7 @@ export async function buildCatalogHtml(
   return `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><style>
   @page { size: Letter; margin: 1in 0.85in;
-    @top-center { content: "Calumet College of St. Joseph — Academic Catalog ${esc(versionLabel)}${draftTag}"; font-size: 8pt; color: ${draft ? '#b03a4a' : '#7a7a7a'}; }
+    @top-center { content: "${esc(INSTITUTION.legalName)} — Academic Catalog ${esc(versionLabel)}${draftTag}"; font-size: 8pt; color: ${draft ? '#b03a4a' : '#7a7a7a'}; }
     @bottom-center { content: counter(page); font-size: 8pt; color: #7a7a7a; }
   }
   body { font-family: Georgia, 'Times New Roman', serif; font-size: 10.5pt; line-height: 1.45; color: #1a1a1a; }
@@ -548,7 +549,7 @@ export async function buildCatalogHtml(
   ol li, ul li { margin: 2px 0; }
 </style></head><body>
   <div class="cover">
-    <div class="inst">Calumet College of St. Joseph</div>
+    <div class="inst">${esc(INSTITUTION.legalName)}</div>
     <div class="title">Academic Catalog</div>
     <div class="ver">${esc(versionLabel)}</div>
     ${draft ? `<div class="draft">DRAFT — PROVISIONAL, NOT FOR PUBLICATION</div>` : ''}

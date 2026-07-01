@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
+import { INSTITUTION } from '@/lib/brand';
 import LandingPage from '@/components/LandingPage';
 import DiagnosticsDashboard from '@/components/DiagnosticsDashboard';
 import DataInspector from '@/components/DataInspector';
@@ -229,10 +230,10 @@ export default function DashboardPage() {
             Catalog Tool
           </div>
           <h2 className="text-lg font-bold serif-title text-white tracking-tight">
-            Calumet College
+            {INSTITUTION.shortName}
           </h2>
           <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#808285]">
-            of Saint Joseph
+            {INSTITUTION.legalName}
           </div>
         </div>
 
@@ -383,7 +384,7 @@ export default function DashboardPage() {
               <option value="" disabled>
                 Select a catalog…
               </option>
-              {catalogs.filter(cat => !(cat.version + (cat.domain_id || '')).toLowerCase().includes('hlc')).map(cat => (
+              {catalogs.map(cat => (
                 <option key={cat.id} value={cat.id}>
                   Catalog {cat.version} ({cat.domain_id})
                 </option>
@@ -436,7 +437,7 @@ export default function DashboardPage() {
               <div className="space-y-4 h-full flex flex-col">
                 <div className="bg-[#0b0f1d] p-4 rounded-xl border border-[#B6CFD6]/10 shrink-0">
                   <h2 className="text-lg font-bold text-white serif-title">Institutional Prerequisite Graph</h2>
-                  <p className="text-xs text-slate-400 font-medium">Explore required courses and curriculum pathways for Calumet College of St. Joseph.</p>
+                  <p className="text-xs text-slate-400 font-medium">Explore required courses and curriculum pathways for {INSTITUTION.legalName}.</p>
                 </div>
                 <div className="flex-1 bg-[#0b0f1d] rounded-xl border border-[#B6CFD6]/10 overflow-hidden relative">
                   <GraphViewer catalogId={catalogId} mode="curriculum" />
@@ -448,7 +449,7 @@ export default function DashboardPage() {
               <div className="space-y-4 h-full flex flex-col">
                 <div className="bg-[#0b0f1d] p-4 rounded-xl border border-[#B6CFD6]/10 shrink-0">
                   <h2 className="text-lg font-bold text-white serif-title">Institutional Policy Graph</h2>
-                  <p className="text-xs text-slate-400 font-medium">Explore narrative policies, deontic rules, and semantic chunk relationships for Calumet College of St. Joseph.</p>
+                  <p className="text-xs text-slate-400 font-medium">Explore narrative policies, deontic rules, and semantic chunk relationships for {INSTITUTION.legalName}.</p>
                 </div>
                 <div className="flex-1 bg-[#0b0f1d] rounded-xl border border-[#B6CFD6]/10 overflow-hidden relative">
                   <GraphViewer catalogId={catalogId} mode="policy" />

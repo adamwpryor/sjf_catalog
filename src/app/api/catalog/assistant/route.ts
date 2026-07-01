@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { query, getClient } from '@/lib/db';
 import { createClient } from '@/utils/supabase/server';
+import { TENANT_ID } from '@/lib/brand';
 import { getGcpCredentials } from '@/lib/llm';
 import { generateEmbedding } from '@/app/api/assistant/route';
 import { getProgramStructure, buildCatalogHtml, renderCatalogPdf, type PresentationOverride } from '@/lib/catalogPdf';
@@ -10,7 +11,7 @@ import { randomUUID } from 'crypto';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 120;
 
-const TENANT = 'CCSJ';
+const TENANT = TENANT_ID;
 const API_BASE_URL = process.env.NEXT_PUBLIC_SWARM_API_URL || 'http://localhost:8080';
 
 // --- Cost guardrails (tunable via env) ---
@@ -29,8 +30,8 @@ const labelKey = (s: any): string => String(s ?? '').toLowerCase().replace(/\s*\
  * Heading-level restructure: rewrite a hierarchical section_header so the segment matching `label`
  * becomes Header 1 (a top-level section); its descendants renumber up and its ancestors are dropped.
  * Returns null if the label is not a heading segment, or is already top-level.
- * e.g. "Header 1: 2025-2026 College Calendar > Header 2: General Information about CCSJ > Header 3: X"
- *   -> "Header 1: General Information about CCSJ > Header 2: X"
+ * e.g. "Header 1: 2025-2026 College Calendar > Header 2: General Information about the University > Header 3: X"
+ *   -> "Header 1: General Information about the University > Header 2: X"
  */
 function promoteHeaderPath(sectionHeader: string, label: string): string | null {
   const parts = String(sectionHeader || '').split('>').map((p) => p.trim());
@@ -66,7 +67,7 @@ const stripYear = (s: string): string => s.replace(/^\d{4}\s*[-–]\s*\d{4}\s*/,
 /**
  * Resolve a label the agent produced (which may paraphrase) to an ACTUAL section label present in
  * the document — exact, then containment, then year-insensitive. Lenient like the promote/rewrite
- * paths so merges don't silently no-op on "Information about CCSJ" vs "General Information about CCSJ".
+ * paths so merges don't silently no-op on "Information about the University" vs "General Information about the University".
  */
 function resolveSection(queryLabel: string, labels: string[]): string | null {
   const q = labelKey(queryLabel);

@@ -48,7 +48,7 @@ interface GraphViewerProps {
   mode: 'curriculum' | 'policy';
 }
 
-// Visual Palette conforming to CCSJ Crimson & Slate Branding Guidelines
+// Visual Palette conforming to institution Crimson & Slate branding guidelines
 // Visual Palette conforming to User Specification
 /**
  * Get node color based on the group.
@@ -91,9 +91,9 @@ const getLinkColor = (link: any, isSelected: boolean, isFaded: boolean) => {
 
   switch (link.type) {
     case 'PREREQUISITE':
-      return `rgba(140, 34, 50, ${alpha})`; // CCSJ Primary Crimson (#8C2232)
+      return `rgba(140, 34, 50, ${alpha})`; // Primary brand crimson (#8C2232)
     case 'COREQUISITE':
-      return `rgba(242, 169, 0, ${alpha})`; // CCSJ Gold (#f2a900) for Co-requisites
+      return `rgba(242, 169, 0, ${alpha})`; // Brand gold (#f2a900) for Co-requisites
     case 'SUPERVISES':
       return `rgba(234, 179, 8, ${alpha})`; // Yellow for Department -> Program
     case 'GOVERNS':
@@ -170,8 +170,8 @@ export default function GraphViewer({ catalogId, mode }: GraphViewerProps) {
         if (res.ok) {
           const data = await res.json();
 
-          let cleanedNodes = data.nodes;
-          let cleanedLinks = data.links;
+          const cleanedNodes = data.nodes;
+          const cleanedLinks = data.links;
 
           // Precompute Neighbors Map for O(1) hover lookups based on CLEANED links
           const nMap = new Map<string, Set<string>>();
@@ -536,7 +536,7 @@ export default function GraphViewer({ catalogId, mode }: GraphViewerProps) {
         });
 
         // Recursively inherit prerequisite courses
-        let pending = Array.from(allowedIds).filter(id => {
+        const pending = Array.from(allowedIds).filter(id => {
           const node = modeNodes.find(n => n.id === id);
           return node && node.group === 'course';
         });
@@ -574,7 +574,7 @@ export default function GraphViewer({ catalogId, mode }: GraphViewerProps) {
         const prefixCourseIds = new Set<string>(allowedIds);
 
         // Recursively inherit prerequisites
-        let pending = Array.from(allowedIds);
+        const pending = Array.from(allowedIds);
         while (pending.length > 0) {
           const currId = pending.pop()!;
           modeLinks.forEach((l: any) => {

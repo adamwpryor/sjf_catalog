@@ -16,7 +16,7 @@ const connectionString = process.env.DATABASE_URL;
 function parseConnectionString(uri: string) {
   try {
     // 1. Remove postgresql:// or postgres:// prefix
-    let cleanUri = uri.replace(/^(postgresql|postgres):\/\//, '');
+    const cleanUri = uri.replace(/^(postgresql|postgres):\/\//, '');
 
     // 2. Find the last '@' sign, which separates credentials from the host
     const lastAtIndex = cleanUri.lastIndexOf('@');

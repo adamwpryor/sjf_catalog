@@ -5,6 +5,7 @@ import { exec } from 'child_process';
 import util from 'util';
 import os from 'os';
 import mammoth from 'mammoth';
+import { TENANT_ID } from '@/lib/brand';
 
 const execAsync = util.promisify(exec);
 
@@ -25,7 +26,7 @@ export async function POST(req: Request) {
     }
 
     // Prepare intake directory in a writable temp space (Vercel compatible)
-    const intakeDir = path.join(os.tmpdir(), 'ccsj_intake');
+    const intakeDir = path.join(os.tmpdir(), `${TENANT_ID.toLowerCase()}_intake`);
     await fs.mkdir(intakeDir, { recursive: true });
 
     // Sanitize filename and save

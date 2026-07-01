@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getStorageClient, resolveBucketName } from '@/lib/gcs';
+import { TENANT_ID, GCS_BUCKET } from '@/lib/brand';
 
 /**
  * Fetches markdown content from a designated Google Cloud Storage bucket.
@@ -35,7 +36,7 @@ export async function GET(req: Request) {
     let bucketName = cleanPath.substring(0, firstSlashIndex);
     let filePath = decodeURIComponent(cleanPath.substring(firstSlashIndex + 1));
 
-    // Dynamic Bucket-Healing: Translate legacy ccsj-assets to production ccsj-catalog-assets
+    // Resolve to the institution's configured asset bucket (honors GCP_BUCKET_NAME).
     bucketName = resolveBucketName(bucketName);
 
     // Dynamic Path-Healing & Noise Sanitization:
@@ -65,13 +66,14 @@ export async function GET(req: Request) {
       const [data] = await fileObj.download();
       contentBuffer = data;
     } catch (sdkErr: any) {
-      // Dynamic Path-Healing Engine (Auto-adjusting "/CCSJ/" offsets)
+      // Dynamic Path-Healing Engine (auto-adjusting "/<tenant>/" offsets)
       if (sdkErr.code === 404) {
         let alternativePath = '';
-        if (filePath.includes('catalogs/CCSJ/')) {
-          alternativePath = filePath.replace('catalogs/CCSJ/', 'catalogs/');
+        const tenantSegment = `catalogs/${TENANT_ID}/`;
+        if (filePath.includes(tenantSegment)) {
+          alternativePath = filePath.replace(tenantSegment, 'catalogs/');
         } else if (filePath.includes('catalogs/')) {
-          alternativePath = filePath.replace('catalogs/', 'catalogs/CCSJ/');
+          alternativePath = filePath.replace('catalogs/', tenantSegment);
         }
 
         if (alternativePath && alternativePath !== filePath) {
@@ -108,7 +110,7 @@ export async function GET(req: Request) {
         remedy: {
           steps: [
             "1. Open your GCP Console and go to IAM & Admin.",
-            `2. Verify that the Service Account (${process.env.GCP_SERVICE_ACCOUNT_EMAIL || 'your-service-account'}) has been granted the 'Storage Object Viewer' role on bucket '${process.env.GCP_BUCKET_NAME || 'ccsj-catalog-assets'}'.`,
+            `2. Verify that the Service Account (${process.env.GCP_SERVICE_ACCOUNT_EMAIL || 'your-service-account'}) has been granted the 'Storage Object Viewer' role on bucket '${process.env.GCP_BUCKET_NAME || GCS_BUCKET}'.`,
             "3. If using Workload Identity, verify the principalSet matches Vercel's OIDC federation subject."
           ]
         }

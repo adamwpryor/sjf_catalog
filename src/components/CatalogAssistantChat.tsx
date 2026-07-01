@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { INSTITUTION, TENANT_ID } from '@/lib/brand';
 
 interface Message {
   sender: 'user' | 'assistant';
@@ -195,7 +196,7 @@ export default function CatalogAssistantChat({ catalogId }: CatalogAssistantChat
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `ccsj_catalog_assistant_chat_${new Date().toISOString().slice(0, 10)}.${format}`;
+      a.download = `${TENANT_ID.toLowerCase()}_catalog_assistant_chat_${new Date().toISOString().slice(0, 10)}.${format}`;
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) {
@@ -271,7 +272,7 @@ export default function CatalogAssistantChat({ catalogId }: CatalogAssistantChat
           </style>
         </head>
         <body>
-          <h2>Calumet College of Saint Joseph</h2>
+          <h2>${INSTITUTION.legalName}</h2>
           <div style="font-size: 12pt; font-weight: bold; color: #555555; margin-bottom: 5px;">AI Catalog Assistant Executive Audit Transcript</div>
           <div class="meta">Date: ${new Date().toLocaleDateString()} | Catalog: ${catalogId}</div>
           <hr style="border:0;border-top:2px solid #8C2232;margin-bottom:25px;">
@@ -284,7 +285,7 @@ export default function CatalogAssistantChat({ catalogId }: CatalogAssistantChat
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `ccsj_catalog_assistant_chat_${new Date().toISOString().slice(0, 10)}.doc`;
+      a.download = `${TENANT_ID.toLowerCase()}_catalog_assistant_chat_${new Date().toISOString().slice(0, 10)}.doc`;
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) {
@@ -360,7 +361,7 @@ export default function CatalogAssistantChat({ catalogId }: CatalogAssistantChat
         </head>
         <body>
           <div class="header">
-            <h1>Calumet College of Saint Joseph</h1>
+            <h1>${INSTITUTION.legalName}</h1>
             <div style="font-size: 11pt; font-weight: bold; color: #475569; margin-top:2px;">AI Catalog Assistant Executive Audit Transcript</div>
             <div class="meta">Date: ${new Date().toLocaleDateString()} | Catalog: ${catalogId}</div>
           </div>

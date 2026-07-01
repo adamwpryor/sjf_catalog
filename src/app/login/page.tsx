@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
+import { INSTITUTION } from '@/lib/brand';
 
 /**
  * Renders the login page for the application.
@@ -92,13 +93,13 @@ export default function LoginPage() {
         {/* Logo and Headings */}
         <div className="text-center mb-8">
           <div className="inline-block px-4 py-2 bg-white/5 border border-[#B6CFD6]/15 rounded-full text-xs font-semibold text-[#B6CFD6] uppercase tracking-widest mb-3 backdrop-blur-md">
-            CCSJ Ingestion Portal
+            {INSTITUTION.appTitle} Portal
           </div>
           <h1 className="text-3xl font-bold serif-title text-white flex items-center justify-center gap-2">
-            Calumet College
+            {INSTITUTION.shortName}
           </h1>
           <div className="text-xs font-semibold uppercase tracking-[0.2em] text-[#B6CFD6] mt-0.5 font-mono">
-            of Saint Joseph
+            {INSTITUTION.legalName}
           </div>
           <p className="text-sm text-slate-400 mt-3 font-medium">
             Academic Catalog Audit & Delta Corrections Log
@@ -147,7 +148,7 @@ export default function LoginPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@ccsj.edu"
+                placeholder={`you@${INSTITUTION.emailDomain}`}
                 className="w-full bg-[#0a0f1d] border border-white/10 rounded-lg px-4 py-3 text-sm text-white placeholder-slate-500 focus:border-[#8C2232] focus:ring-1 focus:ring-[#8C2232] outline-none transition-all"
               />
             </div>
@@ -222,7 +223,7 @@ export default function LoginPage() {
               </div>
             )}
             <div className="text-slate-500 text-[10px] text-center pt-2 select-none">
-              calumet college of saint joseph • founded 1951
+              {INSTITUTION.legalName.toLowerCase()}
             </div>
           </div>
           </>

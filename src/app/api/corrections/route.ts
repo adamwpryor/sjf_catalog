@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { query, queryWithAuth } from '@/lib/db';
 import { createClient } from '@/utils/supabase/server';
+import { TENANT_ID } from '@/lib/brand';
 
 /**
  * Fetches all curriculum corrections from the database.
@@ -17,10 +18,10 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
     const statusFilter = searchParams.get('status');
-    const tenantId = 'CCSJ';
+    const tenantId = TENANT_ID;
 
     // 1. Fetch DB Records
-    let queryText = `SELECT id, tenant_id, target_table, target_row_id, field_name,
+    const queryText = `SELECT id, tenant_id, target_table, target_row_id, field_name,
                             current_value, proposed_value, reason, status,
                             submitted_by, submitted_at, reviewed_at, applied_at,
                             applied_to_document_id, applied_patch
@@ -72,7 +73,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing required fields." }, { status: 400 });
     }
 
-    const tenantId = 'CCSJ';
+    const tenantId = TENANT_ID;
     const email = session.user.email;
 
     // target_row_id is a uuid column, but manual entry / the AI assistant supply a human
@@ -144,7 +145,7 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: "Invalid status value." }, { status: 400 });
     }
 
-    const tenantId = 'CCSJ';
+    const tenantId = TENANT_ID;
     const now = new Date();
 
     // Set timestamps conditionally based on status

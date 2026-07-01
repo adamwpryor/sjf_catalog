@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
 import { query, getClient, queryWithAuth } from '@/lib/db';
 import { createClient } from '@/utils/supabase/server';
+import { TENANT_ID } from '@/lib/brand';
 import { randomUUID } from 'crypto';
 
 export const dynamic = 'force-dynamic';
 
-const TENANT = 'CCSJ';
+const TENANT = TENANT_ID;
 const API_BASE_URL = process.env.NEXT_PUBLIC_SWARM_API_URL || 'http://localhost:8080';
 
 const COURSE_COLS = ['prerequisites', 'prerequisites_json', 'credits', 'description', 'title'];
@@ -16,7 +17,7 @@ type ReadFn = (sql: string, params: any[]) => Promise<any[]>;
 /** Escape regex metacharacters so a label can be used literally inside a Postgres regex. */
 const escapeRe = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-const CODE_STOPWORDS = new Set(['AND', 'OR', 'THE', 'FOR', 'GPA', 'CCSJ', 'ONE', 'TWO', 'SEE', 'FEE', 'NOT', 'ANY', 'ALL', 'MIN', 'MAX', 'PER', 'NONE']);
+const CODE_STOPWORDS = new Set(['AND', 'OR', 'THE', 'FOR', 'GPA', 'SJF', 'ONE', 'TWO', 'SEE', 'FEE', 'NOT', 'ANY', 'ALL', 'MIN', 'MAX', 'PER', 'NONE']);
 
 /**
  * Extract course codes from free text, honoring shorthand where a bare number inherits the previous
