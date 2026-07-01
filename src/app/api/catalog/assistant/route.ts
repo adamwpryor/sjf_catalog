@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { query, getClient } from '@/lib/db';
 import { createClient } from '@/utils/supabase/server';
 import { TENANT_ID } from '@/lib/brand';
+import { SWARM_BASE_URL, swarmAuthHeaders } from '@/lib/swarm';
 import { getGcpCredentials } from '@/lib/llm';
 import { generateEmbedding } from '@/app/api/assistant/route';
 import { getProgramStructure, buildCatalogHtml, renderCatalogPdf, type PresentationOverride } from '@/lib/catalogPdf';
@@ -12,7 +13,7 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 120;
 
 const TENANT = TENANT_ID;
-const API_BASE_URL = process.env.NEXT_PUBLIC_SWARM_API_URL || 'http://localhost:8080';
+const API_BASE_URL = SWARM_BASE_URL;
 
 // --- Cost guardrails (tunable via env) ---
 const DAILY_LIMIT = Number.parseInt(process.env.CORRECTION_DAILY_LIMIT || '150', 10); // agent calls/user/day
@@ -117,7 +118,7 @@ async function logUsage(userId: string, documentId: string, kind: string, vision
 async function rewriteChunk(instruction: string, chunkContent: string): Promise<{ changed: boolean; content: string } | null> {
   try {
     const res = await fetch(`${API_BASE_URL}/api/agent/rewrite-chunk`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...swarmAuthHeaders() },
       body: JSON.stringify({ instruction, chunk_content: chunkContent }),
     });
     if (!res.ok) return null;
@@ -225,7 +226,7 @@ export async function POST(req: Request) {
     const docType = file ? (/pdf$/i.test(file.type || '') || /\.pdf$/i.test(file.name || '') ? 'pdf' : 'docx') : '';
 
     const res = await fetch(`${API_BASE_URL}/api/agent/catalog-correction`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...swarmAuthHeaders() },
       body: JSON.stringify({
         messages, catalogId, structure, candidates,
         page_pdf_base64: page?.b64 || '', page_label: page?.label || '',

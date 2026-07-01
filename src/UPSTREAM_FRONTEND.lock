@@ -3,30 +3,6 @@
   "last_sync_commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
   "files": [
     {
-      "upstream_path": "src/app/favicon.ico",
-      "vendored_path": "src/app/favicon.ico",
-      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
-      "hash": "2b8ad2d33455a8f736fc3a8ebf8f0bdea8848ad4c0db48a2833bd0f9cd775932"
-    },
-    {
-      "upstream_path": "src/app/globals.css",
-      "vendored_path": "src/app/globals.css",
-      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
-      "hash": "7af2505a03c1ff9a0d3347eabf238982721ee1db24997a1846809a5c614a27cc"
-    },
-    {
-      "upstream_path": "src/app/layout.tsx",
-      "vendored_path": "src/app/layout.tsx",
-      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
-      "hash": "641f56be24447fb3dded262333afecaf85cd971e724be7479e3b5f47442c2255"
-    },
-    {
-      "upstream_path": "src/app/page.tsx",
-      "vendored_path": "src/app/page.tsx",
-      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
-      "hash": "9125cb5349cd25d97c8f3cfa7fbbdd31364a0acdc98aca599ac58e533b1d293a"
-    },
-    {
       "upstream_path": "src/app/api/assistant/route.ts",
       "vendored_path": "src/app/api/assistant/route.ts",
       "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
@@ -177,18 +153,6 @@
       "hash": "ef904ac33729622ac9108185af2380c2a948f4dfafebfff380929e5235aea461"
     },
     {
-      "upstream_path": "src/app/login/page.tsx",
-      "vendored_path": "src/app/login/page.tsx",
-      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
-      "hash": "2bd0e1f53d92f699135fe1d8d8c99cdd8991504600290578f3fa0a792da57850"
-    },
-    {
-      "upstream_path": "src/app/update-password/page.tsx",
-      "vendored_path": "src/app/update-password/page.tsx",
-      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
-      "hash": "09cac79aa400186d4b3b8ba69ba6c41a0111b5cd6988803d6df162647a57188a"
-    },
-    {
       "upstream_path": "src/components/AstExplorer.tsx",
       "vendored_path": "src/components/AstExplorer.tsx",
       "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
@@ -253,12 +217,6 @@
       "vendored_path": "src/components/IntakeFilingSystem.tsx",
       "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
       "hash": "0caea2d47273a31e6cfd0375f984945061fab4b6e5259c4cac3bc780cc1b08ae"
-    },
-    {
-      "upstream_path": "src/components/LandingPage.tsx",
-      "vendored_path": "src/components/LandingPage.tsx",
-      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
-      "hash": "48647ed096bac59eaeb75a3a6d5566fdc78f1561df8c9e133957e655463377e6"
     },
     {
       "upstream_path": "src/components/Providers.tsx",

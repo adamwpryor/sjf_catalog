@@ -4,7 +4,7 @@
 #
 # Zero-Trust: do NOT put secrets here. Set them via:
 #   conda env config vars set -n sjfu-catalog DATABASE_URL="..."   (or use .env.local)
-# The Qwen3 embedding service has its own heavier env (services/embed/environment.yml).
+# Embeddings use the hosted gemini-embedding-001 API (no self-hosted GPU service) — see BUILD_PLAN §0.5.
 name: sjfu-catalog
 channels:
   - conda-forge
@@ -15,6 +15,9 @@ dependencies:
   - pandas
   - pyarrow
   - psycopg2
+  # weasyprint (+ its native cairo/pango/gdk-pixbuf stack) is pulled from conda-forge so the
+  # swarm's /api/agent/render-pdf endpoint renders catalog PDFs inside the Cloud Run image.
+  - weasyprint
   - pip
   - pip:
       - supabase
@@ -26,7 +29,9 @@ dependencies:
       - python-json-logger   # JSON structured logging
       - gitpython            # git commit/branch metadata in logs
       - requests
-      - google-genai         # Google Cloud Vertex AI natively
+      - google-genai         # Vertex AI (keyless) generation LLM for the swarm
+      - anthropic            # swarm generation-LLM SDK (vendored src/server/main.py); Vertex shim maps onto it
+      - python-docx          # committee-minutes / uploaded-doc parsing (import name: docx)
       - ruff                 # lint
       - mypy                 # type-check
       - black                # format

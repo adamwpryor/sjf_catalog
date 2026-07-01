@@ -5,7 +5,10 @@ import React, { useState, useEffect } from 'react';
 interface ReportErrorModalProps {
   isOpen: boolean;
   onClose: () => void;
-  targetTable: 'courses' | 'programs' | 'policies';
+  // DB table names — must match the corrections.target_table CHECK constraint
+  // ('courses' | 'programs' | 'semantic_chunks'). The Policy Library view maps to
+  // 'semantic_chunks' (policies are stored as narrative chunks).
+  targetTable: 'courses' | 'programs' | 'semantic_chunks';
   targetRowId: string;
   fieldName: string;
   currentValue: any;

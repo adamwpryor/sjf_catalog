@@ -2,12 +2,13 @@ import { NextResponse } from 'next/server';
 import { query, getClient, queryWithAuth } from '@/lib/db';
 import { createClient } from '@/utils/supabase/server';
 import { TENANT_ID } from '@/lib/brand';
+import { SWARM_BASE_URL, swarmAuthHeaders } from '@/lib/swarm';
 import { randomUUID } from 'crypto';
 
 export const dynamic = 'force-dynamic';
 
 const TENANT = TENANT_ID;
-const API_BASE_URL = process.env.NEXT_PUBLIC_SWARM_API_URL || 'http://localhost:8080';
+const API_BASE_URL = SWARM_BASE_URL;
 
 const COURSE_COLS = ['prerequisites', 'prerequisites_json', 'credits', 'description', 'title'];
 const PROGRAM_COLS = ['name', 'mission_statement', 'program_outcome_objectives'];
@@ -87,7 +88,7 @@ async function resolveCorrection(read: ReadFn, draftId: string, corr: any) {
   // Ask the backend LLM to map the instruction onto a code-keyed operation spec.
   const resp = await fetch(`${API_BASE_URL}/api/agent/resolve-delta`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...swarmAuthHeaders() },
     body: JSON.stringify({ instruction: corr.proposed_value, action, candidate_rows }),
   });
   if (!resp.ok) {
@@ -357,11 +358,10 @@ export async function POST(req: Request) {
       try {
         await client.query('BEGIN');
         await client.query(`SELECT set_config('request.jwt.claim.sub', $1, true)`, [userId]);
-        // Relationship tables (e.g. course_prerequisite_links) are guarded ONLY by a
-        // tenant-isolation RLS policy (tenant_id = current_setting('app.current_tenant')),
-        // unlike courses/programs which also have a registrar/owner "Write Access" policy.
-        // Set the tenant GUC so edge inserts/deletes pass RLS.
-        await client.query(`SELECT set_config('app.current_tenant', $1, true)`, [TENANT]);
+        // The spoke is single-tenant: relationship tables (e.g. course_prerequisite_links) use the
+        // auth.uid()+user_roles regime (relationship_tables_rls.sql) — the hub's app.current_tenant
+        // isolation was dropped per BUILD_PLAN §3 delta #3. So the acting user's sub + the
+        // authenticated role are all that edge inserts/deletes need to pass RLS.
         await client.query(`SET LOCAL ROLE authenticated`);
         const read: ReadFn = async (sql, params) => (await client.query(sql, params)).rows;
 

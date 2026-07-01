@@ -270,14 +270,12 @@ export async function retrieveGroundedChunks(
     
     while ((match = courseRegex.exec(message)) !== null) {
       const orig = match[0];
-      let prefix = match[1].toUpperCase();
+      const prefix = match[1].toUpperCase();
       const num = match[2];
-      
-      // Fuzzy prefix correction (e.g. ACT ➔ ACCT, ACC ➔ ACCT, CT ➔ ACCT)
-      if (prefix === 'ACT' || prefix === 'ACC' || prefix === 'CT') {
-        prefix = 'ACCT';
-      }
-      
+
+      // No institution-specific prefix rewriting here (the old CCSJ ACT/ACC/CT ➔ ACCT
+      // map does not generalize to SJFU). Typos are absorbed downstream by the courses
+      // lookup, which also matches on the numeric portion (course_code ILIKE %num%).
       const cleanCode = `${prefix} ${num}`;
       detectedCourses.push({ original: orig, prefix, num, cleanCode });
     }

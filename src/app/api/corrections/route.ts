@@ -15,6 +15,11 @@ export async function GET(req: Request) {
     const supabase = await createClient();
     const { data: { session } } = await supabase.auth.getSession();
     const userId = session?.user?.id;
+    if (!userId) {
+      // Surface an explicit 401 rather than letting queryWithAuth throw (→ 500) on a
+      // missing RLS context. RLS still restricts the queue to reviewer roles.
+      return NextResponse.json({ error: "Unauthorized access." }, { status: 401 });
+    }
 
     const { searchParams } = new URL(req.url);
     const statusFilter = searchParams.get('status');

@@ -4,6 +4,7 @@ import { promises as fs } from 'fs';
 import { queryWithAuth } from '@/lib/db';
 import { createClient } from '@/utils/supabase/server';
 import { TENANT_ID } from '@/lib/brand';
+import { swarmAuthHeaders } from '@/lib/swarm';
 import os from 'os';
 import { getStorageClient, resolveBucketName } from '@/lib/gcs';
 import { Blob } from 'buffer';
@@ -61,6 +62,7 @@ export async function POST(req: Request) {
       
       const response = await fetch(`${apiUrl}/api/agent/extract-minutes`, {
         method: 'POST',
+        headers: { ...swarmAuthHeaders() },  // no Content-Type: fetch sets the multipart boundary
         body: formData
       });
       

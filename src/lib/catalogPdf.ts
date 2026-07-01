@@ -1,7 +1,8 @@
 import { query } from '@/lib/db';
 import { INSTITUTION } from '@/lib/brand';
+import { SWARM_BASE_URL, swarmAuthHeaders } from '@/lib/swarm';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_SWARM_API_URL || 'http://localhost:8080';
+const API_BASE_URL = SWARM_BASE_URL;
 
 const esc = (s: any): string =>
   String(s ?? '')
@@ -617,7 +618,7 @@ export async function getProgramStructure(catalogId: string): Promise<{
 export async function renderCatalogPdf(html: string): Promise<Buffer> {
   const res = await fetch(`${API_BASE_URL}/api/agent/render-pdf`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...swarmAuthHeaders() },
     body: JSON.stringify({ html }),
   });
   if (!res.ok) throw new Error(`PDF render failed: ${res.status} ${await res.text()}`);

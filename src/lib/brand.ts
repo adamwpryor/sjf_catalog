@@ -41,9 +41,10 @@ export const GCS_BUCKET = 'sjfu-assets' as const;
 /** Brand tokens (from institution.config.yaml → brand). */
 export const BRAND = {
   colors: {
-    primary: '#993333', // Cardinal Red (official, PMS 201 C)
-    primaryDark: '#7a2929',
-    secondary: '#FFCC33', // Gold (official, PMS 116 C)
+    primary: '#993333', // Cardinal Red (official, PMS 201 C) → --color-brand-crimson
+    primaryDark: '#7a2929', // → --color-brand-crimson-dark
+    secondary: '#FFCC33', // Gold (official, PMS 116 C) → --color-brand-gold
+    secondaryDark: '#E6B800', // → --color-brand-gold-dark
     accent: '#FFCC33',
     bg: '#FFFFFF',
     surface: '#F7F5F2',

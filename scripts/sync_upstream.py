@@ -7,6 +7,21 @@ import argparse
 from pathlib import Path
 import hashlib
 
+# Presentation/brand files are the DIVERGENT bucket (BUILD_PLAN §4A): they *should* differ per
+# spoke (theme, brand tokens, copy, favicon), so they are neither drift-reported nor re-vendored —
+# a re-sync must never clobber the branding. All SJFU deltas to the tracked shared engine still go
+# through overrides; only these intentionally-forked presentation files are exempt from tracking.
+DIVERGENT_PATHS = {
+    "src/app/favicon.ico",
+    "src/app/globals.css",
+    "src/app/layout.tsx",
+    "src/app/page.tsx",
+    "src/app/login/page.tsx",
+    "src/app/update-password/page.tsx",
+    "src/components/LandingPage.tsx",
+}
+
+
 def get_git_commit(repo_path: Path) -> str:
     """Get the current git commit SHA for a repository."""
     try:
@@ -47,6 +62,8 @@ def sync_upstream(upstream_path: Path, source_rel_paths: list, target_dir: Path,
         drift_found = False
 
         for file_info in lock_data.get('files', []):
+            if file_info['upstream_path'] in DIVERGENT_PATHS:
+                continue  # intentionally forked presentation/brand — not tracked
             upstream_file = upstream_path / file_info['upstream_path']
             if not upstream_file.exists():
                 print(f"[DELETED UPSTREAM] {file_info['upstream_path']}")
@@ -97,11 +114,17 @@ def sync_upstream(upstream_path: Path, source_rel_paths: list, target_dir: Path,
                     
                 src_file = Path(root) / file
                 rel_path = src_file.relative_to(upstream_path)
-                
+
+                # Never re-vendor a divergent presentation/brand file — it would clobber the spoke's
+                # branding. It stays out of the lock too, so it isn't drift-reported.
+                if str(rel_path).replace("\\", "/") in DIVERGENT_PATHS:
+                    print(f"  Skipped (divergent/brand): {rel_path}")
+                    continue
+
                 # Destination path inside vendor dir
                 dest_rel_path = src_file.relative_to(upstream_path)
                 dest_file = target_dir / dest_rel_path
-                
+
                 os.makedirs(dest_file.parent, exist_ok=True)
                 shutil.copy2(src_file, dest_file)
                 

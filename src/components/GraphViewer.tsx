@@ -997,8 +997,10 @@ export default function GraphViewer({ catalogId, mode }: GraphViewerProps) {
 
         {/* Visual Graph Viewport Canvas */}
         {filteredData.nodes.length === 0 ? (
-          <div className="absolute inset-0 flex items-center justify-center text-slate-500 text-xs font-mono">
-            No matching coordinates mapped.
+          <div className="absolute inset-0 flex items-center justify-center text-slate-500 text-xs font-mono text-center px-6">
+            {!catalogId
+              ? 'Select a catalog version from the header to render the graph.'
+              : 'No matching coordinates mapped.'}
           </div>
         ) : is3D ? (
           <ForceGraph3D

@@ -181,9 +181,10 @@ export async function runRemediation({ catalogId, mode, userId }: { catalogId: s
   try {
     await client.query('BEGIN');
     if (userId) {
-      // Registrar path: enforce RLS as the acting user.
+      // Registrar path: enforce RLS as the acting user. Single-tenant spoke — relationship-table
+      // writes rely on the auth.uid()+user_roles policies (relationship_tables_rls.sql), not the
+      // hub's app.current_tenant isolation (dropped per BUILD_PLAN §3 delta #3).
       await client.query(`SELECT set_config('request.jwt.claim.sub', $1, true)`, [userId]);
-      await client.query(`SELECT set_config('app.current_tenant', $1, true)`, [TENANT]);
       await client.query(`SET LOCAL ROLE authenticated`);
     }
     // else: scheduled/service path runs as the privileged DB role (RLS bypassed).

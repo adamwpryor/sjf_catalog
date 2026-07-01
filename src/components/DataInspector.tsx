@@ -387,7 +387,11 @@ export default function DataInspector({ catalogId, initialView }: DataInspectorP
                 </div>
               ))
             ) : filteredData.length === 0 ? (
-              <div className="p-8 text-center text-slate-500 text-xs">No records match your query.</div>
+              <div className="p-8 text-center text-slate-500 text-xs">
+                {!catalogId
+                  ? 'Select a catalog version from the header to inspect its records.'
+                  : 'No records match your query.'}
+              </div>
             ) : (
               filteredData.map((item, idx) => {
                 const isSelected = selectedEntity?.id === item.id;
@@ -840,7 +844,7 @@ export default function DataInspector({ catalogId, initialView }: DataInspectorP
         <ReportErrorModal
           isOpen={modalOpen}
           onClose={() => { setModalOpen(false); setFlaggingField(null); }}
-          targetTable={view}
+          targetTable={view === 'policies' ? 'semantic_chunks' : view}
           targetRowId={selectedEntity.id}
           fieldName={flaggingField.fieldName}
           currentValue={flaggingField.currentValue}
