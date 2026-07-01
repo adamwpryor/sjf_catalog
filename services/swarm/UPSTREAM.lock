@@ -13,6 +13,18 @@
       "vendored_path": "src/utils/security.py",
       "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
       "hash": "ca9daab0bb00686c7284c3462ea64c86994e8216598a286d6183144502e8b7fc"
+    },
+    {
+      "upstream_path": "src/utils/supabase/client.ts",
+      "vendored_path": "src/utils/supabase/client.ts",
+      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
+      "hash": "30cf1b45f1ceb6c265443c5b887ee99d42468257d156ddc1c8156e0919acc2f1"
+    },
+    {
+      "upstream_path": "src/utils/supabase/server.ts",
+      "vendored_path": "src/utils/supabase/server.ts",
+      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
+      "hash": "b559ed28e8bca061a619b70d88d6ab1a2b7369c0a5bb27502ca2d9afc9159fee"
     }
   ]
 }

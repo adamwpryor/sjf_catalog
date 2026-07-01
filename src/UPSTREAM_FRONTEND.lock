@@ -1,0 +1,306 @@
+{
+  "source_repo": "ccsj-catalog",
+  "last_sync_commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
+  "files": [
+    {
+      "upstream_path": "src/app/favicon.ico",
+      "vendored_path": "src/app/favicon.ico",
+      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
+      "hash": "2b8ad2d33455a8f736fc3a8ebf8f0bdea8848ad4c0db48a2833bd0f9cd775932"
+    },
+    {
+      "upstream_path": "src/app/globals.css",
+      "vendored_path": "src/app/globals.css",
+      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
+      "hash": "7af2505a03c1ff9a0d3347eabf238982721ee1db24997a1846809a5c614a27cc"
+    },
+    {
+      "upstream_path": "src/app/layout.tsx",
+      "vendored_path": "src/app/layout.tsx",
+      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
+      "hash": "641f56be24447fb3dded262333afecaf85cd971e724be7479e3b5f47442c2255"
+    },
+    {
+      "upstream_path": "src/app/page.tsx",
+      "vendored_path": "src/app/page.tsx",
+      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
+      "hash": "9125cb5349cd25d97c8f3cfa7fbbdd31364a0acdc98aca599ac58e533b1d293a"
+    },
+    {
+      "upstream_path": "src/app/api/assistant/route.ts",
+      "vendored_path": "src/app/api/assistant/route.ts",
+      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
+      "hash": "e0190a48ab5ca42d27a99eea3dcb7772ad4d4d6fc51616f62b929df575475d7e"
+    },
+    {
+      "upstream_path": "src/app/api/catalog/apply-deltas/route.ts",
+      "vendored_path": "src/app/api/catalog/apply-deltas/route.ts",
+      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
+      "hash": "02348a763aff7efb78395c8d4123f5380a14902b2407544618a18d7e1626fbea"
+    },
+    {
+      "upstream_path": "src/app/api/catalog/assistant/route.ts",
+      "vendored_path": "src/app/api/catalog/assistant/route.ts",
+      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
+      "hash": "5f51f1b4ba6587cef9621641057cb7c6eb3609bc66a05882c84400cf25f92f1c"
+    },
+    {
+      "upstream_path": "src/app/api/catalog/audit/route.ts",
+      "vendored_path": "src/app/api/catalog/audit/route.ts",
+      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
+      "hash": "c920d028aefa75732c85caafdef26fb54c8989177c82dfd0b4973a46f99aaea7"
+    },
+    {
+      "upstream_path": "src/app/api/catalog/duplicate/route.ts",
+      "vendored_path": "src/app/api/catalog/duplicate/route.ts",
+      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
+      "hash": "9aaf9442547ef1404ba27142399b5ede7111b0c29fb2bde9ea24aa801e188eb9"
+    },
+    {
+      "upstream_path": "src/app/api/catalog/pdf/route.ts",
+      "vendored_path": "src/app/api/catalog/pdf/route.ts",
+      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
+      "hash": "2c1ba36d236042f14ff0cfd4a444b12fe62e584521d49db0e214d9296eab92ec"
+    },
+    {
+      "upstream_path": "src/app/api/catalog/publish/route.ts",
+      "vendored_path": "src/app/api/catalog/publish/route.ts",
+      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
+      "hash": "03855d17722faa8b89e579c900927172611f035616d4f530a8d7f93712abc28c"
+    },
+    {
+      "upstream_path": "src/app/api/catalog/remediate/route.ts",
+      "vendored_path": "src/app/api/catalog/remediate/route.ts",
+      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
+      "hash": "7ac20bd3d983aa892ff2f4c7056a72b1cde896979f3c0d43fcaaab945cb36660"
+    },
+    {
+      "upstream_path": "src/app/api/catalog/resync-chunks/route.ts",
+      "vendored_path": "src/app/api/catalog/resync-chunks/route.ts",
+      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
+      "hash": "9e2adc3723d78d773c8ff8d3adc745db898cf63ee5de96656d21ff056aa2c12a"
+    },
+    {
+      "upstream_path": "src/app/api/check-schema/route.ts",
+      "vendored_path": "src/app/api/check-schema/route.ts",
+      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
+      "hash": "4015d26212d16aa4d2b06c7983f0a248fbc64ad63ad08887b0768cd4648790ce"
+    },
+    {
+      "upstream_path": "src/app/api/clean-database/route.ts",
+      "vendored_path": "src/app/api/clean-database/route.ts",
+      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
+      "hash": "9cb0d45d1f765f60a1d87d2cf3718bc043693ebb9c1acf728a2f1ec93f6806d4"
+    },
+    {
+      "upstream_path": "src/app/api/corrections/route.ts",
+      "vendored_path": "src/app/api/corrections/route.ts",
+      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
+      "hash": "149a150ec54fe7c0190f7c41d0f13458015186bd1bd9381d58df93e8f97ad618"
+    },
+    {
+      "upstream_path": "src/app/api/cron/remediate/route.ts",
+      "vendored_path": "src/app/api/cron/remediate/route.ts",
+      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
+      "hash": "3cc6ff3a8ad1244a711efe7fba8d6750c5a3ea04381299ebf9de9cfe7b15bdd6"
+    },
+    {
+      "upstream_path": "src/app/api/db/route.ts",
+      "vendored_path": "src/app/api/db/route.ts",
+      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
+      "hash": "9cb4f652a28dffe93caddeb0eb84bb336cad66a0ed3a6db16f2dbc29fdcd86cf"
+    },
+    {
+      "upstream_path": "src/app/api/diff-summary/route.ts",
+      "vendored_path": "src/app/api/diff-summary/route.ts",
+      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
+      "hash": "5c5c21f51dc19cbf7a047986d4857a2052dd804ccb6802a80017eee1701ea766"
+    },
+    {
+      "upstream_path": "src/app/api/download/route.ts",
+      "vendored_path": "src/app/api/download/route.ts",
+      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
+      "hash": "5e520424ad3f91dc2e03bdce9d245d8e4a59e8fdef40238485fa541f099d2f8b"
+    },
+    {
+      "upstream_path": "src/app/api/eval/route.ts",
+      "vendored_path": "src/app/api/eval/route.ts",
+      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
+      "hash": "66be26a15f4b67aeb267e02abdf5d9ec88db70d2fadb335c84b961389755fb24"
+    },
+    {
+      "upstream_path": "src/app/api/extract-intake/route.ts",
+      "vendored_path": "src/app/api/extract-intake/route.ts",
+      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
+      "hash": "636fb71e8b2c7178b45ea57f177d965d3f2e7abd560cb1f9eaf35d38db747800"
+    },
+    {
+      "upstream_path": "src/app/api/fk-check/route.ts",
+      "vendored_path": "src/app/api/fk-check/route.ts",
+      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
+      "hash": "3a960aba28ff3b1f7d61e6ec02181cdea50953ae64d126998e9f4f4516a7198f"
+    },
+    {
+      "upstream_path": "src/app/api/functions/v1/unpack-parquet/route.ts",
+      "vendored_path": "src/app/api/functions/v1/unpack-parquet/route.ts",
+      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
+      "hash": "ea0bccbfa49375f7dc4c27cdc5af88d68bd84493c26f4102413410486ce72563"
+    },
+    {
+      "upstream_path": "src/app/api/improvement-plan/route.ts",
+      "vendored_path": "src/app/api/improvement-plan/route.ts",
+      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
+      "hash": "34caece98640ba5e0ff0c5a4e8140f23eb80edc2f9e3537e914e97605fdd60cf"
+    },
+    {
+      "upstream_path": "src/app/api/intake-files/route.ts",
+      "vendored_path": "src/app/api/intake-files/route.ts",
+      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
+      "hash": "8ca4ffc783a5f04f2a73ffa72c61ca883f6c7ba1b03a27cfa9dab8ff5e535936"
+    },
+    {
+      "upstream_path": "src/app/api/markdown/route.ts",
+      "vendored_path": "src/app/api/markdown/route.ts",
+      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
+      "hash": "4c6e28dc948a31936759ebc77f0fdc46a1f228d1416c170740a04140b94f9c3e"
+    },
+    {
+      "upstream_path": "src/app/api/upload/route.ts",
+      "vendored_path": "src/app/api/upload/route.ts",
+      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
+      "hash": "d43430542f1b3a47dbea89ef2b8f7e7761231f547a7930797f561f4d4f4d6376"
+    },
+    {
+      "upstream_path": "src/app/auth/callback/route.ts",
+      "vendored_path": "src/app/auth/callback/route.ts",
+      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
+      "hash": "ef904ac33729622ac9108185af2380c2a948f4dfafebfff380929e5235aea461"
+    },
+    {
+      "upstream_path": "src/app/login/page.tsx",
+      "vendored_path": "src/app/login/page.tsx",
+      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
+      "hash": "2bd0e1f53d92f699135fe1d8d8c99cdd8991504600290578f3fa0a792da57850"
+    },
+    {
+      "upstream_path": "src/app/update-password/page.tsx",
+      "vendored_path": "src/app/update-password/page.tsx",
+      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
+      "hash": "09cac79aa400186d4b3b8ba69ba6c41a0111b5cd6988803d6df162647a57188a"
+    },
+    {
+      "upstream_path": "src/components/AstExplorer.tsx",
+      "vendored_path": "src/components/AstExplorer.tsx",
+      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
+      "hash": "f9d351faa53802406147e5d3f010a7e3542e9bc66e8a8315f664000d28e878dc"
+    },
+    {
+      "upstream_path": "src/components/CatalogAssistantChat.tsx",
+      "vendored_path": "src/components/CatalogAssistantChat.tsx",
+      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
+      "hash": "c27683c103a7ec0444d10db20cf324ebe65e42ba59e01b5d970f21ede4074204"
+    },
+    {
+      "upstream_path": "src/components/CatalogPdfView.tsx",
+      "vendored_path": "src/components/CatalogPdfView.tsx",
+      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
+      "hash": "221cf87ec613b87e9a5df237fd1d98dac02ef103357aed4576b9ea8f9cc85e9f"
+    },
+    {
+      "upstream_path": "src/components/CatalogProductionWizard.tsx",
+      "vendored_path": "src/components/CatalogProductionWizard.tsx",
+      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
+      "hash": "9ea239794fb145f6b21c84a63cdb70cb86f28b942580aff9d24fa994f0c47325"
+    },
+    {
+      "upstream_path": "src/components/DataInspector.tsx",
+      "vendored_path": "src/components/DataInspector.tsx",
+      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
+      "hash": "1a8fad01f27ecb6ff881bca25b54ef8b987d551c61989d78c2e5ea59f2042f50"
+    },
+    {
+      "upstream_path": "src/components/DiagnosticsDashboard.tsx",
+      "vendored_path": "src/components/DiagnosticsDashboard.tsx",
+      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
+      "hash": "e30812e964f75facf7fdb6b83be7fa7e753c87fa22e652fb33062c489da23b03"
+    },
+    {
+      "upstream_path": "src/components/DiffLog.tsx",
+      "vendored_path": "src/components/DiffLog.tsx",
+      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
+      "hash": "404981b6cd1a5e4ee0b87067b26d0869a5e72883f7dc6962ec949234d41e5f00"
+    },
+    {
+      "upstream_path": "src/components/GraphViewer.tsx",
+      "vendored_path": "src/components/GraphViewer.tsx",
+      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
+      "hash": "3386420a5eaa880ccc31d9fee3adb70e4db9d0eaaff4941fb169341a2bcc2bf2"
+    },
+    {
+      "upstream_path": "src/components/ImprovementPlan.tsx",
+      "vendored_path": "src/components/ImprovementPlan.tsx",
+      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
+      "hash": "013caefa2c6cb1bd90c8a9bdd96896cbe1ff101074d6c335f9a14b701f7c43da"
+    },
+    {
+      "upstream_path": "src/components/ImprovementPlanFlow.tsx",
+      "vendored_path": "src/components/ImprovementPlanFlow.tsx",
+      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
+      "hash": "968cd55aed2b709c14ea7d514829f0e562c9809d148c6dc7fcc1a98ddcdf995d"
+    },
+    {
+      "upstream_path": "src/components/IntakeFilingSystem.tsx",
+      "vendored_path": "src/components/IntakeFilingSystem.tsx",
+      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
+      "hash": "0caea2d47273a31e6cfd0375f984945061fab4b6e5259c4cac3bc780cc1b08ae"
+    },
+    {
+      "upstream_path": "src/components/LandingPage.tsx",
+      "vendored_path": "src/components/LandingPage.tsx",
+      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
+      "hash": "48647ed096bac59eaeb75a3a6d5566fdc78f1561df8c9e133957e655463377e6"
+    },
+    {
+      "upstream_path": "src/components/Providers.tsx",
+      "vendored_path": "src/components/Providers.tsx",
+      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
+      "hash": "500c7e9e6860fde8cb9f3172dbf4d63079141f95b2b3df7fee41742fb0c32965"
+    },
+    {
+      "upstream_path": "src/components/ReportErrorModal.tsx",
+      "vendored_path": "src/components/ReportErrorModal.tsx",
+      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
+      "hash": "58a3106cadbdb06b2f4ed500c249df2feecf265c61957a0b079daeb3c5b5dd11"
+    },
+    {
+      "upstream_path": "src/components/TrackingDashboard.tsx",
+      "vendored_path": "src/components/TrackingDashboard.tsx",
+      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
+      "hash": "3330909388d1424933ec23464a934d4b99cc1b172d2775c5b7bbf56453968deb"
+    },
+    {
+      "upstream_path": "src/lib/catalogPdf.ts",
+      "vendored_path": "src/lib/catalogPdf.ts",
+      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
+      "hash": "fb8afecc4a94f2b36d790f4067bc07edd41c8355e51f13aeaea0d1555ef425e3"
+    },
+    {
+      "upstream_path": "src/lib/db.ts",
+      "vendored_path": "src/lib/db.ts",
+      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
+      "hash": "cf7bc0e2524b50e4a7e115449f9fb1add2d37a23065506cfad90dceca470238e"
+    },
+    {
+      "upstream_path": "src/lib/gcs.ts",
+      "vendored_path": "src/lib/gcs.ts",
+      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
+      "hash": "04ce7813d5d83a4fbad5d27891e85b5e1a7df3030d89a72423734e66bfde0940"
+    },
+    {
+      "upstream_path": "src/lib/llm.ts",
+      "vendored_path": "src/lib/llm.ts",
+      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
+      "hash": "fead488faf05fa490f856367547009fb473f20c633eaaee669e9056abea3f491"
+    }
+  ]
+}

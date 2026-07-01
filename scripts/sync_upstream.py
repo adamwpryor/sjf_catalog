@@ -65,9 +65,11 @@ def sync_upstream(upstream_path: Path, source_rel_paths: list, target_dir: Path,
         return
 
     # Perform Sync
-    if target_dir.exists():
-        shutil.rmtree(target_dir)
-    os.makedirs(target_dir, exist_ok=True)
+    for rel_path in source_rel_paths:
+        dest_dir = target_dir / rel_path
+        if dest_dir.exists() and dest_dir.resolve() != target_dir.resolve():
+            shutil.rmtree(dest_dir, ignore_errors=True)
+            os.makedirs(dest_dir, exist_ok=True)
 
     new_lock_data = {
         "source_repo": "ccsj-catalog",
@@ -90,7 +92,7 @@ def sync_upstream(upstream_path: Path, source_rel_paths: list, target_dir: Path,
                 dirs.remove('__pycache__')
                 
             for file in files:
-                if not file.endswith('.py'):
+                if file.endswith('.pyc') or file.endswith('.lock') or file == '.DS_Store':
                     continue
                     
                 src_file = Path(root) / file
@@ -98,8 +100,6 @@ def sync_upstream(upstream_path: Path, source_rel_paths: list, target_dir: Path,
                 
                 # Destination path inside vendor dir
                 dest_rel_path = src_file.relative_to(upstream_path)
-                # Note: dest_rel_path will be something like "src/server/main.py". 
-                # We want it inside target_dir as "src/server/main.py"
                 dest_file = target_dir / dest_rel_path
                 
                 os.makedirs(dest_file.parent, exist_ok=True)
@@ -127,14 +127,23 @@ def main():
     
     workspace_root = Path(r"C:\Users\adamw\coding_workspaces\sjf_catalog\sjf_catalog")
     target_dir = workspace_root / "services" / "swarm" / "vendor"
-    lock_file = workspace_root / "services" / "swarm" / "UPSTREAM.lock"
-    
-    # We want to vendor src/server and src/utils from ccsj-catalog
+    # 1. Backend (Python) vendored into services/swarm/vendor
     sync_upstream(
         upstream_path=Path(args.upstream),
         source_rel_paths=["src/server", "src/utils"],
-        target_dir=target_dir,
-        lock_file=lock_file,
+        target_dir=workspace_root / "services" / "swarm" / "vendor",
+        lock_file=workspace_root / "services" / "swarm" / "UPSTREAM.lock",
+        report_only=args.report
+    )
+    
+    # 2. Frontend (Next.js) vendored into src/
+    # We omit src/server and src/utils from the frontend payload to avoid duplicates,
+    # as those belong to the Python backend swarm now.
+    sync_upstream(
+        upstream_path=Path(args.upstream),
+        source_rel_paths=["src/app", "src/components", "src/lib"],
+        target_dir=workspace_root,
+        lock_file=workspace_root / "src" / "UPSTREAM_FRONTEND.lock",
         report_only=args.report
     )
 

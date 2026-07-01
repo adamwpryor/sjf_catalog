@@ -1,20 +1,46 @@
 import type { Metadata } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
+import Providers from "@/components/Providers";
 import "./globals.css";
 
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
 export const metadata: Metadata = {
-  title: "St. John Fisher University — Catalog",
-  description:
-    "Interactive academic catalog for St. John Fisher University. Programs, courses, prerequisites, and requirement pathways.",
+  title: "CCSJ Catalog Auditing & Corrections Platform",
+  description: "Calumet College of St. Joseph Academic Knowledge Graph & Delta Corrections Log",
 };
 
+/**
+ * Root layout component for the application.
+ * 
+ * @param {Object} props - The component props.
+ * @param {React.ReactNode} props.children - The child components to render.
+ * @returns {JSX.Element} The rendered root layout.
+ */
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body>{children}</body>
+    <html
+      lang="en"
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
+    >
+      <body className="min-h-full flex flex-col bg-[#090d16] text-[#f1f5f9] antialiased">
+        <Providers>
+          {children}
+        </Providers>
+      </body>
     </html>
   );
 }
