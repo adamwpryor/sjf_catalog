@@ -4,9 +4,15 @@
   "files": [
     {
       "upstream_path": "src/server/main.py",
-      "vendored_path": "main.py",
+      "vendored_path": "src/server/main.py",
       "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
       "hash": "dae27ba528c25319122f196095125f5f68133418f940a6ea261dfe478f70a8e8"
+    },
+    {
+      "upstream_path": "src/utils/security.py",
+      "vendored_path": "src/utils/security.py",
+      "commit": "622fbd8eb6f721ff4d926769275b6423f5d0ac1c",
+      "hash": "ca9daab0bb00686c7284c3462ea64c86994e8216598a286d6183144502e8b7fc"
     }
   ]
 }

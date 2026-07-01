@@ -1,13 +1,15 @@
 import sys
 from pathlib import Path
 
-# Add the root of sjf_catalog to sys.path so that absolute imports like `from src.utils.security...` inside the vendored file work
-workspace_root = Path(__file__).parent.parent.parent
-if str(workspace_root) not in sys.path:
-    sys.path.insert(0, str(workspace_root))
+# Add the vendor directory to sys.path so that absolute imports like 
+# `from src.utils.security import load_secure_key` inside the vendored file work,
+# resolving to services/swarm/vendor/src/utils/security.py
+vendor_root = Path(__file__).parent / "vendor"
+if str(vendor_root) not in sys.path:
+    sys.path.insert(0, str(vendor_root))
 
 from services.swarm.overrides.vertex import override_anthropic_client
-import services.swarm.vendor.main as vendored_main
+import src.server.main as vendored_main
 
 # Apply SJFU-specific override: Use Vertex AI natively on Cloud Run via OAuth
 # instead of an Anthropic API Key.
