@@ -189,7 +189,7 @@ async function main() {
       return;
     }
 
-    let lastId = 0;
+    let lastId = '00000000-0000-0000-0000-000000000000'; // uuid keyset seed
     let done = 0;
     let failed = 0;
     const startedAt = Date.now();
@@ -199,7 +199,7 @@ async function main() {
       const pageSize = Math.min(args.batch, remaining);
       const { rows } = await client.query(
         `SELECT id, content FROM semantic_chunks
-         WHERE id > $1 AND embedding IS NULL AND content IS NOT NULL AND length(trim(content)) > 0
+         WHERE id > $1::uuid AND embedding IS NULL AND content IS NOT NULL AND length(trim(content)) > 0
          ORDER BY id LIMIT $2`,
         [lastId, pageSize]
       );
