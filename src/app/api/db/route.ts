@@ -3,22 +3,34 @@ import { query, queryWithAuth } from '@/lib/db';
 import { createClient } from '@/utils/supabase/server';
 import { TENANT_ID } from '@/lib/brand';
 
+// Page-footer / OCR artifacts that leak into extracted chunk bodies (e.g. "] 212",
+// a bare "---" page break, a revision stamp, or a standalone page number).
+const FOOTER_ARTIFACT_RE = /^\s*(?:\]\s*\d{1,4}|-{3,}|Updated\s+\d{1,2}[-/]\d{1,2}[-/]\d{2,4}|\d{1,4})\s*$/i;
+
 /**
- * Cleans the description text by removing header markdown artifacts.
+ * Sanitizes a stored course description for display by stripping non-prose extraction
+ * artifacts — the leading `[Header 1: … > Header N: …]` breadcrumb, residual markdown
+ * headings, and page-footer noise. Mirrors the Hub extractor's `_sanitize_description`.
+ *
+ * IMPORTANT: this strips *artifact lines only* and never drops prose. (The prior
+ * implementation kept only the text after the first `##`, which silently truncated any
+ * description containing a mid-body heading — see the description-recovery backfill.)
  *
  * @param desc - The raw description string.
- * @returns The cleaned description.
+ * @returns The cleaned description prose.
  */
 function cleanDescription(desc: string | null | undefined): string {
   if (!desc) return '';
-  
-  // Regex designed to target the '## [Header]' separator and extract the clean second segment (Capture Group 1)
-  const regex = /(?:\r?\n|^)##\s+[^\r\n]+(?:\r?\n)([\s\S]*)$/;
-  const match = desc.match(regex);
-  if (match && match[1]) {
-    return match[1].trim();
+  const out: string[] = [];
+  for (const raw of desc.split(/\r?\n/)) {
+    const s = raw.trim();
+    if (!s) { if (out.length && out[out.length - 1] !== '') out.push(''); continue; } // keep paragraph breaks
+    if (s.startsWith('[') && s.endsWith(']')) continue;   // "[Header 1: … > Header 2: …]" breadcrumb
+    if (/^#{1,6}\s/.test(s)) continue;                     // residual markdown heading
+    if (FOOTER_ARTIFACT_RE.test(s)) continue;             // page-footer / OCR artifact
+    out.push(s);
   }
-  return desc.trim();
+  return out.join('\n').replace(/\n{3,}/g, '\n\n').trim();
 }
 
 /**
@@ -855,11 +867,12 @@ export async function POST(req: Request) {
         if (!catalogId) return NextResponse.json({ error: "Catalog ID required." }, { status: 400 });
         // Fetch courses joined with department subject prefix details
         const res = await query(
-          `SELECT c.id, c.course_code, c.title, c.credits, c.description, c.prerequisites, c.section, 
-                  s.prefix as subject_prefix, s.department_name 
-           FROM courses c 
-           LEFT JOIN subjects s ON c.subject_id = s.id 
-           WHERE c.tenant_id = $1 AND c.document_id = $2 
+          `SELECT c.id, c.course_code, c.title, c.credits, c.description, c.prerequisites, c.section,
+                  c.markdown_url, c.source_chunk_id,
+                  s.prefix as subject_prefix, s.department_name
+           FROM courses c
+           LEFT JOIN subjects s ON c.subject_id = s.id
+           WHERE c.tenant_id = $1 AND c.document_id = $2
            ORDER BY c.course_code;`,
           [tenantId, catalogId]
         );

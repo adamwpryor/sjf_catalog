@@ -94,6 +94,29 @@ const compileProgramFallbackMarkdown = (program: any, details: any) => {
   return md;
 };
 
+// Helper to compile fallback markdown for a course when the GCS source page is unreachable.
+/**
+ * Helper to compile fallback markdown for a course when the GCS source page 403s / 404s.
+ * Renders the structured DB record so the "Source Catalog Page" tab is never blank.
+ *
+ * @param {any} course - The course data object.
+ * @returns {string} The markdown content.
+ */
+const compileCourseFallbackMarkdown = (course: any) => {
+  if (!course) return '';
+
+  let md = `> [!NOTE]
+> **Database Fallback:** The source catalog page asset could not be retrieved from the private storage repository. Displaying the course record loaded from our structured database.
+
+# ${course.course_code || 'Course'}${course.title ? ` — ${course.title}` : ''}
+
+`;
+  if (course.credits != null) md += `**Credits:** \`${course.credits}\`  \n`;
+  if (course.prerequisites) md += `**Prerequisites:** ${course.prerequisites}  \n`;
+  md += `\n## Catalog Description\n\n${course.description || '*No description available for this course.*'}\n`;
+  return md;
+};
+
 // Helper to compile beautiful fallback markdown for a policy when GCS is private or 403s
 /**
  * Helper to compile beautiful fallback markdown for a policy when GCS is private or 403s.
@@ -271,6 +294,13 @@ export default function DataInspector({ catalogId, initialView }: DataInspectorP
       }
 
       if (!targetUrl) {
+        if (view === 'courses') {
+          // No source page linked (e.g. a ghost/referenced course) — show the DB record instead of erroring.
+          setMarkdownContent(compileCourseFallbackMarkdown(selectedEntity));
+          setMarkdownError(null);
+          setMarkdownLoading(false);
+          return;
+        }
         setMarkdownError(
           view === 'programs'
             ? `No Markdown Guide URL linked yet. Set the "markdown_url" column in Supabase programs table (e.g. gs://${GCS_BUCKET}/catalogs/${currentCatalogVersion}/programs/...).`
@@ -298,6 +328,10 @@ export default function DataInspector({ catalogId, initialView }: DataInspectorP
           setMarkdownError(null);
         } else if (view === 'policies') {
           const fallbackMd = compilePolicyFallbackMarkdown(selectedEntity);
+          setMarkdownContent(fallbackMd);
+          setMarkdownError(null);
+        } else if (view === 'courses') {
+          const fallbackMd = compileCourseFallbackMarkdown(selectedEntity);
           setMarkdownContent(fallbackMd);
           setMarkdownError(null);
         } else {
@@ -468,19 +502,19 @@ export default function DataInspector({ catalogId, initialView }: DataInspectorP
                   </div>
                 </div>
 
-                {/* Sub-Tabs for Programs and Policies */}
-                {view !== 'courses' && (
+                {/* Sub-Tabs: Source Catalog Page (markdown) vs. Structured DB Fields — all entity types */}
+                {(
                   <div className="flex px-6 border-t border-white/5 bg-[#3d1010]">
                     <button
                       onClick={() => setActiveDetailTab('markdown')}
                       className={`px-4 py-2.5 text-xs font-bold transition-all border-b-2 cursor-pointer flex items-center gap-2 ${
-                        activeDetailTab === 'markdown' 
-                          ? 'border-[#993333] text-white' 
+                        activeDetailTab === 'markdown'
+                          ? 'border-[#993333] text-white'
                           : 'border-transparent text-slate-400 hover:text-white'
                       }`}
                     >
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
-                      Human-Friendly Guide (Markdown)
+                      {view === 'courses' ? 'Source Catalog Page' : 'Human-Friendly Guide (Markdown)'}
                     </button>
                     <button
                       onClick={() => setActiveDetailTab('structured')}
@@ -501,7 +535,7 @@ export default function DataInspector({ catalogId, initialView }: DataInspectorP
               <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-gradient-to-b from-[#3d1010] to-[#2a0a0a]">
                 
                 {/* DYNAMIC MARKDOWN VIEWER TAB */}
-                {view !== 'courses' && activeDetailTab === 'markdown' && (
+                {activeDetailTab === 'markdown' && (
                   <div className="space-y-4">
                     {markdownLoading ? (
                       <div className="py-12 flex flex-col items-center justify-center space-y-3">
@@ -574,7 +608,7 @@ export default function DataInspector({ catalogId, initialView }: DataInspectorP
                 )}
 
                 {/* 1. COURSES VIEW DETAILS */}
-                {view === 'courses' && (
+                {view === 'courses' && activeDetailTab === 'structured' && (
                   <div className="space-y-6">
                     {/* Course Properties */}
                     <div className="grid grid-cols-2 gap-4">
