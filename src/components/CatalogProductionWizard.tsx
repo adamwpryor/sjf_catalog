@@ -260,7 +260,7 @@ export default function CatalogProductionWizard({ sourceCatalogId, sourceCatalog
   };
 
   return (
-    <div className="bg-[#0b0f1d] border border-[#B6CFD6]/15 rounded-xl p-6 text-slate-200 font-sans max-w-4xl mx-auto mt-6">
+    <div className="bg-[#521a1a] border border-[#FFCC33]/15 rounded-xl p-6 text-slate-200 font-sans max-w-4xl mx-auto mt-6">
       <div className="border-b border-white/10 pb-4 mb-6 relative">
         <h2 className="text-xl font-bold text-white mb-2">Catalog Production Wizard</h2>
         <p className="text-sm text-slate-400">Safely generate the next academic year's catalog using the Campus Swarm Agents. This structured pipeline ensures all delta corrections are applied and curriculum prerequisites are validated before publication.</p>
@@ -285,7 +285,7 @@ export default function CatalogProductionWizard({ sourceCatalogId, sourceCatalog
         <div className="flex-1 space-y-6">
           
           {/* Step 1 */}
-          <div className={`p-4 rounded-xl border transition-all ${currentStep === 1 ? 'bg-[#8C2232]/10 border-[#8C2232]' : currentStep > 1 ? 'bg-white/5 border-emerald-500/50' : 'bg-transparent border-white/10 opacity-50'}`}>
+          <div className={`p-4 rounded-xl border transition-all ${currentStep === 1 ? 'bg-[#993333]/10 border-[#993333]' : currentStep > 1 ? 'bg-white/5 border-emerald-500/50' : 'bg-transparent border-white/10 opacity-50'}`}>
             <div className="flex items-center justify-between mb-2">
               <h3 className={`font-bold ${currentStep === 1 ? 'text-white' : currentStep > 1 ? 'text-emerald-400' : 'text-slate-400'}`}>1. Initialize Draft Database</h3>
               {currentStep > 1 && <span className="text-emerald-400 text-xs">✔ Complete</span>}
@@ -295,7 +295,7 @@ export default function CatalogProductionWizard({ sourceCatalogId, sourceCatalog
               <button 
                 onClick={handleInitializeDraft} 
                 disabled={loading}
-                className="bg-[#8C2232] hover:bg-[#65121e] text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50"
+                className="bg-[#993333] hover:bg-[#7a2929] text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50"
               >
                 {loading ? 'Initializing...' : 'Clone Active to Draft'}
               </button>
@@ -303,7 +303,7 @@ export default function CatalogProductionWizard({ sourceCatalogId, sourceCatalog
           </div>
 
           {/* Step 2 */}
-          <div className={`p-4 rounded-xl border transition-all ${currentStep === 2 ? 'bg-[#8C2232]/10 border-[#8C2232]' : currentStep > 2 ? 'bg-white/5 border-emerald-500/50' : 'bg-transparent border-white/10 opacity-50'}`}>
+          <div className={`p-4 rounded-xl border transition-all ${currentStep === 2 ? 'bg-[#993333]/10 border-[#993333]' : currentStep > 2 ? 'bg-white/5 border-emerald-500/50' : 'bg-transparent border-white/10 opacity-50'}`}>
             <div className="flex items-center justify-between mb-2">
               <h3 className={`font-bold ${currentStep === 2 ? 'text-white' : currentStep > 2 ? 'text-emerald-400' : 'text-slate-400'}`}>2. Apply Delta Corrections</h3>
               {currentStep > 2 && <span className="text-emerald-400 text-xs">✔ Complete</span>}
@@ -315,7 +315,7 @@ export default function CatalogProductionWizard({ sourceCatalogId, sourceCatalog
                   <button
                     onClick={handleComputeCorrections}
                     disabled={loading}
-                    className="bg-[#8C2232] hover:bg-[#65121e] text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50"
+                    className="bg-[#993333] hover:bg-[#7a2929] text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50"
                   >
                     {loading ? 'Resolving...' : 'Compute Corrections'}
                   </button>
@@ -385,7 +385,7 @@ export default function CatalogProductionWizard({ sourceCatalogId, sourceCatalog
           </div>
 
           {/* Step 3 */}
-          <div className={`p-4 rounded-xl border transition-all ${currentStep === 3 ? 'bg-[#8C2232]/10 border-[#8C2232]' : currentStep > 3 ? 'bg-white/5 border-emerald-500/50' : 'bg-transparent border-white/10 opacity-50'}`}>
+          <div className={`p-4 rounded-xl border transition-all ${currentStep === 3 ? 'bg-[#993333]/10 border-[#993333]' : currentStep > 3 ? 'bg-white/5 border-emerald-500/50' : 'bg-transparent border-white/10 opacity-50'}`}>
             <div className="flex items-center justify-between mb-2">
               <h3 className={`font-bold ${currentStep === 3 ? 'text-white' : currentStep > 3 ? 'text-emerald-400' : 'text-slate-400'}`}>3. Curriculum Graph Audit</h3>
               {currentStep > 3 && <span className="text-emerald-400 text-xs">✔ Complete</span>}
@@ -397,7 +397,7 @@ export default function CatalogProductionWizard({ sourceCatalogId, sourceCatalog
                   <button
                     onClick={handleCurriculumAudit}
                     disabled={loading}
-                    className="bg-[#8C2232] hover:bg-[#65121e] text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50"
+                    className="bg-[#993333] hover:bg-[#7a2929] text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50"
                   >
                     {loading ? 'Auditing...' : 'Audit Graph'}
                   </button>
@@ -451,7 +451,7 @@ export default function CatalogProductionWizard({ sourceCatalogId, sourceCatalog
           </div>
 
           {/* Step 4 */}
-          <div className={`p-4 rounded-xl border transition-all ${currentStep === 4 ? 'bg-[#8C2232]/10 border-[#8C2232]' : currentStep > 4 ? 'bg-white/5 border-emerald-500/50' : 'bg-transparent border-white/10 opacity-50'}`}>
+          <div className={`p-4 rounded-xl border transition-all ${currentStep === 4 ? 'bg-[#993333]/10 border-[#993333]' : currentStep > 4 ? 'bg-white/5 border-emerald-500/50' : 'bg-transparent border-white/10 opacity-50'}`}>
             <div className="flex items-center justify-between mb-2">
               <h3 className={`font-bold ${currentStep === 4 ? 'text-white' : currentStep > 4 ? 'text-emerald-400' : 'text-slate-400'}`}>4. Sign-off & Publish</h3>
               {currentStep > 4 && <span className="text-emerald-400 text-xs">✔ Complete</span>}
@@ -484,7 +484,7 @@ export default function CatalogProductionWizard({ sourceCatalogId, sourceCatalog
                     href={pdfUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 bg-[#8C2232] hover:bg-[#65121e] text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors"
+                    className="inline-flex items-center gap-2 bg-[#993333] hover:bg-[#7a2929] text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                     Download Catalog PDF

@@ -519,20 +519,20 @@ export async function buildCatalogHtml(
     @bottom-center { content: counter(page); font-size: 8pt; color: #7a7a7a; }
   }
   body { font-family: Georgia, 'Times New Roman', serif; font-size: 10.5pt; line-height: 1.45; color: #1a1a1a; }
-  h1, h2, h3, h4 { font-family: Georgia, serif; color: #8C2232; }
-  h2 { font-size: 18pt; border-bottom: 2px solid #8C2232; padding-bottom: 4px; }
+  h1, h2, h3, h4 { font-family: Georgia, serif; color: #993333; }
+  h2 { font-size: 18pt; border-bottom: 2px solid #993333; padding-bottom: 4px; }
   h3 { font-size: 13.5pt; margin: 16px 0 4px; border-bottom: 1px solid #d9c3c7; padding-bottom: 2px; }
-  h4 { font-size: 11.5pt; margin: 10px 0 3px; color: #65121e; }
+  h4 { font-size: 11.5pt; margin: 10px 0 3px; color: #7a2929; }
   .muted { color: #7a7a7a; font-weight: normal; }
   .meta { font-size: 9pt; color: #555; margin: 2px 0 6px; }
   .section { page-break-before: always; }
   .cover { text-align: center; page-break-after: always; padding-top: 28%; }
-  .cover .inst { font-size: 26pt; color: #8C2232; }
+  .cover .inst { font-size: 26pt; color: #993333; }
   .cover .title { font-size: 18pt; margin-top: 10px; }
   .cover .ver { font-size: 14pt; margin-top: 24px; color: #333; }
   .cover .draft { margin-top: 18px; font-size: 13pt; font-weight: bold; color: #b03a4a; letter-spacing: 0.05em; }
   .toc a { text-decoration: none; color: #1a1a1a; }
-  .toc .lvl1 { font-weight: bold; color: #8C2232; margin-top: 8px; font-size: 11pt; }
+  .toc .lvl1 { font-weight: bold; color: #993333; margin-top: 8px; font-size: 11pt; }
   .toc .lvl2 { margin-left: 16px; font-size: 9.5pt; }
   .toc .lvl3 { margin-left: 34px; font-size: 9pt; color: #444; }
   .toc a::after { content: " " leader('.') " " target-counter(attr(href url), page); color: #888; }
@@ -542,7 +542,7 @@ export async function buildCatalogHtml(
   .prereq { margin: 2px 0; font-size: 9.5pt; color: #444; }
   table.md { border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 9.5pt; }
   table.md th, table.md td { border: 1px solid #c9b4b8; padding: 4px 7px; text-align: left; vertical-align: top; }
-  table.md th { background: #f3e9eb; color: #65121e; font-weight: bold; }
+  table.md th { background: #f3e9eb; color: #7a2929; font-weight: bold; }
   table.md tr:nth-child(even) td { background: #faf6f7; }
   .discipline { margin-bottom: 16px; }
   .program { margin: 0 0 10px 12px; padding-left: 8px; border-left: 2px solid #eadfe1; }

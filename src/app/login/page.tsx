@@ -84,21 +84,21 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#050811] px-4 relative overflow-hidden font-sans">
+    <div className="min-h-screen flex items-center justify-center sjf-app-bg px-4 relative overflow-hidden font-sans">
       {/* Dynamic Background Glows */}
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#8C2232]/10 rounded-full blur-[100px] glow-glow"></div>
-      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-[#B6CFD6]/10 rounded-full blur-[100px] glow-glow"></div>
+      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#993333]/10 rounded-full blur-[100px] glow-glow"></div>
+      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-[#FFCC33]/10 rounded-full blur-[100px] glow-glow"></div>
 
       <div className="w-full max-w-md z-10 animate-in fade-in duration-500 slide-in-from-bottom-6">
         {/* Logo and Headings */}
         <div className="text-center mb-8">
-          <div className="inline-block px-4 py-2 bg-white/5 border border-[#B6CFD6]/15 rounded-full text-xs font-semibold text-[#B6CFD6] uppercase tracking-widest mb-3 backdrop-blur-md">
+          <div className="inline-block px-4 py-2 bg-white/5 border border-[#FFCC33]/15 rounded-full text-xs font-semibold text-[#FFCC33] uppercase tracking-widest mb-3 backdrop-blur-md">
             {INSTITUTION.appTitle} Portal
           </div>
           <h1 className="text-3xl font-bold serif-title text-white flex items-center justify-center gap-2">
             {INSTITUTION.shortName}
           </h1>
-          <div className="text-xs font-semibold uppercase tracking-[0.2em] text-[#B6CFD6] mt-0.5 font-mono">
+          <div className="text-xs font-semibold uppercase tracking-[0.2em] text-[#FFCC33] mt-0.5 font-mono">
             {INSTITUTION.legalName}
           </div>
           <p className="text-sm text-slate-400 mt-3 font-medium">
@@ -109,7 +109,7 @@ export default function LoginPage() {
         {/* Login Form Panel */}
         <div className="glass-panel rounded-2xl shadow-2xl p-6 md:p-8 border border-white/5 relative overflow-hidden">
           {/* Subtle top brand crimson highlight line */}
-          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#8C2232] to-[#B6CFD6]"></div>
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#993333] to-[#FFCC33]"></div>
 
           {resetSent ? (
             <div className="text-center space-y-4">
@@ -122,7 +122,7 @@ export default function LoginPage() {
               </p>
               <button
                 onClick={() => { setResetSent(false); setMode('login'); setPassword(''); }}
-                className="text-xs font-bold text-[#B6CFD6] hover:text-white transition-colors cursor-pointer uppercase tracking-wider"
+                className="text-xs font-bold text-[#FFCC33] hover:text-white transition-colors cursor-pointer uppercase tracking-wider"
               >
                 ← Back to sign in
               </button>
@@ -131,7 +131,7 @@ export default function LoginPage() {
           <>
           <form onSubmit={mode === 'reset' ? handleReset : handleLogin} className="space-y-6">
             {error && (
-              <div className="bg-[#8C2232]/10 border border-[#8C2232]/35 rounded-lg px-4 py-3 text-sm text-red-300 flex items-center gap-2 animate-pulse">
+              <div className="bg-[#993333]/10 border border-[#993333]/35 rounded-lg px-4 py-3 text-sm text-red-300 flex items-center gap-2 animate-pulse">
                 <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
@@ -140,7 +140,7 @@ export default function LoginPage() {
             )}
 
             <div>
-              <label className="block text-xs font-bold text-[#B6CFD6] uppercase tracking-wider mb-2">
+              <label className="block text-xs font-bold text-[#FFCC33] uppercase tracking-wider mb-2">
                 Email
               </label>
               <input
@@ -149,20 +149,20 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder={`you@${INSTITUTION.emailDomain}`}
-                className="w-full bg-[#0a0f1d] border border-white/10 rounded-lg px-4 py-3 text-sm text-white placeholder-slate-500 focus:border-[#8C2232] focus:ring-1 focus:ring-[#8C2232] outline-none transition-all"
+                className="w-full bg-[#3d1010] border border-white/10 rounded-lg px-4 py-3 text-sm text-white placeholder-slate-500 focus:border-[#993333] focus:ring-1 focus:ring-[#993333] outline-none transition-all"
               />
             </div>
 
             {mode === 'login' && (
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="block text-xs font-bold text-[#B6CFD6] uppercase tracking-wider">
+                  <label className="block text-xs font-bold text-[#FFCC33] uppercase tracking-wider">
                     Password
                   </label>
                   <button
                     type="button"
                     onClick={() => { setMode('reset'); setError(''); }}
-                    className="text-[11px] font-semibold text-slate-400 hover:text-[#B6CFD6] transition-colors cursor-pointer"
+                    className="text-[11px] font-semibold text-slate-400 hover:text-[#FFCC33] transition-colors cursor-pointer"
                   >
                     Forgot password?
                   </button>
@@ -173,7 +173,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
-                  className="w-full bg-[#0a0f1d] border border-white/10 rounded-lg px-4 py-3 text-sm text-white placeholder-slate-500 focus:border-[#8C2232] focus:ring-1 focus:ring-[#8C2232] outline-none transition-all"
+                  className="w-full bg-[#3d1010] border border-white/10 rounded-lg px-4 py-3 text-sm text-white placeholder-slate-500 focus:border-[#993333] focus:ring-1 focus:ring-[#993333] outline-none transition-all"
                 />
               </div>
             )}
@@ -187,7 +187,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-[#8C2232] hover:bg-[#65121e] active:scale-[0.98] text-white rounded-lg py-3 font-semibold text-sm transition-all shadow-lg hover:shadow-[#8C2232]/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              className="w-full bg-[#993333] hover:bg-[#7a2929] active:scale-[0.98] text-white rounded-lg py-3 font-semibold text-sm transition-all shadow-lg hover:shadow-[#993333]/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             >
               {loading ? (
                 <>
@@ -212,14 +212,14 @@ export default function LoginPage() {
                 </div>
                 <div>
                   If an administrator invited you, use{' '}
-                  <button type="button" onClick={() => { setMode('reset'); setError(''); }} className="text-[#B6CFD6] hover:text-white underline underline-offset-2 cursor-pointer">Forgot password?</button>{' '}
+                  <button type="button" onClick={() => { setMode('reset'); setError(''); }} className="text-[#FFCC33] hover:text-white underline underline-offset-2 cursor-pointer">Forgot password?</button>{' '}
                   to set your password for the first time, then sign in.
                 </div>
               </>
             ) : (
               <div>
                 Remembered it?{' '}
-                <button type="button" onClick={() => { setMode('login'); setError(''); }} className="text-[#B6CFD6] hover:text-white underline underline-offset-2 cursor-pointer">Back to sign in</button>
+                <button type="button" onClick={() => { setMode('login'); setError(''); }} className="text-[#FFCC33] hover:text-white underline underline-offset-2 cursor-pointer">Back to sign in</button>
               </div>
             )}
             <div className="text-slate-500 text-[10px] text-center pt-2 select-none">
@@ -233,9 +233,9 @@ export default function LoginPage() {
         {/* Tagline footer */}
         <div className="text-center mt-8 text-xs text-slate-500 uppercase tracking-widest font-semibold font-serif-title flex items-center justify-center gap-4">
           <span>Browse</span>
-          <span className="w-1.5 h-1.5 bg-[#8C2232] rounded-full"></span>
+          <span className="w-1.5 h-1.5 bg-[#993333] rounded-full"></span>
           <span>Analyze</span>
-          <span className="w-1.5 h-1.5 bg-[#B6CFD6] rounded-full"></span>
+          <span className="w-1.5 h-1.5 bg-[#FFCC33] rounded-full"></span>
           <span>Improve</span>
         </div>
       </div>

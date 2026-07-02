@@ -348,10 +348,10 @@ export default function DataInspector({ catalogId, initialView }: DataInspectorP
   return (
     <div className="space-y-6 animate-in fade-in duration-300 font-sans h-full flex flex-col">
       {/* Search and Filters Header */}
-      <div className="bg-[#0b0f1d] p-4 rounded-xl border border-[#B6CFD6]/10 flex flex-col md:flex-row justify-between items-center gap-4 shrink-0 shadow-lg">
+      <div className="bg-[#521a1a] p-4 rounded-xl border border-[#FFCC33]/10 flex flex-col md:flex-row justify-between items-center gap-4 shrink-0 shadow-lg">
         {/* Current library indicator (non-clickable — each library is its own page) */}
-        <div className="flex gap-2 bg-[#090d16] p-1 rounded-lg border border-white/5">
-          <span className="px-4 py-1.5 rounded-md text-xs font-bold bg-[#8C2232] text-white shadow-md">
+        <div className="flex gap-2 bg-[#3d1010] p-1 rounded-lg border border-white/5">
+          <span className="px-4 py-1.5 rounded-md text-xs font-bold bg-[#993333] text-white shadow-md">
             {view === 'courses' ? 'Courses' : view === 'programs' ? 'Programs' : 'Policy Chunks'}
           </span>
         </div>
@@ -361,7 +361,7 @@ export default function DataInspector({ catalogId, initialView }: DataInspectorP
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder={`Search ${view}...`}
-          className="bg-[#090d16] border border-[#B6CFD6]/15 rounded-lg px-4 py-2 text-xs text-white placeholder-slate-500 focus:border-[#8C2232] focus:ring-1 focus:ring-[#8C2232] outline-none transition-colors w-full md:w-64"
+          className="bg-[#3d1010] border border-[#FFCC33]/15 rounded-lg px-4 py-2 text-xs text-white placeholder-slate-500 focus:border-[#993333] focus:ring-1 focus:ring-[#993333] outline-none transition-colors w-full md:w-64"
         />
       </div>
 
@@ -370,9 +370,9 @@ export default function DataInspector({ catalogId, initialView }: DataInspectorP
         
         {/* Left Side: Paginated List */}
         <div className="w-full h-[350px] lg:h-auto lg:w-1/2 glass-panel rounded-2xl border border-white/5 overflow-hidden flex flex-col shadow-xl shrink-0 lg:shrink">
-          <div className="px-6 py-4 border-b border-white/5 bg-[#0b0f1d] flex justify-between items-center shrink-0">
-            <h3 className="text-xs font-bold text-[#B6CFD6] uppercase tracking-wider font-mono flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#8C2232]"></span>
+          <div className="px-6 py-4 border-b border-white/5 bg-[#521a1a] flex justify-between items-center shrink-0">
+            <h3 className="text-xs font-bold text-[#FFCC33] uppercase tracking-wider font-mono flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#993333]"></span>
               Master Catalog Entries
             </h3>
             <span className="text-[10px] text-slate-500 font-mono font-semibold">{filteredData.length} records found</span>
@@ -406,7 +406,7 @@ export default function DataInspector({ catalogId, initialView }: DataInspectorP
                     onClick={() => { setSelectedEntity(item); setEntityDetails(null); }}
                     className={`p-4 cursor-pointer transition-all flex justify-between items-center text-left ${
                       isSelected 
-                        ? 'bg-[#8C2232]/10 border-l-4 border-[#8C2232]' 
+                        ? 'bg-[#993333]/10 border-l-4 border-[#993333]' 
                         : 'hover:bg-white/5'
                     }`}
                   >
@@ -427,7 +427,7 @@ export default function DataInspector({ catalogId, initialView }: DataInspectorP
                     </div>
 
                     <div className="shrink-0 text-right">
-                      <span className="text-[10px] px-2 py-1 rounded bg-[#090d16] border border-white/5 text-slate-300 font-bold font-mono">
+                      <span className="text-[10px] px-2 py-1 rounded bg-[#3d1010] border border-white/5 text-slate-300 font-bold font-mono">
                         {view === 'courses' ? `${getField(view, item.id, 'credits', item.credits).value} Cr` : view === 'programs' ? item.degree_type : `Page ${item.page_number}`}
                       </span>
                     </div>
@@ -450,7 +450,7 @@ export default function DataInspector({ catalogId, initialView }: DataInspectorP
             <div className="flex-1 flex flex-col overflow-hidden text-left">
               
               {/* Dynamic Header & Double Tabs */}
-              <div className="border-b border-white/5 bg-[#0b0f1d] shrink-0">
+              <div className="border-b border-white/5 bg-[#521a1a] shrink-0">
                 <div className="px-6 py-4 flex justify-between items-start">
                   <div className="space-y-1">
                     <h4 className="text-sm font-bold serif-title text-white">
@@ -461,7 +461,7 @@ export default function DataInspector({ catalogId, initialView }: DataInspectorP
                           : `Document Chunk ${selectedEntity.sequence_order}`}
                     </h4>
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] text-[#B6CFD6] font-semibold uppercase tracking-wider font-mono">
+                      <span className="text-[10px] text-[#FFCC33] font-semibold uppercase tracking-wider font-mono">
                         {view === 'policies' ? `Section: ${selectedEntity.section_header || 'Front Matter'}` : `ID: ${selectedEntity.id}`}
                       </span>
                     </div>
@@ -470,12 +470,12 @@ export default function DataInspector({ catalogId, initialView }: DataInspectorP
 
                 {/* Sub-Tabs for Programs and Policies */}
                 {view !== 'courses' && (
-                  <div className="flex px-6 border-t border-white/5 bg-[#090d16]">
+                  <div className="flex px-6 border-t border-white/5 bg-[#3d1010]">
                     <button
                       onClick={() => setActiveDetailTab('markdown')}
                       className={`px-4 py-2.5 text-xs font-bold transition-all border-b-2 cursor-pointer flex items-center gap-2 ${
                         activeDetailTab === 'markdown' 
-                          ? 'border-[#8C2232] text-white' 
+                          ? 'border-[#993333] text-white' 
                           : 'border-transparent text-slate-400 hover:text-white'
                       }`}
                     >
@@ -486,7 +486,7 @@ export default function DataInspector({ catalogId, initialView }: DataInspectorP
                       onClick={() => setActiveDetailTab('structured')}
                       className={`px-4 py-2.5 text-xs font-bold transition-all border-b-2 cursor-pointer flex items-center gap-2 ${
                         activeDetailTab === 'structured' 
-                          ? 'border-[#8C2232] text-white' 
+                          ? 'border-[#993333] text-white' 
                           : 'border-transparent text-slate-400 hover:text-white'
                       }`}
                     >
@@ -498,14 +498,14 @@ export default function DataInspector({ catalogId, initialView }: DataInspectorP
               </div>
 
               {/* Entity Details Scroll Area */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-gradient-to-b from-[#090d16] to-[#050811]">
+              <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-gradient-to-b from-[#3d1010] to-[#2a0a0a]">
                 
                 {/* DYNAMIC MARKDOWN VIEWER TAB */}
                 {view !== 'courses' && activeDetailTab === 'markdown' && (
                   <div className="space-y-4">
                     {markdownLoading ? (
                       <div className="py-12 flex flex-col items-center justify-center space-y-3">
-                        <div className="w-8 h-8 rounded-full border-4 border-slate-700 border-t-[#8C2232] animate-spin"></div>
+                        <div className="w-8 h-8 rounded-full border-4 border-slate-700 border-t-[#993333] animate-spin"></div>
                         <span className="text-xs text-slate-400 font-mono font-medium">Fetching file from cloud repository...</span>
                       </div>
                     ) : markdownError ? (
@@ -523,7 +523,7 @@ export default function DataInspector({ catalogId, initialView }: DataInspectorP
                             <button
                               onClick={() => setCurrentPage(prev => (prev && prev > 1 ? prev - 1 : prev))}
                               disabled={currentPage <= 1}
-                              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-[#8C2232]/20 hover:bg-[#8C2232]/40 disabled:opacity-40 disabled:hover:bg-[#8C2232]/20 text-[#B6CFD6] rounded-lg transition-all font-bold cursor-pointer disabled:cursor-not-allowed"
+                              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-[#993333]/20 hover:bg-[#993333]/40 disabled:opacity-40 disabled:hover:bg-[#993333]/20 text-[#FFCC33] rounded-lg transition-all font-bold cursor-pointer disabled:cursor-not-allowed"
                             >
                               ◀ Previous (Page {currentPage - 1})
                             </button>
@@ -534,7 +534,7 @@ export default function DataInspector({ catalogId, initialView }: DataInspectorP
                             
                             <button
                               onClick={() => setCurrentPage(prev => (prev ? prev + 1 : prev))}
-                              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-[#8C2232]/20 hover:bg-[#8C2232]/40 text-[#B6CFD6] rounded-lg transition-all font-bold cursor-pointer"
+                              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-[#993333]/20 hover:bg-[#993333]/40 text-[#FFCC33] rounded-lg transition-all font-bold cursor-pointer"
                             >
                               Next (Page {currentPage + 1}) ▶
                             </button>
@@ -544,22 +544,22 @@ export default function DataInspector({ catalogId, initialView }: DataInspectorP
                         <ReactMarkdown 
                           remarkPlugins={[remarkGfm]}
                           components={{
-                            h1: ({node, ...props}) => <h1 className="text-xl font-extrabold serif-title text-white border-b border-[#B6CFD6]/10 pb-2 mt-4 mb-4" {...props} />,
-                            h2: ({node, ...props}) => <h2 className="text-base font-bold serif-title text-white mt-6 mb-3 border-l-2 border-[#8C2232] pl-2.5" {...props} />,
-                            h3: ({node, ...props}) => <h3 className="text-sm font-bold text-[#B6CFD6] mt-4 mb-2 font-mono uppercase tracking-wide" {...props} />,
+                            h1: ({node, ...props}) => <h1 className="text-xl font-extrabold serif-title text-white border-b border-[#FFCC33]/10 pb-2 mt-4 mb-4" {...props} />,
+                            h2: ({node, ...props}) => <h2 className="text-base font-bold serif-title text-white mt-6 mb-3 border-l-2 border-[#993333] pl-2.5" {...props} />,
+                            h3: ({node, ...props}) => <h3 className="text-sm font-bold text-[#FFCC33] mt-4 mb-2 font-mono uppercase tracking-wide" {...props} />,
                             p: ({node, ...props}) => <p className="text-xs text-slate-300 leading-relaxed mb-4 font-sans font-medium" {...props} />,
                             ul: ({node, ...props}) => <ul className="list-disc pl-5 space-y-2 mb-4 text-xs text-slate-300 font-medium" {...props} />,
                             ol: ({node, ...props}) => <ol className="list-decimal pl-5 space-y-2 mb-4 text-xs text-slate-300 font-medium" {...props} />,
                             li: ({node, ...props}) => <li className="pl-1" {...props} />,
                             blockquote: ({node, ...props}) => (
-                              <blockquote className="border-l-4 border-[#8C2232] bg-[#8C2232]/5 p-4 rounded-r-xl italic my-4 text-xs text-slate-400 font-serif-title" {...props} />
+                              <blockquote className="border-l-4 border-[#993333] bg-[#993333]/5 p-4 rounded-r-xl italic my-4 text-xs text-slate-400 font-serif-title" {...props} />
                             ),
                             table: ({node, ...props}) => (
                               <div className="overflow-x-auto my-6 border border-white/5 rounded-xl">
                                 <table className="w-full text-left border-collapse" {...props} />
                               </div>
                             ),
-                            thead: ({node, ...props}) => <thead className="bg-[#0b0f1d] border-b border-white/5 text-[9px] uppercase tracking-wider text-[#B6CFD6] font-bold font-mono" {...props} />,
+                            thead: ({node, ...props}) => <thead className="bg-[#521a1a] border-b border-white/5 text-[9px] uppercase tracking-wider text-[#FFCC33] font-bold font-mono" {...props} />,
                             tbody: ({node, ...props}) => <tbody className="divide-y divide-white/5" {...props} />,
                             tr: ({node, ...props}) => <tr className="hover:bg-white/5 transition-colors" {...props} />,
                             th: ({node, ...props}) => <th className="px-4 py-2.5 font-semibold" {...props} />,
@@ -594,7 +594,7 @@ export default function DataInspector({ catalogId, initialView }: DataInspectorP
                             </div>
                             <button
                               onClick={() => handleFlagClick('credits', selectedEntity.credits)}
-                              className="absolute top-2.5 right-2.5 text-slate-500 hover:text-[#8C2232] transition-colors cursor-pointer"
+                              className="absolute top-2.5 right-2.5 text-slate-500 hover:text-[#993333] transition-colors cursor-pointer"
                               title="Flag error in credit count"
                             >
                               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
@@ -617,13 +617,13 @@ export default function DataInspector({ catalogId, initialView }: DataInspectorP
                       const desc = getField('courses', selectedEntity.id, 'description', selectedEntity.description);
                       return (
                         <div className="space-y-2 relative">
-                          <h5 className="text-xs font-bold text-[#B6CFD6] uppercase tracking-wider font-mono">Catalog Description</h5>
+                          <h5 className="text-xs font-bold text-[#FFCC33] uppercase tracking-wider font-mono">Catalog Description</h5>
                           <div className="p-4 bg-white/5 rounded-xl border border-white/5 text-xs text-slate-300 leading-relaxed font-medium">
                             {desc.value || 'No description provided.'}
                           </div>
                           <button
                             onClick={() => handleFlagClick('description', selectedEntity.description)}
-                            className="absolute top-0 right-0 text-slate-500 hover:text-[#8C2232] transition-colors cursor-pointer"
+                            className="absolute top-0 right-0 text-slate-500 hover:text-[#993333] transition-colors cursor-pointer"
                             title="Flag error in description"
                           >
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
@@ -637,8 +637,8 @@ export default function DataInspector({ catalogId, initialView }: DataInspectorP
                       const prereqs = getField('courses', selectedEntity.id, 'prerequisites', selectedEntity.prerequisites);
                       return (
                         <div className="space-y-3 relative">
-                          <h5 className="text-xs font-bold text-[#B6CFD6] uppercase tracking-wider font-mono">Prerequisite Requirements</h5>
-                          <div className="p-4 bg-[#0a0f1d] rounded-xl border border-white/5 text-xs space-y-3">
+                          <h5 className="text-xs font-bold text-[#FFCC33] uppercase tracking-wider font-mono">Prerequisite Requirements</h5>
+                          <div className="p-4 bg-[#3d1010] rounded-xl border border-white/5 text-xs space-y-3">
                             <div className="flex items-center gap-2">
                               <span className="font-semibold text-slate-400">Raw Narrative:</span>
                               <span className="font-mono font-bold text-amber-300">{prereqs.value || 'None'}</span>
@@ -648,7 +648,7 @@ export default function DataInspector({ catalogId, initialView }: DataInspectorP
                             {entityDetails?.prerequisites && entityDetails.prerequisites.length > 0 && (
                               <div className="pt-3 border-t border-white/5">
                                 <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest font-mono mb-2">Relational Prerequisites Path:</div>
-                                <div className="space-y-2 pl-3 border-l-2 border-[#8C2232]">
+                                <div className="space-y-2 pl-3 border-l-2 border-[#993333]">
                                   {entityDetails.prerequisites.map((pre: any) => (
                                     <button 
                                       key={pre.id}
@@ -661,8 +661,8 @@ export default function DataInspector({ catalogId, initialView }: DataInspectorP
                                       }}
                                       className="flex items-center gap-2 font-mono hover:bg-white/5 p-1 rounded transition-colors cursor-pointer text-left w-full"
                                     >
-                                      <span className="w-1.5 h-1.5 rounded-full bg-[#B6CFD6]"></span>
-                                      <span className="font-bold text-[#B6CFD6]">{pre.course_code}</span>
+                                      <span className="w-1.5 h-1.5 rounded-full bg-[#FFCC33]"></span>
+                                      <span className="font-bold text-[#FFCC33]">{pre.course_code}</span>
                                       <span className="text-slate-400 text-[10px] font-sans">({pre.title})</span>
                                     </button>
                                   ))}
@@ -672,7 +672,7 @@ export default function DataInspector({ catalogId, initialView }: DataInspectorP
                           </div>
                           <button
                             onClick={() => handleFlagClick('prerequisites', selectedEntity.prerequisites)}
-                            className="absolute top-0 right-0 text-slate-500 hover:text-[#8C2232] transition-colors cursor-pointer"
+                            className="absolute top-0 right-0 text-slate-500 hover:text-[#993333] transition-colors cursor-pointer"
                             title="Flag error in prerequisite text"
                           >
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
@@ -701,7 +701,7 @@ export default function DataInspector({ catalogId, initialView }: DataInspectorP
                     {/* Faculty Affiliates */}
                     {entityDetails?.faculty && entityDetails.faculty.length > 0 && (
                       <div className="space-y-2">
-                        <h5 className="text-xs font-bold text-[#B6CFD6] uppercase tracking-wider font-mono">Affiliated Program Faculty</h5>
+                        <h5 className="text-xs font-bold text-[#FFCC33] uppercase tracking-wider font-mono">Affiliated Program Faculty</h5>
                         <div className="flex flex-wrap gap-2">
                           {entityDetails.faculty.map((fac: any) => (
                             <span key={fac.id} className="px-3 py-1.5 rounded-full bg-white/5 border border-white/5 text-xs text-slate-300 font-medium">
@@ -715,8 +715,8 @@ export default function DataInspector({ catalogId, initialView }: DataInspectorP
                     {/* Mission and Outcomes */}
                     {selectedEntity.mission_statement && (
                       <div className="space-y-2">
-                        <h5 className="text-xs font-bold text-[#B6CFD6] uppercase tracking-wider font-mono">Mission Statement</h5>
-                        <div className="p-4 bg-[#8C2232]/5 rounded-xl border border-[#8C2232]/20 text-xs text-slate-300 leading-relaxed font-medium font-serif-title italic whitespace-pre-wrap">
+                        <h5 className="text-xs font-bold text-[#FFCC33] uppercase tracking-wider font-mono">Mission Statement</h5>
+                        <div className="p-4 bg-[#993333]/5 rounded-xl border border-[#993333]/20 text-xs text-slate-300 leading-relaxed font-medium font-serif-title italic whitespace-pre-wrap">
                           {selectedEntity.mission_statement}
                         </div>
                       </div>
@@ -724,7 +724,7 @@ export default function DataInspector({ catalogId, initialView }: DataInspectorP
 
                     {selectedEntity.program_outcome_objectives && (
                       <div className="space-y-2">
-                        <h5 className="text-xs font-bold text-[#B6CFD6] uppercase tracking-wider font-mono">Program Learning Outcomes</h5>
+                        <h5 className="text-xs font-bold text-[#FFCC33] uppercase tracking-wider font-mono">Program Learning Outcomes</h5>
                         <div className="p-4 bg-white/5 rounded-xl border border-white/5 text-xs text-slate-300 leading-relaxed font-medium whitespace-pre-wrap">
                           {selectedEntity.program_outcome_objectives}
                         </div>
@@ -734,17 +734,17 @@ export default function DataInspector({ catalogId, initialView }: DataInspectorP
                     {/* Program Requirements Logic Trees Redesign */}
                     {entityDetails?.requirements && entityDetails.requirements.length > 0 && (
                       <div className="space-y-4">
-                        <h5 className="text-xs font-bold text-[#B6CFD6] uppercase tracking-wider font-mono">Curriculum Requirement Trees</h5>
+                        <h5 className="text-xs font-bold text-[#FFCC33] uppercase tracking-wider font-mono">Curriculum Requirement Trees</h5>
                         {entityDetails.requirements.map((req: any) => {
                           const linkedCourses = entityDetails.requirementCourses?.filter((rc: any) => rc.requirement_id === req.id) || [];
                           
                           return (
-                            <div key={req.id} className="p-5 bg-[#0a0f1d] rounded-2xl border border-white/5 space-y-4 text-xs relative">
+                            <div key={req.id} className="p-5 bg-[#3d1010] rounded-2xl border border-white/5 space-y-4 text-xs relative">
                               <div className="flex justify-between items-center pb-2.5 border-b border-white/5">
-                                <span className="font-bold text-[#B6CFD6] font-serif-title">{req.degree_name}</span>
+                                <span className="font-bold text-[#FFCC33] font-serif-title">{req.degree_name}</span>
                                 <button
                                   onClick={() => handleFlagClick('logic_tree', req.logic_tree)}
-                                  className="text-slate-500 hover:text-[#8C2232] transition-colors cursor-pointer"
+                                  className="text-slate-500 hover:text-[#993333] transition-colors cursor-pointer"
                                   title="Flag logic tree error"
                                 >
                                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
@@ -775,8 +775,8 @@ export default function DataInspector({ catalogId, initialView }: DataInspectorP
                                           </div>
                                           <span className={`shrink-0 px-2 py-0.5 rounded font-mono text-[8px] font-bold uppercase tracking-wider ${
                                             rc.is_required 
-                                              ? 'bg-[#8C2232]/25 text-[#B6CFD6] border border-[#8C2232]/45' 
-                                              : 'bg-[#B6CFD6]/10 text-slate-400 border border-[#B6CFD6]/20'
+                                              ? 'bg-[#993333]/25 text-[#FFCC33] border border-[#993333]/45' 
+                                              : 'bg-[#FFCC33]/10 text-slate-400 border border-[#FFCC33]/20'
                                           }`}>
                                             {rc.is_required ? 'Required' : 'Elective'}
                                           </span>
@@ -802,7 +802,7 @@ export default function DataInspector({ catalogId, initialView }: DataInspectorP
                       {/* Toulmin Role */}
                       <div className="p-4 bg-white/5 rounded-xl border border-white/5">
                         <div className="text-[9px] font-bold text-slate-500 uppercase tracking-widest font-mono mb-1">Toulmin Role</div>
-                        <div className="text-xs font-bold text-[#B6CFD6] font-mono">
+                        <div className="text-xs font-bold text-[#FFCC33] font-mono">
                           {selectedEntity.lookup_toulmin_role || selectedEntity.toulmin_role || 'Warrant (Rule)'}
                         </div>
                       </div>
@@ -826,7 +826,7 @@ export default function DataInspector({ catalogId, initialView }: DataInspectorP
 
                     {/* Chunk Paragraph Content */}
                     <div className="space-y-2">
-                      <h5 className="text-xs font-bold text-[#B6CFD6] uppercase tracking-wider font-mono">Extracted Narrative Blob</h5>
+                      <h5 className="text-xs font-bold text-[#FFCC33] uppercase tracking-wider font-mono">Extracted Narrative Blob</h5>
                       <div className="p-5 bg-white/5 rounded-2xl border border-white/5 text-xs text-slate-300 leading-relaxed font-medium font-sans">
                         {selectedEntity.content}
                       </div>

@@ -614,17 +614,17 @@ export default function DiffLog({ catalogs, activeCatalogId }: DiffLogProps) {
 
   // The collapsible AI editorial review panel shown above the change cards.
   const renderEditorialPanel = (hasChanges = true) => (
-    <div className="bg-[#090d16] border border-[#8C2232]/25 rounded-xl p-5 shadow-lg">
+    <div className="bg-[#3d1010] border border-[#993333]/25 rounded-xl p-5 shadow-lg">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <svg className="w-4 h-4 text-[#8C2232]" fill="currentColor" viewBox="0 0 24 24"><path d="M11 2l1.6 4.6L17 8l-4.4 1.4L11 14l-1.6-4.6L5 8l4.4-1.4L11 2zm7 9l.9 2.6L21 14l-2.1.4L18 17l-.9-2.6L15 14l2.1-.4L18 11z"/></svg>
+          <svg className="w-4 h-4 text-[#993333]" fill="currentColor" viewBox="0 0 24 24"><path d="M11 2l1.6 4.6L17 8l-4.4 1.4L11 14l-1.6-4.6L5 8l4.4-1.4L11 2zm7 9l.9 2.6L21 14l-2.1.4L18 17l-.9-2.6L15 14l2.1-.4L18 11z"/></svg>
           <h3 className="text-sm font-bold text-white uppercase tracking-wider font-mono">Editorial Review</h3>
         </div>
         {hasChanges && (
           <button
             onClick={handleGenerateEditorial}
             disabled={editorialLoading}
-            className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#8C2232] text-white hover:bg-[#a32a3c] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#993333] text-white hover:bg-[#a32a3c] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {editorialLoading ? 'Reviewing…' : editorialText ? 'Regenerate' : 'Generate review'}
           </button>
@@ -644,7 +644,7 @@ export default function DiffLog({ catalogs, activeCatalogId }: DiffLogProps) {
       {editorialError && <p className="text-xs text-red-400 mt-3">{editorialError}</p>}
       {editorialLoading && (
         <div className="flex items-center gap-3 text-xs text-slate-400 mt-3">
-          <div className="w-4 h-4 border-2 border-[#8C2232] border-t-transparent rounded-full animate-spin"></div>
+          <div className="w-4 h-4 border-2 border-[#993333] border-t-transparent rounded-full animate-spin"></div>
           Reading the differences and writing a review…
         </div>
       )}
@@ -653,13 +653,13 @@ export default function DiffLog({ catalogs, activeCatalogId }: DiffLogProps) {
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             components={{
-              h2: ({node, ...props}) => <h2 className="text-xs font-bold uppercase tracking-wider text-[#B6CFD6] mt-4 mb-1.5 first:mt-0" {...props} />,
+              h2: ({node, ...props}) => <h2 className="text-xs font-bold uppercase tracking-wider text-[#FFCC33] mt-4 mb-1.5 first:mt-0" {...props} />,
               h3: ({node, ...props}) => <h3 className="text-xs font-bold text-white mt-3 mb-1" {...props} />,
               p: ({node, ...props}) => <p className="mb-2 leading-relaxed text-slate-300" {...props} />,
               ul: ({node, ...props}) => <ul className="list-disc pl-5 space-y-1 mb-2 text-slate-300" {...props} />,
               li: ({node, ...props}) => <li className="leading-relaxed" {...props} />,
               strong: ({node, ...props}) => <strong className="font-semibold text-white" {...props} />,
-              code: ({node, ...props}) => <code className="bg-black/40 px-1 py-0.5 rounded text-[#B6CFD6] text-[12px]" {...props} />,
+              code: ({node, ...props}) => <code className="bg-black/40 px-1 py-0.5 rounded text-[#FFCC33] text-[12px]" {...props} />,
             }}
           >
             {editorialText}
@@ -685,7 +685,7 @@ export default function DiffLog({ catalogs, activeCatalogId }: DiffLogProps) {
     if (loading) {
       return (
         <div className="flex-1 flex items-center justify-center text-slate-500 text-sm italic">
-          <div className="w-5 h-5 border-2 border-[#8C2232] border-t-transparent rounded-full animate-spin mr-3"></div>
+          <div className="w-5 h-5 border-2 border-[#993333] border-t-transparent rounded-full animate-spin mr-3"></div>
           Analyzing diffs...
         </div>
       );
@@ -710,16 +710,16 @@ export default function DiffLog({ catalogs, activeCatalogId }: DiffLogProps) {
     // Banner describing how a policy chunk was aligned across the two versions.
     const matchBanner =
       nodeType === 'Policy' && matchInfo && (matchInfo.method === 'similarity' || matchInfo.method === 'header') ? (
-        <div className="bg-[#0b0f1d] border border-[#B6CFD6]/15 rounded-xl px-4 py-2.5 flex items-center gap-2 text-xs">
-          <svg className="w-4 h-4 text-[#B6CFD6] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        <div className="bg-[#521a1a] border border-[#FFCC33]/15 rounded-xl px-4 py-2.5 flex items-center gap-2 text-xs">
+          <svg className="w-4 h-4 text-[#FFCC33] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
           <span className="text-slate-400">
             {matchInfo.method === 'header'
               ? 'Sections aligned by matching heading.'
               : <>
                   Sections aligned by similarity
                   {typeof matchInfo.cosine === 'number'
-                    ? <> (<span className="text-[#B6CFD6] font-semibold">{Math.round(matchInfo.cosine * 100)}% meaning</span>, <span className="text-[#B6CFD6] font-semibold">{Math.round((matchInfo.jaccard ?? 0) * 100)}% wording</span>)</>
-                    : <> (<span className="text-[#B6CFD6] font-semibold">{Math.round((matchInfo.jaccard ?? matchInfo.score) * 100)}% wording</span>)</>}
+                    ? <> (<span className="text-[#FFCC33] font-semibold">{Math.round(matchInfo.cosine * 100)}% meaning</span>, <span className="text-[#FFCC33] font-semibold">{Math.round((matchInfo.jaccard ?? 0) * 100)}% wording</span>)</>
+                    : <> (<span className="text-[#FFCC33] font-semibold">{Math.round((matchInfo.jaccard ?? matchInfo.score) * 100)}% wording</span>)</>}
                   {' '}— headings and page numbers differ between the two ingestions.
                 </>}
           </span>
@@ -779,7 +779,7 @@ export default function DiffLog({ catalogs, activeCatalogId }: DiffLogProps) {
       <div className="space-y-4 max-w-5xl mx-auto w-full">
         {matchBanner}
         {/* Plain-language summary banner */}
-        <div className="bg-[#090d16] border border-[#B6CFD6]/10 rounded-xl p-5 shadow-lg">
+        <div className="bg-[#3d1010] border border-[#FFCC33]/10 rounded-xl p-5 shadow-lg">
           <div className="flex items-baseline gap-2 mb-2">
             <span className="text-2xl font-bold text-white serif-title">{changedKeys.length}</span>
             <span className="text-sm text-slate-300 font-medium">
@@ -809,9 +809,9 @@ export default function DiffLog({ catalogs, activeCatalogId }: DiffLogProps) {
           const isOpen = !!openCards[key];
 
           return (
-            <div key={key} className="bg-[#090d16] border border-white/5 rounded-xl overflow-hidden shadow-lg animate-in fade-in slide-in-from-bottom-2">
+            <div key={key} className="bg-[#3d1010] border border-white/5 rounded-xl overflow-hidden shadow-lg animate-in fade-in slide-in-from-bottom-2">
               <div className="bg-black/40 px-4 py-2 border-b border-white/5 flex items-center justify-between">
-                <span className="text-xs font-bold text-[#B6CFD6] uppercase tracking-widest font-mono">{label}</span>
+                <span className="text-xs font-bold text-[#FFCC33] uppercase tracking-widest font-mono">{label}</span>
                 <span className={`text-[10px] font-medium border px-2 py-0.5 rounded ${kindStyles[kind].chip}`}>
                   {kindStyles[kind].word.charAt(0).toUpperCase() + kindStyles[kind].word.slice(1)}
                 </span>
@@ -826,7 +826,7 @@ export default function DiffLog({ catalogs, activeCatalogId }: DiffLogProps) {
               <div className="border-t border-white/5">
                 <button
                   onClick={() => toggleCard(key)}
-                  className="w-full flex items-center justify-between px-4 py-2 text-[11px] font-mono uppercase tracking-wider text-slate-400 hover:text-[#B6CFD6] hover:bg-white/5 transition-colors"
+                  className="w-full flex items-center justify-between px-4 py-2 text-[11px] font-mono uppercase tracking-wider text-slate-400 hover:text-[#FFCC33] hover:bg-white/5 transition-colors"
                 >
                   <span>{isOpen ? 'Hide details' : 'View details'}</span>
                   <svg className={`w-3.5 h-3.5 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
@@ -858,7 +858,7 @@ export default function DiffLog({ catalogs, activeCatalogId }: DiffLogProps) {
   return (
     <div className="h-full flex flex-col gap-6 animate-in fade-in duration-300 font-sans">
       {/* Header */}
-      <div className="bg-[#0b0f1d] p-6 rounded-xl border border-[#B6CFD6]/10 shrink-0 shadow-lg relative overflow-hidden">
+      <div className="bg-[#521a1a] p-6 rounded-xl border border-[#FFCC33]/10 shrink-0 shadow-lg relative overflow-hidden">
         <div className="absolute top-0 right-0 p-8 opacity-5">
            <svg className="w-32 h-32" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
         </div>
@@ -867,11 +867,11 @@ export default function DiffLog({ catalogs, activeCatalogId }: DiffLogProps) {
         
         <div className="mt-6 flex flex-col md:flex-row gap-4 md:items-end relative z-10">
           <div className="w-full md:flex-1 min-w-0 md:min-w-[200px]">
-            <label className="block text-[10px] font-bold text-[#B6CFD6] uppercase tracking-widest mb-1 font-mono">Base Catalog</label>
+            <label className="block text-[10px] font-bold text-[#FFCC33] uppercase tracking-widest mb-1 font-mono">Base Catalog</label>
             <select
               value={baseCatalogId}
               onChange={(e) => setBaseCatalogId(e.target.value)}
-              className="w-full bg-[#090d16] border border-[#B6CFD6]/20 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-[#8C2232] transition-colors shadow-inner truncate"
+              className="w-full bg-[#3d1010] border border-[#FFCC33]/20 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-[#993333] transition-colors shadow-inner truncate"
             >
               {filteredCatalogs.map(cat => (
                 <option key={cat.id} value={cat.id}>Catalog {cat.version}</option>
@@ -887,11 +887,11 @@ export default function DiffLog({ catalogs, activeCatalogId }: DiffLogProps) {
           </div>
 
           <div className="w-full md:flex-1 min-w-0 md:min-w-[200px]">
-            <label className="block text-[10px] font-bold text-[#B6CFD6] uppercase tracking-widest mb-1 font-mono">Comparison Catalog</label>
+            <label className="block text-[10px] font-bold text-[#FFCC33] uppercase tracking-widest mb-1 font-mono">Comparison Catalog</label>
             <select
               value={compareCatalogId}
               onChange={(e) => setCompareCatalogId(e.target.value)}
-              className="w-full bg-[#090d16] border border-[#B6CFD6]/20 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-[#8C2232] transition-colors shadow-inner truncate"
+              className="w-full bg-[#3d1010] border border-[#FFCC33]/20 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-[#993333] transition-colors shadow-inner truncate"
             >
               <option value="">-- Select Catalog to Compare --</option>
               {filteredCatalogs.filter(c => c.id !== baseCatalogId).map(cat => (
@@ -903,11 +903,11 @@ export default function DiffLog({ catalogs, activeCatalogId }: DiffLogProps) {
 
         <div className="mt-4 flex flex-col md:flex-row gap-4 md:items-end relative z-10">
           <div className="w-full md:w-[150px] shrink-0">
-            <label className="block text-[10px] font-bold text-[#B6CFD6] uppercase tracking-widest mb-1 font-mono">Chunk Type</label>
+            <label className="block text-[10px] font-bold text-[#FFCC33] uppercase tracking-widest mb-1 font-mono">Chunk Type</label>
             <select
               value={nodeType}
               onChange={(e) => setNodeType(e.target.value as any)}
-              className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-[#8C2232] shadow-inner"
+              className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-[#993333] shadow-inner"
             >
               <option value="Course">Courses</option>
               <option value="Program">Programs</option>
@@ -916,11 +916,11 @@ export default function DiffLog({ catalogs, activeCatalogId }: DiffLogProps) {
           </div>
 
           <div className="w-full md:flex-1 min-w-0 md:min-w-[300px]">
-            <label className="block text-[10px] font-bold text-[#B6CFD6] uppercase tracking-widest mb-1 font-mono">Select {nodeType}</label>
+            <label className="block text-[10px] font-bold text-[#FFCC33] uppercase tracking-widest mb-1 font-mono">Select {nodeType}</label>
             <select
               value={selectedNodeId}
               onChange={(e) => setSelectedNodeId(e.target.value)}
-              className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-[#8C2232] shadow-inner truncate"
+              className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-[#993333] shadow-inner truncate"
               disabled={loading || nodes.length === 0}
             >
               {nodes.map(node => (
@@ -934,13 +934,13 @@ export default function DiffLog({ catalogs, activeCatalogId }: DiffLogProps) {
       </div>
 
       {/* Structured Diff View */}
-      <div className="flex-1 bg-[#0b0f1d] border border-white/5 rounded-xl overflow-y-auto custom-scrollbar p-6 shadow-xl flex flex-col relative">
+      <div className="flex-1 bg-[#521a1a] border border-white/5 rounded-xl overflow-y-auto custom-scrollbar p-6 shadow-xl flex flex-col relative">
         <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
-           <svg className="w-64 h-64 text-[#B6CFD6]" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+           <svg className="w-64 h-64 text-[#FFCC33]" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
         </div>
         <div className="relative z-10 w-full flex-1 flex flex-col">
           <div className="flex items-center gap-2 mb-6">
-            <svg className="w-5 h-5 text-[#8C2232]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
+            <svg className="w-5 h-5 text-[#993333]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
             <h3 className="text-sm font-bold text-white uppercase tracking-wider font-mono">Semantic Differences</h3>
           </div>
           {renderDiffCards()}

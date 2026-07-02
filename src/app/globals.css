@@ -7,8 +7,11 @@
 /* --- Institution brand tokens (source of truth: institution.config.yaml → brand;
  *     keep in sync with src/lib/brand.ts; `scripts/apply_brand.py` regenerates the values). --- */
 :root {
-  --background: #090d16;
-  --foreground: #f1f5f9;
+  --background: #3d0f0f;                 /* deep cardinal — flat fallback under the gradient */
+  --foreground: #f8ede1;                 /* warm parchment text on red */
+  /* Primary background: a deep Cardinal Red gradient (SJF official red). Consumed
+   * by `.sjf-app-bg` and the <body> so it sits behind the whole app shell. */
+  --sjf-gradient: linear-gradient(160deg, #8f2525 0%, #611818 45%, #380d0d 100%);
 }
 
 @theme {
@@ -18,8 +21,10 @@
   --color-brand-gold-dark: #E6B800;
   --color-brand-gray: #808285;          /* neutral UI accents (not part of the 2-color brand) */
   --color-brand-gray-dark: #4f5154;
-  --color-brand-slate: #B6CFD6;
-  --color-brand-slate-dark: #8ba7b0;
+  /* `slate` retired: the old cold slate-blue accent read as a different brand.
+   * These aliases now resolve to official Gold so any lingering references stay on-palette. */
+  --color-brand-slate: #FFCC33;
+  --color-brand-slate-dark: #E6B800;
 
   /* Fisher typography (SJF style guide → web-available equivalents). */
   --font-sans: 'Libre Franklin', 'Franklin Gothic', Arial, sans-serif;         /* body */
@@ -27,10 +32,18 @@
 }
 
 body {
-  background-color: var(--background);
+  background: var(--sjf-gradient) fixed;
+  background-color: var(--background);   /* fallback for the gradient */
   color: var(--foreground);
   font-family: var(--font-sans);
   overflow-x: hidden;
+}
+
+/* App-shell background helper — the deep Cardinal Red gradient, pinned to the
+ * viewport so scrolling content reveals it as the primary background. */
+.sjf-app-bg {
+  background: var(--sjf-gradient);
+  background-attachment: fixed;
 }
 
 /* Custom Scrollbar */
@@ -39,7 +52,7 @@ body {
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.3);
+  background: rgba(56, 13, 13, 0.35);
 }
 ::-webkit-scrollbar-thumb {
   background: rgba(153, 51, 51, 0.4);
@@ -51,15 +64,15 @@ body {
 
 /* Glassmorphism panel styles */
 .glass-panel {
-  background: rgba(15, 23, 42, 0.55);
+  background: rgba(82, 26, 26, 0.55);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(182, 207, 214, 0.12);
+  border: 1px solid rgba(255, 204, 51, 0.14);
 }
 
 .glass-panel-hover:hover {
-  border-color: rgba(153, 51, 51, 0.35);
-  box-shadow: 0 0 20px rgba(153, 51, 51, 0.15);
+  border-color: rgba(255, 204, 51, 0.4);
+  box-shadow: 0 0 20px rgba(255, 204, 51, 0.15);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 

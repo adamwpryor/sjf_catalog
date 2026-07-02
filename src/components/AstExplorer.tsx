@@ -163,7 +163,7 @@ export default function AstExplorer({ catalogId }: AstExplorerProps) {
       case 'block':
         return '#0284c7'; // Sky blue requirement block
       case 'course':
-        return '#8C2232'; // Crimson course leaves
+        return '#993333'; // Crimson course leaves
       default:
         return '#475569';
     }
@@ -171,7 +171,7 @@ export default function AstExplorer({ catalogId }: AstExplorerProps) {
 
   const getLinkColor = (link: any, isSelected: boolean, isFaded: boolean) => {
     if (isFaded) return 'rgba(148, 163, 184, 0.09)';
-    if (isSelected) return '#B6CFD6';
+    if (isSelected) return '#FFCC33';
 
     return link.is_required 
       ? 'rgba(34, 197, 94, 0.5)'   // Required edge (Vibrant Green)
@@ -181,7 +181,7 @@ export default function AstExplorer({ catalogId }: AstExplorerProps) {
   return (
     <div className="flex flex-col h-full overflow-hidden space-y-4">
       {/* Title & Control Panel Toolbar */}
-      <div className="bg-[#0b0f1d] p-5 rounded-2xl border border-[#B6CFD6]/10 flex flex-wrap gap-4 items-center justify-between shadow-xl relative z-10">
+      <div className="bg-[#521a1a] p-5 rounded-2xl border border-[#FFCC33]/10 flex flex-wrap gap-4 items-center justify-between shadow-xl relative z-10">
         <div>
           <h2 className="text-xl font-bold text-white serif-title flex items-center gap-2">
             <span className="w-2.5 h-2.5 bg-[#ea580c] rounded-full animate-ping"></span>
@@ -191,11 +191,11 @@ export default function AstExplorer({ catalogId }: AstExplorerProps) {
         </div>
 
         <div className="flex items-center gap-3">
-          <label className="text-[10px] font-bold text-[#B6CFD6] uppercase tracking-wider font-mono">Target Program Structure:</label>
+          <label className="text-[10px] font-bold text-[#FFCC33] uppercase tracking-wider font-mono">Target Program Structure:</label>
           <select
             value={selectedProgramId}
             onChange={(e) => setSelectedProgramId(e.target.value)}
-            className="bg-[#090d16] border border-[#B6CFD6]/20 rounded-lg px-3 py-1.5 text-xs text-white outline-none focus:border-[#8C2232] cursor-pointer font-semibold max-w-xs md:max-w-md shadow-md"
+            className="bg-[#3d1010] border border-[#FFCC33]/20 rounded-lg px-3 py-1.5 text-xs text-white outline-none focus:border-[#993333] cursor-pointer font-semibold max-w-xs md:max-w-md shadow-md"
           >
             {programs.map(p => (
               <option key={p.id} value={p.id}>
@@ -208,7 +208,7 @@ export default function AstExplorer({ catalogId }: AstExplorerProps) {
             onClick={() => setShowJsonPanel(!showJsonPanel)}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer font-mono ${
               showJsonPanel
-                ? 'bg-[#8C2232]/20 border-[#8C2232]/50 text-white'
+                ? 'bg-[#993333]/20 border-[#993333]/50 text-white'
                 : 'bg-white/5 border-white/10 text-slate-300 hover:text-white hover:bg-white/10'
             }`}
           >
@@ -217,7 +217,7 @@ export default function AstExplorer({ catalogId }: AstExplorerProps) {
 
           <button
             onClick={handleResetView}
-            className="px-3 py-1.5 rounded-lg text-xs font-bold border border-[#B6CFD6]/10 bg-white/5 text-slate-300 hover:text-white hover:bg-white/10 transition-all cursor-pointer font-mono"
+            className="px-3 py-1.5 rounded-lg text-xs font-bold border border-[#FFCC33]/10 bg-white/5 text-slate-300 hover:text-white hover:bg-white/10 transition-all cursor-pointer font-mono"
           >
             Reset Camera
           </button>
@@ -227,7 +227,7 @@ export default function AstExplorer({ catalogId }: AstExplorerProps) {
       <div className="flex-1 flex flex-col lg:flex-row gap-4 overflow-y-auto lg:overflow-hidden relative min-h-0">
         {/* LEFT COLUMN: Dynamic AST Structural JSON Code Panel */}
         {showJsonPanel && (
-          <div className="w-full lg:w-[380px] lg:shrink-0 h-[280px] lg:h-auto bg-[#0b0f1d] border border-[#B6CFD6]/10 rounded-2xl p-5 flex flex-col shadow-xl animate-in slide-in-from-left-4 duration-300 relative z-10">
+          <div className="w-full lg:w-[380px] lg:shrink-0 h-[280px] lg:h-auto bg-[#521a1a] border border-[#FFCC33]/10 rounded-2xl p-5 flex flex-col shadow-xl animate-in slide-in-from-left-4 duration-300 relative z-10">
             <h3 className="text-sm font-bold text-white border-b border-white/5 pb-2 mb-3 flex items-center justify-between font-serif-title">
               <span>Dynamic AST Program JSON</span>
               <span className="px-2 py-0.5 rounded bg-sky-500/10 text-sky-400 font-bold text-[8px] uppercase tracking-wider border border-sky-500/20 font-mono">Compiler v2</span>
@@ -259,11 +259,11 @@ export default function AstExplorer({ catalogId }: AstExplorerProps) {
         )}
 
         {/* MIDDLE CANVAS: Force-Directed 2D D3 Interactive Visualization */}
-        <div className="flex-1 min-h-[420px] lg:min-h-0 bg-[#050811] border border-[#B6CFD6]/10 rounded-2xl overflow-hidden relative shadow-2xl">
+        <div className="flex-1 min-h-[420px] lg:min-h-0 bg-[#2a0a0a] border border-[#FFCC33]/10 rounded-2xl overflow-hidden relative shadow-2xl">
           {loading ? (
-            <div className="absolute inset-0 flex items-center justify-center bg-[#050811]/90 z-20 backdrop-blur-sm">
+            <div className="absolute inset-0 flex items-center justify-center bg-[#2a0a0a]/90 z-20 backdrop-blur-sm">
               <div className="flex flex-col items-center gap-3">
-                <div className="w-10 h-10 border-4 border-[#8C2232] border-t-transparent rounded-full animate-spin"></div>
+                <div className="w-10 h-10 border-4 border-[#993333] border-t-transparent rounded-full animate-spin"></div>
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-widest font-mono">Compiling AST Geometry...</span>
               </div>
             </div>
@@ -355,8 +355,8 @@ export default function AstExplorer({ catalogId }: AstExplorerProps) {
               onClick={() => setShowLegend(!showLegend)}
               className={`p-2 rounded-lg shadow-md border transition-all cursor-pointer flex items-center justify-center ${
                 showLegend 
-                  ? 'bg-[#8C2232] text-white border-[#8C2232]/50 shadow-[#8C2232]/20' 
-                  : 'bg-[#0b0f1d]/90 text-slate-300 border-[#B6CFD6]/15 hover:bg-white/5'
+                  ? 'bg-[#993333] text-white border-[#993333]/50 shadow-[#993333]/20' 
+                  : 'bg-[#521a1a]/90 text-slate-300 border-[#FFCC33]/15 hover:bg-white/5'
               }`}
               title="Toggle Legends"
             >
@@ -364,17 +364,17 @@ export default function AstExplorer({ catalogId }: AstExplorerProps) {
             </button>
 
             {showLegend && (
-              <div className="bg-[#0b0f1d]/90 rounded-xl shadow-lg border border-[#B6CFD6]/10 p-4 pointer-events-none w-52 animate-in fade-in slide-in-from-left-2 duration-200 backdrop-blur-md text-left space-y-4">
+              <div className="bg-[#521a1a]/90 rounded-xl shadow-lg border border-[#FFCC33]/10 p-4 pointer-events-none w-52 animate-in fade-in slide-in-from-left-2 duration-200 backdrop-blur-md text-left space-y-4">
                 <div>
-                  <h4 className="text-[10px] font-bold text-[#B6CFD6] uppercase tracking-wider mb-2 border-b border-white/5 pb-1 font-mono">AST Nodes</h4>
+                  <h4 className="text-[10px] font-bold text-[#FFCC33] uppercase tracking-wider mb-2 border-b border-white/5 pb-1 font-mono">AST Nodes</h4>
                   <ul className="space-y-1.5 text-xs text-slate-300 font-semibold font-sans">
                     <li className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#ea580c] inline-block"></span> Root Program</li>
                     <li className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#0284c7] inline-block"></span> Requirement Block</li>
-                    <li className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#8C2232] inline-block"></span> Leaf Course</li>
+                    <li className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#993333] inline-block"></span> Leaf Course</li>
                   </ul>
                 </div>
                 <div>
-                  <h4 className="text-[10px] font-bold text-[#B6CFD6] uppercase tracking-wider mb-2 border-b border-white/5 pb-1 font-mono">AST Edge Operators</h4>
+                  <h4 className="text-[10px] font-bold text-[#FFCC33] uppercase tracking-wider mb-2 border-b border-white/5 pb-1 font-mono">AST Edge Operators</h4>
                   <ul className="space-y-1.5 text-xs text-slate-300 font-semibold font-sans">
                     <li className="flex items-center gap-2"><span className="w-4 h-1 rounded bg-[#22c55e] inline-block"></span> Required Course Edge</li>
                     <li className="flex items-center gap-2"><span className="w-4 h-1 rounded bg-[#a855f7] inline-block"></span> Elective Choice Edge</li>
@@ -387,7 +387,7 @@ export default function AstExplorer({ catalogId }: AstExplorerProps) {
 
         {/* RIGHT COLUMN: Absolutely Positioned Glassmorphism Inspect Sidebar Drawer */}
         {selectedNode && (
-          <div className="absolute top-0 right-0 w-full sm:w-[350px] h-full z-20 bg-[#0b0f1d]/90 backdrop-blur-md border-l border-[#B6CFD6]/15 flex flex-col p-6 shadow-2xl animate-in slide-in-from-right-4 duration-300 text-left">
+          <div className="absolute top-0 right-0 w-full sm:w-[350px] h-full z-20 bg-[#521a1a]/90 backdrop-blur-md border-l border-[#FFCC33]/15 flex flex-col p-6 shadow-2xl animate-in slide-in-from-right-4 duration-300 text-left">
             {/* Header info */}
             <div className="flex justify-between items-start border-b border-white/5 pb-4 mb-4">
               <div>
@@ -396,7 +396,7 @@ export default function AstExplorer({ catalogId }: AstExplorerProps) {
                     ? 'bg-[#ea580c]/10 text-[#ea580c] border-[#ea580c]/25'
                     : selectedNode.group === 'block'
                       ? 'bg-sky-500/10 text-sky-400 border-sky-500/25'
-                      : 'bg-[#8C2232]/10 text-[#B6CFD6] border-[#8C2232]/25'
+                      : 'bg-[#993333]/10 text-[#FFCC33] border-[#993333]/25'
                 }`}>
                   {selectedNode.group === 'program' ? 'Root Degree' : selectedNode.group === 'block' ? 'Requirement Block' : 'Course Leaf'}
                 </span>
@@ -426,7 +426,7 @@ export default function AstExplorer({ catalogId }: AstExplorerProps) {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <h4 className="text-[10px] font-bold text-[#B6CFD6] uppercase tracking-wider font-mono">Description</h4>
+                    <h4 className="text-[10px] font-bold text-[#FFCC33] uppercase tracking-wider font-mono">Description</h4>
                     <p className="text-xs text-slate-400 leading-relaxed font-medium">This node acts as the mathematical root of the parsed Abstract Syntax Tree (AST), representing the total program graduation pathway.</p>
                   </div>
                 </div>
@@ -446,7 +446,7 @@ export default function AstExplorer({ catalogId }: AstExplorerProps) {
                     </div>
                   </div>
                   <div className="space-y-2 flex-1 flex flex-col min-h-0">
-                    <h4 className="text-[10px] font-bold text-[#B6CFD6] uppercase tracking-wider font-mono">Original Catalog Section Text</h4>
+                    <h4 className="text-[10px] font-bold text-[#FFCC33] uppercase tracking-wider font-mono">Original Catalog Section Text</h4>
                     <div className="flex-1 overflow-y-auto text-xs text-slate-300 leading-relaxed font-medium bg-black/45 p-4 rounded-xl border border-white/5 whitespace-pre-wrap font-sans">
                       {selectedNode.description || 'No section text available in this active catalog.'}
                     </div>
@@ -463,7 +463,7 @@ export default function AstExplorer({ catalogId }: AstExplorerProps) {
                   <div className="p-4 bg-white/5 rounded-xl border border-white/5 font-mono text-[11px] space-y-2">
                     <div className="flex justify-between">
                       <span className="text-slate-400">Course Code:</span>
-                      <span className="text-[#B6CFD6] font-bold">{selectedNode.label}</span>
+                      <span className="text-[#FFCC33] font-bold">{selectedNode.label}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-400">Course Title:</span>
@@ -475,7 +475,7 @@ export default function AstExplorer({ catalogId }: AstExplorerProps) {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <h4 className="text-[10px] font-bold text-[#B6CFD6] uppercase tracking-wider font-mono">Catalog Description</h4>
+                    <h4 className="text-[10px] font-bold text-[#FFCC33] uppercase tracking-wider font-mono">Catalog Description</h4>
                     <p className="text-xs text-slate-400 leading-relaxed font-medium">
                       {selectedNode.description || 'No course description available in the active catalog version.'}
                     </p>

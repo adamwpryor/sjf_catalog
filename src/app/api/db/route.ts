@@ -747,8 +747,12 @@ export async function POST(req: Request) {
       case 'get_catalogs': {
         console.log("src/app/api/db/route.ts: Running 'get_catalogs' query on documents table...");
         try {
+          // Order by the catalog year encoded in `version` (e.g. "2025-2026-undergraduate"),
+          // newest year first, so the dropdown reads most-recent → least-recent. The version
+          // string format is consistent, so a plain DESC sort ranks years correctly; created_at
+          // only reflects upload order, which scrambled the years.
           const res = await query(
-            "SELECT id, version, domain_id, created_at, catalog_pdf_url FROM documents ORDER BY created_at DESC;"
+            "SELECT id, version, domain_id, created_at, catalog_pdf_url FROM documents ORDER BY version DESC, created_at DESC;"
           );
           console.log(`src/app/api/db/route.ts: Successfully fetched ${res.length} catalog versions from DB:`, res);
           return NextResponse.json(res);
@@ -869,32 +873,37 @@ export async function POST(req: Request) {
       case 'get_programs': {
         if (!catalogId) return NextResponse.json({ error: "Catalog ID required." }, { status: 400 });
         
-        // 1. Fetch academic programs joined with degree classifications
+        // 1. Fetch academic programs joined with degree classifications.
+        // NOTE: department_chairperson, program_director, mission_statement,
+        // program_outcome_objectives, and additional_details are CCSJ-era denormalized
+        // columns that were never ported to the spoke schema. They are selected as NULL
+        // so the response shape stays stable without 42703 errors. The try/catch only
+        // guards the optional markdown_url column, which some spokes may still lack.
         let programsRes;
         try {
           programsRes = await query(
-            `SELECT p.id, p.name, p.degree_type, NULL as description, p.total_credits, 
-                    p.department_chairperson, p.program_director, p.mission_statement, 
-                    p.program_outcome_objectives, p.additional_details,
+            `SELECT p.id, p.name, p.degree_type, NULL as description, p.total_credits,
+                    NULL as department_chairperson, NULL as program_director, NULL as mission_statement,
+                    NULL as program_outcome_objectives, NULL as additional_details,
                     p.markdown_url,
-                    dc.label as degree_class_label, dc.education_level 
-             FROM programs p 
-             LEFT JOIN degree_classifications dc ON p.degree_classification_id = dc.id 
-             WHERE p.tenant_id = $1 AND p.document_id = $2 
+                    dc.label as degree_class_label, dc.education_level
+             FROM programs p
+             LEFT JOIN degree_classifications dc ON p.degree_classification_id = dc.id
+             WHERE p.tenant_id = $1 AND p.document_id = $2
              ORDER BY p.name;`,
             [tenantId, catalogId]
           );
         } catch (dbErr: any) {
           console.warn("src/app/api/db/route.ts: p.markdown_url column does not exist yet. Falling back.", dbErr.message);
           programsRes = await query(
-            `SELECT p.id, p.name, p.degree_type, NULL as description, p.total_credits, 
-                    p.department_chairperson, p.program_director, p.mission_statement, 
-                    p.program_outcome_objectives, p.additional_details,
+            `SELECT p.id, p.name, p.degree_type, NULL as description, p.total_credits,
+                    NULL as department_chairperson, NULL as program_director, NULL as mission_statement,
+                    NULL as program_outcome_objectives, NULL as additional_details,
                     NULL as markdown_url,
-                    dc.label as degree_class_label, dc.education_level 
-             FROM programs p 
-             LEFT JOIN degree_classifications dc ON p.degree_classification_id = dc.id 
-             WHERE p.tenant_id = $1 AND p.document_id = $2 
+                    dc.label as degree_class_label, dc.education_level
+             FROM programs p
+             LEFT JOIN degree_classifications dc ON p.degree_classification_id = dc.id
+             WHERE p.tenant_id = $1 AND p.document_id = $2
              ORDER BY p.name;`,
             [tenantId, catalogId]
           );
@@ -1367,17 +1376,19 @@ export async function POST(req: Request) {
 
       case 'get_semantic_chunks': {
         if (!catalogId) return NextResponse.json({ error: "Catalog ID required." }, { status: 400 });
-        // Fetch semantic chunks joined with Toulmin, Deontic, and Quinean lookups with safe markdown_url check
+        // Fetch semantic chunks joined with Toulmin, Deontic, and Quinean lookups with safe markdown_url check.
+        // NOTE: hypothetical_questions is a CCSJ-era column absent from the spoke schema; selected as NULL to
+        // keep the response shape stable without a 42703 error. The try/catch guards only the optional markdown_url.
         let res;
         try {
           res = await query(
             `SELECT sc.id, sc.section_header, sc.content, sc.page_number, sc.sequence_order,
                     NULL as quinean_weight, NULL as toulmin_role, NULL as deontic_modality,
                     sc.markdown_url,
-                    ct.label as lookup_chunk_type, tr.label as lookup_toulmin_role, 
+                    ct.label as lookup_chunk_type, tr.label as lookup_toulmin_role,
                     dm.label as lookup_deontic_modality, qw.label as lookup_quinean_class,
-                    qw.centrality_index, qw.revisability_score, sc.hypothetical_questions
-             FROM semantic_chunks sc 
+                    qw.centrality_index, qw.revisability_score, NULL as hypothetical_questions
+             FROM semantic_chunks sc
              LEFT JOIN chunk_types ct ON sc.chunk_type_id = ct.id 
              LEFT JOIN toulmin_roles tr ON sc.toulmin_role_id = tr.id 
              LEFT JOIN deontic_modalities dm ON sc.deontic_modality_id = dm.id 
@@ -1392,10 +1403,10 @@ export async function POST(req: Request) {
             `SELECT sc.id, sc.section_header, sc.content, sc.page_number, sc.sequence_order,
                     NULL as quinean_weight, NULL as toulmin_role, NULL as deontic_modality,
                     NULL as markdown_url,
-                    ct.label as lookup_chunk_type, tr.label as lookup_toulmin_role, 
+                    ct.label as lookup_chunk_type, tr.label as lookup_toulmin_role,
                     dm.label as lookup_deontic_modality, qw.label as lookup_quinean_class,
-                    qw.centrality_index, qw.revisability_score, sc.hypothetical_questions
-             FROM semantic_chunks sc 
+                    qw.centrality_index, qw.revisability_score, NULL as hypothetical_questions
+             FROM semantic_chunks sc
              LEFT JOIN chunk_types ct ON sc.chunk_type_id = ct.id 
              LEFT JOIN toulmin_roles tr ON sc.toulmin_role_id = tr.id 
              LEFT JOIN deontic_modalities dm ON sc.deontic_modality_id = dm.id 

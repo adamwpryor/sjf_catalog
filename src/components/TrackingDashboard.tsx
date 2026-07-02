@@ -336,7 +336,7 @@ export default function TrackingDashboard({ catalogId, catalogs }: TrackingDashb
   return (
     <div className="space-y-6 animate-in fade-in duration-300 font-sans h-full flex flex-col">
       {/* Dashboard Toolbar Header */}
-      <div className="bg-[#0b0f1d] p-4 rounded-xl border border-[#B6CFD6]/10 flex flex-col md:flex-row justify-between items-center gap-4 shrink-0">
+      <div className="bg-[#521a1a] p-4 rounded-xl border border-[#FFCC33]/10 flex flex-col md:flex-row justify-between items-center gap-4 shrink-0">
         <div>
           <h2 className="text-lg font-bold text-white serif-title">New Catalog Builder.</h2>
           <p className="text-xs text-slate-400 font-medium">Audit row and field level overrides submitted by testers.</p>
@@ -344,14 +344,14 @@ export default function TrackingDashboard({ catalogId, catalogs }: TrackingDashb
 
         {/* Status Filters & Actions */}
         <div className="flex gap-4 items-center">
-          <div className="flex gap-2 bg-[#090d16] p-1 rounded-lg border border-white/5 font-mono">
+          <div className="flex gap-2 bg-[#3d1010] p-1 rounded-lg border border-white/5 font-mono">
             {['pending', 'rejected', 'approved', 'applied', 'all'].map(status => (
               <button
                 key={status}
                 onClick={() => setStatusFilter(status)}
                 className={`px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
                   statusFilter === status 
-                    ? 'bg-[#8C2232] text-white shadow-md' 
+                    ? 'bg-[#993333] text-white shadow-md' 
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
@@ -391,7 +391,7 @@ export default function TrackingDashboard({ catalogId, catalogs }: TrackingDashb
             }}
             className={`px-4 py-2 rounded-lg text-xs font-bold transition-all border flex items-center gap-2 ${
               isDraftCatalog 
-                ? 'bg-[#B6CFD6]/10 hover:bg-[#B6CFD6]/20 text-[#B6CFD6] border-[#B6CFD6]/20 cursor-pointer'
+                ? 'bg-[#FFCC33]/10 hover:bg-[#FFCC33]/20 text-[#FFCC33] border-[#FFCC33]/20 cursor-pointer'
                 : 'bg-slate-800/50 text-slate-500 border-slate-700/50 cursor-not-allowed opacity-60'
             }`}
             title={isDraftCatalog ? "Upload Committee Minutes" : "Write-Protection Active: Must be on a Draft catalog"}
@@ -417,7 +417,7 @@ export default function TrackingDashboard({ catalogId, catalogs }: TrackingDashb
               href={`/api/catalog/pdf?catalogId=${catalogId}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="px-4 py-2 rounded-lg text-xs font-bold transition-all border flex items-center gap-2 bg-[#8C2232]/10 hover:bg-[#8C2232]/20 text-[#d98a98] border-[#8C2232]/30 cursor-pointer"
+              className="px-4 py-2 rounded-lg text-xs font-bold transition-all border flex items-center gap-2 bg-[#993333]/10 hover:bg-[#993333]/20 text-[#d98a98] border-[#993333]/30 cursor-pointer"
               title="Download the published catalog-of-record PDF"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
@@ -429,7 +429,7 @@ export default function TrackingDashboard({ catalogId, catalogs }: TrackingDashb
 
       {/* Remediation preview panel */}
       {remediation && (
-        <div className="bg-[#0b0f1d] border border-amber-500/30 p-4 rounded-xl space-y-3">
+        <div className="bg-[#521a1a] border border-amber-500/30 p-4 rounded-xl space-y-3">
           <div className="flex items-center justify-between">
             <p className="text-sm font-bold text-white">
               Data-quality remediation — {remediation.summary.mechanical} auto-fixable, {remediation.summary.judgment} for review
@@ -485,7 +485,7 @@ export default function TrackingDashboard({ catalogId, catalogs }: TrackingDashb
       {/* Interactive Document Viewer Modal */}
       {showViewerModal && recentlyUploadedData && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-[#0b0f1d] border border-[#B6CFD6]/30 rounded-xl w-full max-w-5xl flex flex-col shadow-2xl h-[85vh] overflow-hidden">
+          <div className="bg-[#521a1a] border border-[#FFCC33]/30 rounded-xl w-full max-w-5xl flex flex-col shadow-2xl h-[85vh] overflow-hidden">
             <div className="px-6 py-4 border-b border-white/10 bg-black/50 flex justify-between items-center shrink-0">
               <div className="flex items-center gap-3">
                 <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
@@ -503,10 +503,10 @@ export default function TrackingDashboard({ catalogId, catalogs }: TrackingDashb
               {/* Left Side: Extracted Document Text */}
               <div className="flex-1 flex flex-col overflow-hidden">
                 <div className="bg-black/30 px-4 py-2 border-b border-white/5 shrink-0 flex justify-between items-center">
-                  <span className="text-[10px] font-bold text-[#B6CFD6] uppercase tracking-widest font-mono">Raw Extracted Text</span>
+                  <span className="text-[10px] font-bold text-[#FFCC33] uppercase tracking-widest font-mono">Raw Extracted Text</span>
                   <a href={recentlyUploadedData.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-emerald-400 hover:underline">Download Original</a>
                 </div>
-                <div className="flex-1 p-6 overflow-y-auto custom-scrollbar bg-[#050811]">
+                <div className="flex-1 p-6 overflow-y-auto custom-scrollbar bg-[#2a0a0a]">
                   <pre className="text-xs text-slate-300 font-sans whitespace-pre-wrap break-words leading-relaxed">
                     {recentlyUploadedData.rawText}
                   </pre>
@@ -530,7 +530,7 @@ export default function TrackingDashboard({ catalogId, catalogs }: TrackingDashb
             </div>
 
             <div className="px-6 py-4 border-t border-white/10 bg-black/50 flex justify-end gap-3 shrink-0">
-              <button onClick={() => setShowViewerModal(false)} className="px-6 py-2 bg-[#8C2232] hover:bg-[#65121e] text-white rounded-lg text-xs font-bold transition-all shadow-md cursor-pointer">
+              <button onClick={() => setShowViewerModal(false)} className="px-6 py-2 bg-[#993333] hover:bg-[#7a2929] text-white rounded-lg text-xs font-bold transition-all shadow-md cursor-pointer">
                 Close Review Pane
               </button>
             </div>
@@ -540,7 +540,7 @@ export default function TrackingDashboard({ catalogId, catalogs }: TrackingDashb
 
       {/* Upload/Extract Panel */}
       {showUploadPanel && (
-        <div className="bg-[#0b0f1d] p-6 rounded-xl border border-dashed border-[#B6CFD6]/30 flex flex-col items-center justify-center text-center gap-4 shrink-0 animate-in slide-in-from-top-4">
+        <div className="bg-[#521a1a] p-6 rounded-xl border border-dashed border-[#FFCC33]/30 flex flex-col items-center justify-center text-center gap-4 shrink-0 animate-in slide-in-from-top-4">
           <h3 className="text-sm font-bold text-white serif-title">Intake Funnel: Extract Committee Minutes</h3>
           <div className="bg-amber-900/20 border border-amber-500/30 text-amber-200/80 p-3 rounded-lg text-xs w-full max-w-lg">
             <strong>Note:</strong> Any new file you want to process must first be uploaded to the <strong>Intake Filing Cabinet</strong> in the Overview section. Direct uploads are no longer permitted here to ensure proper filing.
@@ -553,7 +553,7 @@ export default function TrackingDashboard({ catalogId, catalogs }: TrackingDashb
               <select 
                 value={selectedIntakeFile}
                 onChange={(e) => setSelectedIntakeFile(e.target.value)}
-                className="flex-1 bg-[#090d16] border border-white/20 rounded-lg px-3 py-3 text-sm text-white outline-none focus:border-[#8C2232]"
+                className="flex-1 bg-[#3d1010] border border-white/20 rounded-lg px-3 py-3 text-sm text-white outline-none focus:border-[#993333]"
               >
                 {intakeFiles.map(f => (
                   <option key={f.id} value={f.id}>{f.id}</option>
@@ -562,7 +562,7 @@ export default function TrackingDashboard({ catalogId, catalogs }: TrackingDashb
               <button
                 onClick={handleFileExtract}
                 disabled={uploading || !selectedIntakeFile}
-                className="px-6 py-3 bg-[#8C2232] hover:bg-[#65121e] text-white rounded-lg text-sm font-bold transition-all shadow-lg cursor-pointer disabled:opacity-50"
+                className="px-6 py-3 bg-[#993333] hover:bg-[#7a2929] text-white rounded-lg text-sm font-bold transition-all shadow-lg cursor-pointer disabled:opacity-50"
               >
                 {uploading ? 'Extracting Semantics...' : 'Extract Selected'}
               </button>
@@ -573,7 +573,7 @@ export default function TrackingDashboard({ catalogId, catalogs }: TrackingDashb
 
       {/* AI-Assisted Manual Correction Form */}
       {showManualForm && (
-        <div className="bg-[#0b0f1d] p-6 rounded-xl border border-dashed border-blue-500/30 flex flex-col gap-6 shrink-0 animate-in slide-in-from-top-4 text-left">
+        <div className="bg-[#521a1a] p-6 rounded-xl border border-dashed border-blue-500/30 flex flex-col gap-6 shrink-0 animate-in slide-in-from-top-4 text-left">
           <div className="flex justify-between items-center border-b border-white/10 pb-4">
             <div>
               <h3 className="text-sm font-bold text-white serif-title flex items-center gap-2">
@@ -653,7 +653,7 @@ export default function TrackingDashboard({ catalogId, catalogs }: TrackingDashb
                 </div>
               ) : (
                 <div className="flex-1 flex flex-col space-y-4 overflow-hidden">
-                  <div className="bg-[#050811] border border-white/10 rounded-lg p-4 flex-1 overflow-y-auto custom-scrollbar prose prose-invert prose-sm">
+                  <div className="bg-[#2a0a0a] border border-white/10 rounded-lg p-4 flex-1 overflow-y-auto custom-scrollbar prose prose-invert prose-sm">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{markdownPreview}</ReactMarkdown>
                   </div>
                   
@@ -684,8 +684,8 @@ export default function TrackingDashboard({ catalogId, catalogs }: TrackingDashb
       <div className="flex-1 flex gap-6 min-h-[480px] overflow-hidden">
         {/* Left Side: Corrections Log Table */}
         <div className="w-1/2 glass-panel rounded-2xl border border-white/5 overflow-hidden flex flex-col">
-          <div className="px-6 py-4 border-b border-white/5 bg-[#0b0f1d] flex justify-between items-center shrink-0">
-            <h3 className="text-xs font-bold text-[#B6CFD6] uppercase tracking-wider font-mono">Correction Submissions</h3>
+          <div className="px-6 py-4 border-b border-white/5 bg-[#521a1a] flex justify-between items-center shrink-0">
+            <h3 className="text-xs font-bold text-[#FFCC33] uppercase tracking-wider font-mono">Correction Submissions</h3>
             <span className="text-[10px] text-slate-500 font-mono font-semibold">{corrections.length} logs found</span>
           </div>
 
@@ -710,7 +710,7 @@ export default function TrackingDashboard({ catalogId, catalogs }: TrackingDashb
                     onClick={() => setSelectedCorrection(corr)}
                     className={`p-4 cursor-pointer transition-all flex justify-between items-center text-left ${
                       isSelected 
-                        ? 'bg-[#8C2232]/10 border-l-4 border-[#8C2232]' 
+                        ? 'bg-[#993333]/10 border-l-4 border-[#993333]' 
                         : 'hover:bg-white/5'
                     }`}
                   >
@@ -755,7 +755,7 @@ export default function TrackingDashboard({ catalogId, catalogs }: TrackingDashb
           ) : (
             <div className="flex-1 flex flex-col overflow-hidden text-left">
               {/* Log Header */}
-              <div className="px-6 py-4 border-b border-white/5 bg-[#0b0f1d] shrink-0">
+              <div className="px-6 py-4 border-b border-white/5 bg-[#521a1a] shrink-0">
                 <div className="flex justify-between items-start">
                   <div>
                     <h4 className="text-sm font-bold serif-title text-white">
@@ -783,7 +783,7 @@ export default function TrackingDashboard({ catalogId, catalogs }: TrackingDashb
                   {/* Right Column: Proposed corrected value */}
                   <div className="p-4 bg-white/5 rounded-xl border border-white/5 flex flex-col">
                     <div className="text-[9px] font-bold text-slate-500 uppercase tracking-widest font-mono mb-2">Proposed Correction Override</div>
-                    <pre className="flex-1 bg-[#8C2232]/10 border border-[#8C2232]/25 rounded-lg p-3 font-mono text-xs text-emerald-400 font-bold whitespace-pre-wrap overflow-x-auto min-h-[80px]">
+                    <pre className="flex-1 bg-[#993333]/10 border border-[#993333]/25 rounded-lg p-3 font-mono text-xs text-emerald-400 font-bold whitespace-pre-wrap overflow-x-auto min-h-[80px]">
                       + {selectedCorrection.proposed_value}
                     </pre>
                   </div>
@@ -791,7 +791,7 @@ export default function TrackingDashboard({ catalogId, catalogs }: TrackingDashb
 
                 {/* 2. Submitter Rationale */}
                 <div className="space-y-2">
-                  <h5 className="text-xs font-bold text-[#B6CFD6] uppercase tracking-wider font-mono">Submitter Justification Rationale</h5>
+                  <h5 className="text-xs font-bold text-[#FFCC33] uppercase tracking-wider font-mono">Submitter Justification Rationale</h5>
                   <div className="p-4 bg-white/5 rounded-xl border border-white/5 text-xs text-slate-300 font-medium leading-relaxed">
                     {selectedCorrection.reason || 'No description rationale provided.'}
                   </div>
@@ -800,7 +800,7 @@ export default function TrackingDashboard({ catalogId, catalogs }: TrackingDashb
                 {/* 3. Reviewer Logs if completed */}
                 {selectedCorrection.status !== 'pending' && (
                   <div className="p-4 bg-black/20 border border-white/5 rounded-xl text-xs space-y-2 font-mono">
-                    <div className="text-[9px] font-bold text-[#B6CFD6] uppercase tracking-widest">Auditing Reviews Logs</div>
+                    <div className="text-[9px] font-bold text-[#FFCC33] uppercase tracking-widest">Auditing Reviews Logs</div>
                     {selectedCorrection.reviewed_at && (
                       <div className="text-slate-400">Reviewed: {new Date(selectedCorrection.reviewed_at).toLocaleString()}</div>
                     )}
@@ -813,7 +813,7 @@ export default function TrackingDashboard({ catalogId, catalogs }: TrackingDashb
                 {/* 3b. Applied diff (written to the draft during catalog production) */}
                 {selectedCorrection.applied_patch?.diffs?.length > 0 && (
                   <div className="space-y-2">
-                    <h5 className="text-xs font-bold text-[#B6CFD6] uppercase tracking-wider font-mono">Applied Changes to Draft</h5>
+                    <h5 className="text-xs font-bold text-[#FFCC33] uppercase tracking-wider font-mono">Applied Changes to Draft</h5>
                     <div className="p-4 bg-black/20 border border-emerald-500/15 rounded-xl text-xs font-mono space-y-1 text-slate-300">
                       {selectedCorrection.applied_patch.diffs.map((d: any, i: number) => (
                         <div key={i}>
@@ -838,11 +838,11 @@ export default function TrackingDashboard({ catalogId, catalogs }: TrackingDashb
 
               {/* 4. Administrative Control Actions */}
               {selectedCorrection.status === 'pending' && (
-                <div className="p-6 border-t border-white/5 bg-[#0b0f1d] shrink-0">
+                <div className="p-6 border-t border-white/5 bg-[#521a1a] shrink-0">
                   {isAdmin ? (
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <div className="text-[10px] font-bold text-[#B6CFD6] uppercase tracking-widest font-mono">Administrative Control Actions:</div>
+                        <div className="text-[10px] font-bold text-[#FFCC33] uppercase tracking-widest font-mono">Administrative Control Actions:</div>
                         {!isDraftCatalog && (
                           <div className="text-[10px] font-bold text-red-400 uppercase tracking-widest font-mono flex items-center gap-1">
                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
@@ -873,7 +873,7 @@ export default function TrackingDashboard({ catalogId, catalogs }: TrackingDashb
                           onClick={() => handleReviewStatus('rejected')}
                           disabled={submittingReview || !isDraftCatalog}
                           className={`flex-1 py-2 px-4 text-white rounded-lg text-xs font-bold transition-all shadow-md ${
-                            !isDraftCatalog ? 'bg-slate-700 cursor-not-allowed opacity-50' : 'bg-[#8C2232] hover:bg-[#65121e] active:scale-[0.98] cursor-pointer'
+                            !isDraftCatalog ? 'bg-slate-700 cursor-not-allowed opacity-50' : 'bg-[#993333] hover:bg-[#7a2929] active:scale-[0.98] cursor-pointer'
                           }`}
                         >
                           Reject Change

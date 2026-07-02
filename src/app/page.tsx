@@ -194,7 +194,7 @@ export default function DashboardPage() {
         }}
         className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold tracking-wide transition-all text-left cursor-pointer ${
           isActive
-            ? 'bg-[#8C2232] text-white shadow-lg shadow-[#8C2232]/10 border-l-4 border-[#B6CFD6]'
+            ? 'bg-[#993333] text-white shadow-lg shadow-[#993333]/10 border-l-4 border-[#FFCC33]'
             : 'text-slate-300 hover:bg-white/5 hover:text-white'
         }`}
       >
@@ -205,7 +205,7 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#050811] text-slate-100 font-sans">
+    <div className="flex h-screen overflow-hidden text-slate-100 font-sans">
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
         <div 
@@ -222,11 +222,11 @@ export default function DashboardPage() {
         // on hidden controls.
         inert={!sidebarOpen}
         aria-hidden={!sidebarOpen}
-        className={`${sidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full w-64 md:translate-x-0 md:w-0'} fixed md:relative inset-y-0 left-0 z-50 md:z-10 h-full shrink-0 flex flex-col bg-[#0b0f1d] border-r border-[#B6CFD6]/10 overflow-hidden transition-all duration-300 ease-in-out`}
+        className={`${sidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full w-64 md:translate-x-0 md:w-0'} fixed md:relative inset-y-0 left-0 z-50 md:z-10 h-full shrink-0 flex flex-col bg-[#521a1a] border-r border-[#FFCC33]/10 overflow-hidden transition-all duration-300 ease-in-out`}
       >
         {/* Institutional Branding Header */}
-        <div className="p-6 border-b border-[#B6CFD6]/10 flex flex-col gap-1 bg-[#090d16]">
-          <div className="text-[10px] font-bold text-[#B6CFD6] uppercase tracking-widest font-mono">
+        <div className="p-6 border-b border-[#FFCC33]/10 flex flex-col gap-1 bg-[#3d1010]">
+          <div className="text-[10px] font-bold text-[#FFCC33] uppercase tracking-widest font-mono">
             Catalog Tool
           </div>
           <h2 className="text-lg font-bold serif-title text-white tracking-tight">
@@ -245,7 +245,7 @@ export default function DashboardPage() {
               onClick={() => toggleSection('overview')}
               className="w-full flex justify-between items-center px-4 py-3 bg-white/5 hover:bg-white/10 transition-colors cursor-pointer"
             >
-              <h3 className="text-[10px] font-bold text-[#B6CFD6] uppercase tracking-widest font-mono flex items-center gap-1.5">
+              <h3 className="text-[10px] font-bold text-[#FFCC33] uppercase tracking-widest font-mono flex items-center gap-1.5">
                 <span>📁</span> Overview
               </h3>
               <svg className={`w-3.5 h-3.5 text-slate-400 transition-transform ${expandedSections.includes('overview') ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
@@ -266,7 +266,7 @@ export default function DashboardPage() {
               onClick={() => toggleSection('visuals')}
               className="w-full flex justify-between items-center px-4 py-3 bg-white/5 hover:bg-white/10 transition-colors cursor-pointer"
             >
-              <h3 className="text-[10px] font-bold text-[#B6CFD6] uppercase tracking-widest font-mono flex items-center gap-1.5">
+              <h3 className="text-[10px] font-bold text-[#FFCC33] uppercase tracking-widest font-mono flex items-center gap-1.5">
                 <span>🎨</span> Visuals
               </h3>
               <svg className={`w-3.5 h-3.5 text-slate-400 transition-transform ${expandedSections.includes('visuals') ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
@@ -287,7 +287,7 @@ export default function DashboardPage() {
               onClick={() => toggleSection('data')}
               className="w-full flex justify-between items-center px-4 py-3 bg-white/5 hover:bg-white/10 transition-colors cursor-pointer"
             >
-              <h3 className="text-[10px] font-bold text-[#B6CFD6] uppercase tracking-widest font-mono flex items-center gap-1.5">
+              <h3 className="text-[10px] font-bold text-[#FFCC33] uppercase tracking-widest font-mono flex items-center gap-1.5">
                 <span>📖</span> Data Libraries
               </h3>
               <svg className={`w-3.5 h-3.5 text-slate-400 transition-transform ${expandedSections.includes('data') ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
@@ -309,7 +309,7 @@ export default function DashboardPage() {
               onClick={() => toggleSection('tools')}
               className="w-full flex justify-between items-center px-4 py-3 bg-white/5 hover:bg-white/10 transition-colors cursor-pointer"
             >
-              <h3 className="text-[10px] font-bold text-[#B6CFD6] uppercase tracking-widest font-mono flex items-center gap-1.5">
+              <h3 className="text-[10px] font-bold text-[#FFCC33] uppercase tracking-widest font-mono flex items-center gap-1.5">
                 <span>⚙️</span> Catalog Tools
               </h3>
               <svg className={`w-3.5 h-3.5 text-slate-400 transition-transform ${expandedSections.includes('tools') ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
@@ -328,14 +328,14 @@ export default function DashboardPage() {
         </nav>
 
         {/* User Session Info Footer */}
-        <div className="p-4 border-t border-[#B6CFD6]/10 flex flex-col gap-3 bg-[#090d16]">
+        <div className="p-4 border-t border-[#FFCC33]/10 flex flex-col gap-3 bg-[#3d1010]">
           {user && (
             <div className="flex items-center justify-between text-xs text-slate-400">
               <div className="flex flex-col truncate pr-2">
                 <span className="font-bold text-white truncate">{user.name}</span>
                 <span className="text-[10px] text-slate-500 font-mono truncate">{user.email}</span>
               </div>
-              <span className="px-2 py-0.5 rounded bg-[#8C2232]/25 text-[#B6CFD6] font-bold text-[9px] uppercase tracking-wider border border-[#8C2232]/45 font-mono">
+              <span className="px-2 py-0.5 rounded bg-[#993333]/25 text-[#FFCC33] font-bold text-[9px] uppercase tracking-wider border border-[#993333]/45 font-mono">
                 {user.role || 'Tester'}
               </span>
             </div>
@@ -346,7 +346,7 @@ export default function DashboardPage() {
               await supabase.auth.signOut();
               window.location.href = '/login';
             }}
-            className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold bg-white/5 border border-white/10 hover:bg-[#8C2232]/25 hover:border-[#8C2232]/45 hover:text-white transition-all cursor-pointer font-mono"
+            className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold bg-white/5 border border-white/10 hover:bg-[#993333]/25 hover:border-[#993333]/45 hover:text-white transition-all cursor-pointer font-mono"
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -359,7 +359,7 @@ export default function DashboardPage() {
       {/* MAIN VIEWPORT CANVAS */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Global Toolbar Header */}
-        <header className="h-16 shrink-0 flex justify-between items-center px-4 md:px-8 border-b border-[#B6CFD6]/10 bg-[#0b0f1d] relative z-20">
+        <header className="h-16 shrink-0 flex justify-between items-center px-4 md:px-8 border-b border-[#FFCC33]/10 bg-[#521a1a] relative z-20">
           {/* Sidebar Collapse Toggle */}
           <button
             onClick={() => setSidebarOpen((v) => !v)}
@@ -374,11 +374,11 @@ export default function DashboardPage() {
 
           {/* Database Selector Dropdown */}
           <div className="flex items-center gap-2 md:gap-3">
-            <label className="hidden md:block text-[10px] font-bold text-[#B6CFD6] uppercase tracking-wider font-mono">Active Catalog Version:</label>
+            <label className="hidden md:block text-[10px] font-bold text-[#FFCC33] uppercase tracking-wider font-mono">Active Catalog Version:</label>
             <select
               value={catalogId}
               onChange={(e) => setCatalogId(e.target.value)}
-              className="bg-[#090d16] border border-[#B6CFD6]/20 rounded-lg px-2 py-1.5 md:px-3 md:py-1.5 text-xs text-white outline-none focus:border-[#8C2232] transition-colors font-semibold max-w-[150px] sm:max-w-xs truncate"
+              className="bg-[#3d1010] border border-[#FFCC33]/20 rounded-lg px-2 py-1.5 md:px-3 md:py-1.5 text-xs text-white outline-none focus:border-[#993333] transition-colors font-semibold max-w-[150px] sm:max-w-xs truncate"
               disabled={isDuplicating}
             >
               <option value="" disabled>
@@ -407,7 +407,7 @@ export default function DashboardPage() {
 
         <main className={`flex-1 ${
           activeTab === 'graph' || activeTab === 'policy_graph' || activeTab === 'ast_explorer' || activeTab === 'catalog_pdf' ? 'overflow-hidden' : 'overflow-y-auto'
-        } p-6 md:p-8 bg-[#090d16] relative z-0`}>
+        } p-6 md:p-8 relative z-0`}>
           <div className="animate-in fade-in duration-300 slide-in-from-bottom-2 h-full">
             {activeTab === 'overview' && (
               <LandingPage onTabChange={setActiveTab} catalogId={catalogId} />
@@ -435,11 +435,11 @@ export default function DashboardPage() {
 
             {activeTab === 'graph' && (
               <div className="space-y-4 h-full flex flex-col">
-                <div className="bg-[#0b0f1d] p-4 rounded-xl border border-[#B6CFD6]/10 shrink-0">
+                <div className="bg-[#521a1a] p-4 rounded-xl border border-[#FFCC33]/10 shrink-0">
                   <h2 className="text-lg font-bold text-white serif-title">Institutional Prerequisite Graph</h2>
                   <p className="text-xs text-slate-400 font-medium">Explore required courses and curriculum pathways for {INSTITUTION.legalName}.</p>
                 </div>
-                <div className="flex-1 bg-[#0b0f1d] rounded-xl border border-[#B6CFD6]/10 overflow-hidden relative">
+                <div className="flex-1 bg-[#521a1a] rounded-xl border border-[#FFCC33]/10 overflow-hidden relative">
                   <GraphViewer catalogId={catalogId} mode="curriculum" />
                 </div>
               </div>
@@ -447,11 +447,11 @@ export default function DashboardPage() {
 
             {activeTab === 'policy_graph' && (
               <div className="space-y-4 h-full flex flex-col">
-                <div className="bg-[#0b0f1d] p-4 rounded-xl border border-[#B6CFD6]/10 shrink-0">
+                <div className="bg-[#521a1a] p-4 rounded-xl border border-[#FFCC33]/10 shrink-0">
                   <h2 className="text-lg font-bold text-white serif-title">Institutional Policy Graph</h2>
                   <p className="text-xs text-slate-400 font-medium">Explore narrative policies, deontic rules, and semantic chunk relationships for {INSTITUTION.legalName}.</p>
                 </div>
-                <div className="flex-1 bg-[#0b0f1d] rounded-xl border border-[#B6CFD6]/10 overflow-hidden relative">
+                <div className="flex-1 bg-[#521a1a] rounded-xl border border-[#FFCC33]/10 overflow-hidden relative">
                   <GraphViewer catalogId={catalogId} mode="policy" />
                 </div>
               </div>

@@ -46,9 +46,9 @@ export const BRAND = {
     secondary: '#FFCC33', // Gold (official, PMS 116 C) → --color-brand-gold
     secondaryDark: '#E6B800', // → --color-brand-gold-dark
     accent: '#FFCC33',
-    bg: '#FFFFFF',
-    surface: '#F7F5F2',
-    ink: '#1A1A1A',
+    bg: '#3d0f0f', // deep Cardinal Red — flat fallback under the app-shell gradient (--sjf-gradient)
+    surface: '#521a1a', // deep maroon panel / sidebar / header surface
+    ink: '#f8ede1', // warm parchment body text on red
   },
   typography: {
     serif: "'Book Antiqua', 'Palatino Linotype', Palatino, Georgia, serif",

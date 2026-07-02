@@ -136,7 +136,7 @@ export default function CatalogPdfView({ catalogId, catalogs }: Props) {
 
   if (!catalogId) {
     return (
-      <div className="bg-[#0b0f1d] border border-[#B6CFD6]/10 rounded-xl p-8 text-center text-slate-400">
+      <div className="bg-[#521a1a] border border-[#FFCC33]/10 rounded-xl p-8 text-center text-slate-400">
         Select an Active Catalog Version (top right) to generate its PDF.
       </div>
     );
@@ -151,7 +151,7 @@ export default function CatalogPdfView({ catalogId, catalogs }: Props) {
 
   return (
     <div className="h-full flex flex-col gap-4">
-      <div className="bg-[#0b0f1d] p-4 rounded-xl border border-[#B6CFD6]/10 flex flex-wrap items-center justify-between gap-3 shrink-0">
+      <div className="bg-[#521a1a] p-4 rounded-xl border border-[#FFCC33]/10 flex flex-wrap items-center justify-between gap-3 shrink-0">
         <div>
           <h2 className="text-lg font-bold text-white serif-title">Catalog PDF</h2>
           <p className="text-xs text-slate-400 font-medium">
@@ -160,7 +160,7 @@ export default function CatalogPdfView({ catalogId, catalogs }: Props) {
         </div>
         <div className="flex gap-2">
           <button onClick={() => show(false)} disabled={loading}
-            className="bg-[#8C2232] hover:bg-[#65121e] text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors disabled:opacity-50 cursor-pointer">
+            className="bg-[#993333] hover:bg-[#7a2929] text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors disabled:opacity-50 cursor-pointer">
             {loading ? 'Rendering…' : src ? 'Reload' : 'Generate Preview'}
           </button>
           {src && (
@@ -171,7 +171,7 @@ export default function CatalogPdfView({ catalogId, catalogs }: Props) {
             </button>
           )}
           <a href={downloadUrl} target="_blank" rel="noopener noreferrer"
-            className="bg-[#B6CFD6]/10 hover:bg-[#B6CFD6]/20 text-[#B6CFD6] border border-[#B6CFD6]/20 px-4 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer flex items-center gap-2">
+            className="bg-[#FFCC33]/10 hover:bg-[#FFCC33]/20 text-[#FFCC33] border border-[#FFCC33]/20 px-4 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer flex items-center gap-2">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
             Download
           </a>
@@ -180,7 +180,7 @@ export default function CatalogPdfView({ catalogId, catalogs }: Props) {
 
       <div className="flex-1 flex flex-col lg:flex-row gap-4 min-h-[400px] overflow-y-auto lg:overflow-visible pb-4 lg:pb-0">
         {/* PDF preview */}
-        <div className="w-full h-[55vh] lg:h-auto shrink-0 lg:shrink lg:flex-1 bg-[#0b0f1d] rounded-xl border border-[#B6CFD6]/10 overflow-hidden relative">
+        <div className="w-full h-[55vh] lg:h-auto shrink-0 lg:shrink lg:flex-1 bg-[#521a1a] rounded-xl border border-[#FFCC33]/10 overflow-hidden relative">
           {!src && (
             <div className="absolute inset-0 flex items-center justify-center text-slate-500 text-sm">
               Click <span className="mx-1 font-semibold text-slate-300">Generate Preview</span> to render the catalog PDF
@@ -196,8 +196,8 @@ export default function CatalogPdfView({ catalogId, catalogs }: Props) {
         </div>
 
         {/* Correction agent */}
-        <div className="w-full lg:w-[360px] shrink-0 h-[520px] lg:h-auto bg-[#0b0f1d] rounded-xl border border-[#B6CFD6]/10 flex flex-col overflow-hidden">
-          <div className="px-4 py-3 border-b border-[#B6CFD6]/10 shrink-0">
+        <div className="w-full lg:w-[360px] shrink-0 h-[520px] lg:h-auto bg-[#521a1a] rounded-xl border border-[#FFCC33]/10 flex flex-col overflow-hidden">
+          <div className="px-4 py-3 border-b border-[#FFCC33]/10 shrink-0">
             <h3 className="text-sm font-bold text-white">Catalog Corrections</h3>
             <p className="text-[11px] text-slate-400 leading-snug mt-0.5">
               Describe fixes in plain English. I’ll classify each as a layout or data change and add it to a list — review the list, then apply them all at once with a single re-render.
@@ -212,13 +212,13 @@ export default function CatalogPdfView({ catalogId, catalogs }: Props) {
               </div>
             )}
             {messages.map((m, i) => (
-              <div key={i} className={`text-xs leading-relaxed whitespace-pre-wrap rounded-lg px-3 py-2 ${m.role === 'user' ? 'bg-[#8C2232]/20 text-slate-100 ml-6' : 'bg-white/5 text-slate-300 mr-2'}`}>
+              <div key={i} className={`text-xs leading-relaxed whitespace-pre-wrap rounded-lg px-3 py-2 ${m.role === 'user' ? 'bg-[#993333]/20 text-slate-100 ml-6' : 'bg-white/5 text-slate-300 mr-2'}`}>
                 {m.content}
               </div>
             ))}
 
             {proposal && (
-              <div className="rounded-lg border border-[#B6CFD6]/20 bg-[#0a0e1a] p-3 mr-2">
+              <div className="rounded-lg border border-[#FFCC33]/20 bg-[#3d1010] p-3 mr-2">
                 <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded border ${badge(proposal.classification).cls}`}>
                   {badge(proposal.classification).label}
                 </span>
@@ -226,13 +226,13 @@ export default function CatalogPdfView({ catalogId, catalogs }: Props) {
                 <ul className="mt-2 space-y-1">
                   {proposal.operations.map((op, i) => (
                     <li key={i} className="text-[11px] text-slate-400 flex gap-1.5">
-                      <span className="text-[#B6CFD6] mt-0.5">→</span><span>{op.detail}</span>
+                      <span className="text-[#FFCC33] mt-0.5">→</span><span>{op.detail}</span>
                     </li>
                   ))}
                 </ul>
                 <div className="flex gap-2 mt-3">
                   <button onClick={stageProposal} disabled={busy}
-                    className="flex-1 bg-[#8C2232] hover:bg-[#65121e] text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors disabled:opacity-50 cursor-pointer">
+                    className="flex-1 bg-[#993333] hover:bg-[#7a2929] text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors disabled:opacity-50 cursor-pointer">
                     Add to changes
                   </button>
                   <button onClick={() => setProposal(null)} disabled={busy}
@@ -246,10 +246,10 @@ export default function CatalogPdfView({ catalogId, catalogs }: Props) {
             {busy && <div className="text-[11px] text-slate-500 italic px-1">Thinking…</div>}
           </div>
 
-          <div className="p-3 border-t border-[#B6CFD6]/10 shrink-0">
+          <div className="p-3 border-t border-[#FFCC33]/10 shrink-0">
             {file && (
-              <div className="flex items-center gap-2 mb-2 bg-[#070b15] border border-[#B6CFD6]/15 rounded-lg px-2.5 py-1.5">
-                <svg className="w-3.5 h-3.5 text-[#B6CFD6] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
+              <div className="flex items-center gap-2 mb-2 bg-[#3d1010] border border-[#FFCC33]/15 rounded-lg px-2.5 py-1.5">
+                <svg className="w-3.5 h-3.5 text-[#FFCC33] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
                 <span className="text-[11px] text-slate-300 truncate flex-1" title={file.name}>{file.name}</span>
                 <button onClick={() => setFile(null)} disabled={busy} className="text-slate-600 hover:text-rose-400 text-sm leading-none shrink-0 cursor-pointer" title="Remove">×</button>
               </div>
@@ -261,17 +261,17 @@ export default function CatalogPdfView({ catalogId, catalogs }: Props) {
               placeholder={file ? 'Tell me what to do with this document…' : 'Describe a correction, or attach a document…'}
               rows={2}
               disabled={busy}
-              className="w-full bg-[#070b15] border border-[#B6CFD6]/15 rounded-lg px-3 py-2 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-[#B6CFD6]/40 resize-none disabled:opacity-50"
+              className="w-full bg-[#3d1010] border border-[#FFCC33]/15 rounded-lg px-3 py-2 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-[#FFCC33]/40 resize-none disabled:opacity-50"
             />
             <input ref={fileRef} type="file" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={onPickFile} className="hidden" />
             <div className="flex justify-between items-center mt-2">
               <button onClick={() => fileRef.current?.click()} disabled={busy}
-                className="flex items-center gap-1 text-[10px] text-slate-400 hover:text-[#B6CFD6] disabled:opacity-50 cursor-pointer" title="Attach a PDF or Word document">
+                className="flex items-center gap-1 text-[10px] text-slate-400 hover:text-[#FFCC33] disabled:opacity-50 cursor-pointer" title="Attach a PDF or Word document">
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
                 Attach document
               </button>
               <button onClick={send} disabled={busy || (!input.trim() && !file)}
-                className="bg-[#8C2232] hover:bg-[#65121e] text-white px-4 py-1.5 rounded-lg text-xs font-bold transition-colors disabled:opacity-50 cursor-pointer">
+                className="bg-[#993333] hover:bg-[#7a2929] text-white px-4 py-1.5 rounded-lg text-xs font-bold transition-colors disabled:opacity-50 cursor-pointer">
                 Send
               </button>
             </div>
@@ -280,8 +280,8 @@ export default function CatalogPdfView({ catalogId, catalogs }: Props) {
 
         {/* Staged changes — its own column so the chat stays roomy (the batch proofing list) */}
         {staged.length > 0 && (
-          <div className="w-full lg:w-[300px] shrink-0 h-[360px] lg:h-auto bg-[#0b0f1d] rounded-xl border border-[#B6CFD6]/10 flex flex-col overflow-hidden">
-            <div className="px-4 py-3 border-b border-[#B6CFD6]/10 shrink-0 flex items-center justify-between gap-2">
+          <div className="w-full lg:w-[300px] shrink-0 h-[360px] lg:h-auto bg-[#521a1a] rounded-xl border border-[#FFCC33]/10 flex flex-col overflow-hidden">
+            <div className="px-4 py-3 border-b border-[#FFCC33]/10 shrink-0 flex items-center justify-between gap-2">
               <div>
                 <h3 className="text-sm font-bold text-white">Staged changes</h3>
                 <p className="text-[11px] text-slate-400">{staged.length} ready to apply — proof before applying</p>
@@ -305,7 +305,7 @@ export default function CatalogPdfView({ catalogId, catalogs }: Props) {
               </ol>
             </div>
 
-            <div className="p-3 border-t border-[#B6CFD6]/10 shrink-0">
+            <div className="p-3 border-t border-[#FFCC33]/10 shrink-0">
               <div className="flex items-center gap-3 mb-2 text-[10px] text-slate-500">
                 <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-sky-400"></span>Rendering</span>
                 <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>Database</span>

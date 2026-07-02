@@ -99,13 +99,13 @@ export default function ReportErrorModal({
 
   return (
     <div className="fixed inset-0 z-[100] bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200 font-sans">
-      <div className="bg-[#0b0f1d] rounded-2xl border border-[#B6CFD6]/15 shadow-2xl max-w-lg w-full overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
+      <div className="bg-[#521a1a] rounded-2xl border border-[#FFCC33]/15 shadow-2xl max-w-lg w-full overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
         
         {/* Modal Top Bar Crimson highlight line */}
-        <div className="h-1.5 bg-[#8C2232]"></div>
+        <div className="h-1.5 bg-[#993333]"></div>
 
         {/* Modal Header */}
-        <div className="px-6 py-4 bg-[#090d16] border-b border-white/5 flex justify-between items-center text-white">
+        <div className="px-6 py-4 bg-[#3d1010] border-b border-white/5 flex justify-between items-center text-white">
           <div>
             <h3 className="font-bold serif-title text-base">Flag Catalog Extraction Error</h3>
             <p className="text-[10px] text-slate-400 font-medium mt-0.5">Surgical delta-override log creation</p>
@@ -118,7 +118,7 @@ export default function ReportErrorModal({
         {/* Modal Form Content */}
         <form onSubmit={handleSubmit} className="p-6 space-y-6 text-left">
           {error && (
-            <div className="bg-[#8C2232]/10 border border-[#8C2232]/35 rounded-lg px-4 py-2.5 text-xs text-red-300 flex items-center gap-2">
+            <div className="bg-[#993333]/10 border border-[#993333]/35 rounded-lg px-4 py-2.5 text-xs text-red-300 flex items-center gap-2">
               <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
               <span>{error}</span>
             </div>
@@ -130,16 +130,16 @@ export default function ReportErrorModal({
           </div>
 
           <div className="space-y-2">
-            <label className="block text-[10px] font-bold text-[#B6CFD6] uppercase tracking-wider font-mono">
+            <label className="block text-[10px] font-bold text-[#FFCC33] uppercase tracking-wider font-mono">
               Current Catalog Value (Read-Only)
             </label>
-            <div className="bg-[#090d16] border border-white/5 rounded-lg px-4 py-3 text-xs text-slate-400 font-mono overflow-x-auto whitespace-pre">
+            <div className="bg-[#3d1010] border border-white/5 rounded-lg px-4 py-3 text-xs text-slate-400 font-mono overflow-x-auto whitespace-pre">
               {currentValue || 'NULL / Empty'}
             </div>
           </div>
 
           <div className="space-y-2">
-            <label className="block text-[10px] font-bold text-[#B6CFD6] uppercase tracking-wider font-mono">
+            <label className="block text-[10px] font-bold text-[#FFCC33] uppercase tracking-wider font-mono">
               Proposed Value Override
             </label>
             {fieldName === 'description' ? (
@@ -148,7 +148,7 @@ export default function ReportErrorModal({
                 onChange={(e) => setProposedValue(e.target.value)}
                 required
                 rows={4}
-                className="w-full bg-[#090d16] border border-white/10 rounded-lg px-4 py-3 text-xs text-white placeholder-slate-500 focus:border-[#8C2232] focus:ring-1 focus:ring-[#8C2232] outline-none transition-all resize-none"
+                className="w-full bg-[#3d1010] border border-white/10 rounded-lg px-4 py-3 text-xs text-white placeholder-slate-500 focus:border-[#993333] focus:ring-1 focus:ring-[#993333] outline-none transition-all resize-none"
                 placeholder="E.g., enter the correct narrative description..."
               ></textarea>
             ) : (
@@ -157,14 +157,14 @@ export default function ReportErrorModal({
                 value={proposedValue}
                 onChange={(e) => setProposedValue(e.target.value)}
                 required
-                className="w-full bg-[#090d16] border border-white/10 rounded-lg px-4 py-3 text-xs text-white placeholder-slate-500 focus:border-[#8C2232] focus:ring-1 focus:ring-[#8C2232] outline-none transition-all"
+                className="w-full bg-[#3d1010] border border-white/10 rounded-lg px-4 py-3 text-xs text-white placeholder-slate-500 focus:border-[#993333] focus:ring-1 focus:ring-[#993333] outline-none transition-all"
                 placeholder="E.g., enter the correct credit number or code override..."
               />
             )}
           </div>
 
           <div className="space-y-2">
-            <label className="block text-[10px] font-bold text-[#B6CFD6] uppercase tracking-wider font-mono">
+            <label className="block text-[10px] font-bold text-[#FFCC33] uppercase tracking-wider font-mono">
               Tester Justification (Reason)
             </label>
             <textarea
@@ -172,7 +172,7 @@ export default function ReportErrorModal({
               onChange={(e) => setReason(e.target.value)}
               rows={3}
               required
-              className="w-full bg-[#090d16] border border-white/10 rounded-lg px-4 py-3 text-xs text-white placeholder-slate-500 focus:border-[#8C2232] focus:ring-1 focus:ring-[#8C2232] outline-none transition-all resize-none"
+              className="w-full bg-[#3d1010] border border-white/10 rounded-lg px-4 py-3 text-xs text-white placeholder-slate-500 focus:border-[#993333] focus:ring-1 focus:ring-[#993333] outline-none transition-all resize-none"
               placeholder="E.g., 'ACCT 210 credits should be 4 according to Page 28 of the 2025 PDF catalog...'"
             ></textarea>
           </div>
@@ -188,7 +188,7 @@ export default function ReportErrorModal({
             <button
               type="submit"
               disabled={submitting}
-              className="px-4 py-2 rounded-lg font-bold text-white bg-[#8C2232] hover:bg-[#65121e] transition-colors text-xs shadow-md cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+              className="px-4 py-2 rounded-lg font-bold text-white bg-[#993333] hover:bg-[#7a2929] transition-colors text-xs shadow-md cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
             >
               {submitting ? (
                 <>

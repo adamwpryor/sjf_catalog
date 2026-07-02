@@ -59,7 +59,7 @@ interface GraphViewerProps {
 const getNodeColor = (node: GraphNode) => {
   switch (node.group) {
     case 'course':
-      return '#8C2232'; // Red - Courses
+      return '#993333'; // Red - Courses
     case 'block':
       return '#f97316'; // Orange - Requirement Blocks
     case 'program':
@@ -91,7 +91,7 @@ const getLinkColor = (link: any, isSelected: boolean, isFaded: boolean) => {
 
   switch (link.type) {
     case 'PREREQUISITE':
-      return `rgba(140, 34, 50, ${alpha})`; // Primary brand crimson (#8C2232)
+      return `rgba(140, 34, 50, ${alpha})`; // Primary brand crimson (#993333)
     case 'COREQUISITE':
       return `rgba(242, 169, 0, ${alpha})`; // Brand gold (#f2a900) for Co-requisites
     case 'SUPERVISES':
@@ -112,7 +112,7 @@ const getLinkColor = (link: any, isSelected: boolean, isFaded: boolean) => {
     case 'MENTIONS':
       return `rgba(245, 158, 11, ${isSelected ? '0.95' : '0.4'})`; // Amber for semantic policy mentions
     default:
-      return isSelected ? '#B6CFD6' : 'rgba(148, 163, 184, 0.15)'; // Faint slate link
+      return isSelected ? '#FFCC33' : 'rgba(148, 163, 184, 0.15)'; // Faint slate link
   }
 };
 
@@ -738,7 +738,7 @@ export default function GraphViewer({ catalogId, mode }: GraphViewerProps) {
   if (loading) {
     return (
       <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-500 font-mono text-xs gap-3">
-        <svg className="animate-spin h-6 w-6 text-[#8C2232]" fill="none" viewBox="0 0 24 24">
+        <svg className="animate-spin h-6 w-6 text-[#993333]" fill="none" viewBox="0 0 24 24">
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
         </svg>
@@ -750,7 +750,7 @@ export default function GraphViewer({ catalogId, mode }: GraphViewerProps) {
   const isFadedGlobal = selectedNode !== null || hoverNode !== null || searchQuery !== '';
 
   return (
-    <div className={`bg-[#050811] overflow-hidden transition-all ${
+    <div className={`bg-[#2a0a0a] overflow-hidden transition-all ${
       isFullscreen 
         ? 'fixed inset-0 z-50 w-screen h-screen' 
         : 'absolute inset-0'
@@ -765,8 +765,8 @@ export default function GraphViewer({ catalogId, mode }: GraphViewerProps) {
               onClick={() => setShowFilters(!showFilters)}
               className={`p-2 rounded-lg shadow-md border transition-all cursor-pointer flex items-center justify-center ${
                 showFilters 
-                  ? 'bg-[#8C2232] text-white border-[#8C2232]/50 shadow-[#8C2232]/20' 
-                  : 'bg-[#0b0f1d]/90 text-slate-300 border-[#B6CFD6]/15 hover:bg-white/5'
+                  ? 'bg-[#993333] text-white border-[#993333]/50 shadow-[#993333]/20' 
+                  : 'bg-[#521a1a]/90 text-slate-300 border-[#FFCC33]/15 hover:bg-white/5'
               }`}
               title="Toggle Filter Toolbar"
             >
@@ -776,7 +776,7 @@ export default function GraphViewer({ catalogId, mode }: GraphViewerProps) {
             {showFilters && (
               <div className="flex flex-wrap gap-2 animate-in fade-in slide-in-from-left-2 duration-200">
                 {/* Text Search Input */}
-                <div className="flex bg-[#0b0f1d]/95 rounded-lg shadow-md border border-[#B6CFD6]/15 px-3 py-1.5 items-center backdrop-blur-md">
+                <div className="flex bg-[#521a1a]/95 rounded-lg shadow-md border border-[#FFCC33]/15 px-3 py-1.5 items-center backdrop-blur-md">
                   <input
                     type="text"
                     placeholder="Search code, title, policy..."
@@ -799,7 +799,7 @@ export default function GraphViewer({ catalogId, mode }: GraphViewerProps) {
                 <select
                   value={selectedGroup}
                   onChange={(e) => setSelectedGroup(e.target.value)}
-                  className="bg-[#0b0f1d]/95 border border-[#B6CFD6]/15 rounded-lg px-3 py-1.5 text-xs text-white outline-none focus:border-[#8C2232] cursor-pointer shadow-md backdrop-blur-md font-semibold"
+                  className="bg-[#521a1a]/95 border border-[#FFCC33]/15 rounded-lg px-3 py-1.5 text-xs text-white outline-none focus:border-[#993333] cursor-pointer shadow-md backdrop-blur-md font-semibold"
                   disabled={pathMode}
                 >
                   <option value="">All Categories</option>
@@ -819,7 +819,7 @@ export default function GraphViewer({ catalogId, mode }: GraphViewerProps) {
                       setSelectedPrefix('');
                       setPathMode(false);
                     }}
-                    className="bg-[#0b0f1d]/95 border border-[#B6CFD6]/15 rounded-lg px-3 py-1.5 text-xs text-white outline-none focus:border-[#8C2232] cursor-pointer shadow-md backdrop-blur-md font-semibold max-w-[150px] truncate"
+                    className="bg-[#521a1a]/95 border border-[#FFCC33]/15 rounded-lg px-3 py-1.5 text-xs text-white outline-none focus:border-[#993333] cursor-pointer shadow-md backdrop-blur-md font-semibold max-w-[150px] truncate"
                     disabled={pathMode}
                   >
                     <option value="">All Programs</option>
@@ -838,7 +838,7 @@ export default function GraphViewer({ catalogId, mode }: GraphViewerProps) {
                       setSelectedProgram('');
                       setPathMode(false);
                     }}
-                    className="bg-[#0b0f1d]/95 border border-[#B6CFD6]/15 rounded-lg px-3 py-1.5 text-xs text-white outline-none focus:border-[#8C2232] cursor-pointer shadow-md backdrop-blur-md font-semibold"
+                    className="bg-[#521a1a]/95 border border-[#FFCC33]/15 rounded-lg px-3 py-1.5 text-xs text-white outline-none focus:border-[#993333] cursor-pointer shadow-md backdrop-blur-md font-semibold"
                     disabled={pathMode}
                   >
                     <option value="">All Prefixes</option>
@@ -854,7 +854,7 @@ export default function GraphViewer({ catalogId, mode }: GraphViewerProps) {
                   className={`px-3 py-1.5 rounded-lg shadow-md text-xs font-bold border transition-all cursor-pointer backdrop-blur-md font-mono ${
                     is3D 
                       ? 'bg-[#ea580c] border-[#ea580c]/50 text-white shadow-[#ea580c]/20' 
-                      : 'bg-[#0b0f1d]/90 text-slate-300 border-[#B6CFD6]/15 hover:bg-white/5'
+                      : 'bg-[#521a1a]/90 text-slate-300 border-[#FFCC33]/15 hover:bg-white/5'
                   }`}
                 >
                   {is3D ? 'WebGL 3D' : 'Canvas 2D'}
@@ -869,8 +869,8 @@ export default function GraphViewer({ catalogId, mode }: GraphViewerProps) {
                     }}
                     className={`px-3 py-1.5 rounded-lg shadow-md text-xs font-bold border transition-all cursor-pointer backdrop-blur-md font-mono ${
                       pathMode 
-                        ? 'bg-[#8C2232] border-[#8C2232]/50 text-white animate-pulse' 
-                        : 'bg-[#0b0f1d]/90 text-slate-300 border-[#B6CFD6]/15 hover:bg-white/5'
+                        ? 'bg-[#993333] border-[#993333]/50 text-white animate-pulse' 
+                        : 'bg-[#521a1a]/90 text-slate-300 border-[#FFCC33]/15 hover:bg-white/5'
                     }`}
                   >
                     {pathMode ? 'Exit Pathfinder' : 'Prereq Pathfinder'}
@@ -885,8 +885,8 @@ export default function GraphViewer({ catalogId, mode }: GraphViewerProps) {
                   }}
                   className={`p-2 rounded-lg shadow-md border transition-all cursor-pointer flex items-center justify-center ${
                     isFullscreen 
-                      ? 'bg-[#8C2232] text-white border-[#8C2232]/50 shadow-[#8C2232]/20' 
-                      : 'bg-[#0b0f1d]/90 text-slate-300 border-[#B6CFD6]/15 hover:bg-white/5'
+                      ? 'bg-[#993333] text-white border-[#993333]/50 shadow-[#993333]/20' 
+                      : 'bg-[#521a1a]/90 text-slate-300 border-[#FFCC33]/15 hover:bg-white/5'
                   }`}
                   title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
                 >
@@ -900,7 +900,7 @@ export default function GraphViewer({ catalogId, mode }: GraphViewerProps) {
                 {/* Reset view */}
                 <button
                   onClick={handleResetView}
-                  className="px-3 py-1.5 rounded-lg shadow-md text-xs font-bold border border-[#B6CFD6]/15 bg-[#0b0f1d]/90 text-slate-300 hover:text-white hover:bg-white/5 transition-all cursor-pointer backdrop-blur-md font-mono"
+                  className="px-3 py-1.5 rounded-lg shadow-md text-xs font-bold border border-[#FFCC33]/15 bg-[#521a1a]/90 text-slate-300 hover:text-white hover:bg-white/5 transition-all cursor-pointer backdrop-blur-md font-mono"
                 >
                   Reset View
                 </button>
@@ -910,22 +910,22 @@ export default function GraphViewer({ catalogId, mode }: GraphViewerProps) {
 
           {/* Pathfinder Start/End Dropdowns */}
           {pathMode && showFilters && (
-            <div className="flex gap-2 animate-in fade-in slide-in-from-left-2 duration-200 bg-[#0b0f1d]/95 p-2 rounded-lg border border-[#B6CFD6]/15 backdrop-blur-md shadow-lg w-fit">
+            <div className="flex gap-2 animate-in fade-in slide-in-from-left-2 duration-200 bg-[#521a1a]/95 p-2 rounded-lg border border-[#FFCC33]/15 backdrop-blur-md shadow-lg w-fit">
               <select
                 value={startNodeId}
                 onChange={(e) => setStartNodeId(e.target.value)}
-                className="bg-[#090d16] border border-[#B6CFD6]/15 rounded px-2.5 py-1 text-xs text-white outline-none max-w-[150px] font-semibold cursor-pointer"
+                className="bg-[#3d1010] border border-[#FFCC33]/15 rounded px-2.5 py-1 text-xs text-white outline-none max-w-[150px] font-semibold cursor-pointer"
               >
                 <option value="">Start Course...</option>
                 {filteredData.nodes.filter(n => n.group === 'course').map(n => (
                   <option key={n.id} value={n.id}>{n.label}</option>
                 ))}
               </select>
-              <span className="text-[#B6CFD6] font-bold self-center text-xs">➔</span>
+              <span className="text-[#FFCC33] font-bold self-center text-xs">➔</span>
               <select
                 value={endNodeId}
                 onChange={(e) => setEndNodeId(e.target.value)}
-                className="bg-[#090d16] border border-[#B6CFD6]/15 rounded px-2.5 py-1 text-xs text-white outline-none max-w-[150px] font-semibold cursor-pointer"
+                className="bg-[#3d1010] border border-[#FFCC33]/15 rounded px-2.5 py-1 text-xs text-white outline-none max-w-[150px] font-semibold cursor-pointer"
               >
                 <option value="">Target Course...</option>
                 {filteredData.nodes.filter(n => n.group === 'course').map(n => (
@@ -942,8 +942,8 @@ export default function GraphViewer({ catalogId, mode }: GraphViewerProps) {
             onClick={() => setShowLegend(!showLegend)}
             className={`p-2 rounded-lg shadow-md border transition-all cursor-pointer flex items-center justify-center ${
               showLegend 
-                ? 'bg-[#8C2232] text-white border-[#8C2232]/50 shadow-[#8C2232]/20' 
-                : 'bg-[#0b0f1d]/90 text-slate-300 border-[#B6CFD6]/15 hover:bg-white/5'
+                ? 'bg-[#993333] text-white border-[#993333]/50 shadow-[#993333]/20' 
+                : 'bg-[#521a1a]/90 text-slate-300 border-[#FFCC33]/15 hover:bg-white/5'
             }`}
             title="Toggle Visual Legends"
           >
@@ -951,12 +951,12 @@ export default function GraphViewer({ catalogId, mode }: GraphViewerProps) {
           </button>
 
           {showLegend && (
-            <div className="bg-[#0b0f1d]/90 rounded-xl shadow-lg border border-[#B6CFD6]/10 p-4 pointer-events-none w-52 animate-in fade-in slide-in-from-left-2 duration-200 backdrop-blur-md text-left space-y-4">
+            <div className="bg-[#521a1a]/90 rounded-xl shadow-lg border border-[#FFCC33]/10 p-4 pointer-events-none w-52 animate-in fade-in slide-in-from-left-2 duration-200 backdrop-blur-md text-left space-y-4">
               {/* Nodes Legend */}
               <div>
-                <h4 className="text-[10px] font-bold text-[#B6CFD6] uppercase tracking-wider mb-2 border-b border-white/5 pb-1 font-mono">Node Legend</h4>
+                <h4 className="text-[10px] font-bold text-[#FFCC33] uppercase tracking-wider mb-2 border-b border-white/5 pb-1 font-mono">Node Legend</h4>
                 <ul className="space-y-1.5 text-xs text-slate-300 font-semibold font-sans">
-                  <li className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#8C2232] inline-block"></span> Course</li>
+                  <li className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#993333] inline-block"></span> Course</li>
                   <li className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#f97316] inline-block"></span> Requirement Block</li>
                   {mode === 'curriculum' && (
                     <>
@@ -971,11 +971,11 @@ export default function GraphViewer({ catalogId, mode }: GraphViewerProps) {
 
               {/* Edges Legend */}
               <div>
-                <h4 className="text-[10px] font-bold text-[#B6CFD6] uppercase tracking-wider mb-2 border-b border-white/5 pb-1 font-mono">Relation Legend</h4>
+                <h4 className="text-[10px] font-bold text-[#FFCC33] uppercase tracking-wider mb-2 border-b border-white/5 pb-1 font-mono">Relation Legend</h4>
                 <ul className="space-y-1.5 text-xs text-slate-300 font-semibold font-sans">
                   {mode === 'curriculum' && (
                     <>
-                      <li className="flex items-center gap-2"><span className="w-4 h-1 rounded bg-[#8C2232] inline-block"></span> Prerequisite Path</li>
+                      <li className="flex items-center gap-2"><span className="w-4 h-1 rounded bg-[#993333] inline-block"></span> Prerequisite Path</li>
                       <li className="flex items-center gap-2"><span className="w-4 h-1 rounded bg-[#f2a900] inline-block"></span> Co-requisite Link</li>
                       <li className="flex items-center gap-2"><span className="w-4 h-1 rounded bg-[#3b82f6] inline-block"></span> Required Course Connection</li>
                       <li className="flex items-center gap-2"><span className="w-4 h-1 rounded bg-[#a855f7] inline-block"></span> Elective Course Connection</li>
@@ -1019,7 +1019,7 @@ export default function GraphViewer({ catalogId, mode }: GraphViewerProps) {
                   if (node.id === endNodeId) return '#dc2626';
                   return '#10b981';
                 }
-                return '#1e293b';
+                return '#5c1f1f';
               }
               return getNodeColor(node);
             }}
@@ -1143,7 +1143,7 @@ export default function GraphViewer({ catalogId, mode }: GraphViewerProps) {
               } else if (isPrimary) {
                 ctx.beginPath();
                 ctx.arc(node.x, node.y, size + 2 / globalScale, 0, 2 * Math.PI, false);
-                ctx.strokeStyle = '#B6CFD6';
+                ctx.strokeStyle = '#FFCC33';
                 ctx.lineWidth = 1 / globalScale;
                 ctx.stroke();
               } else if (isHovered) {
@@ -1222,7 +1222,7 @@ export default function GraphViewer({ catalogId, mode }: GraphViewerProps) {
 
       {/* Selected Element Detailed Inspect Sidebar Drawer (Right Panel) */}
       {selectedNode && (
-        <div className="absolute top-0 right-0 w-full sm:w-[350px] h-full bg-[#0b0f1d]/90 border-l border-[#B6CFD6]/10 p-6 flex flex-col gap-6 text-left overflow-y-auto animate-in slide-in-from-right-4 duration-300 z-20 backdrop-blur-md shadow-2xl">
+        <div className="absolute top-0 right-0 w-full sm:w-[350px] h-full bg-[#521a1a]/90 border-l border-[#FFCC33]/10 p-6 flex flex-col gap-6 text-left overflow-y-auto animate-in slide-in-from-right-4 duration-300 z-20 backdrop-blur-md shadow-2xl">
           {/* Header */}
           <div className="shrink-0 border-b border-white/5 pb-4">
             <div className="flex justify-between items-center">
@@ -1238,7 +1238,7 @@ export default function GraphViewer({ catalogId, mode }: GraphViewerProps) {
                 )}
                 <span className={`px-2 py-0.5 rounded font-bold text-[8px] uppercase tracking-wider font-mono border ${
                   selectedNode.group === 'course' 
-                    ? 'bg-[#8C2232]/25 text-[#B6CFD6] border-[#8C2232]/45'
+                    ? 'bg-[#993333]/25 text-[#FFCC33] border-[#993333]/45'
                     : selectedNode.group === 'block'
                       ? 'bg-orange-500/10 text-orange-400 border-orange-500/30'
                       : selectedNode.group === 'program'
@@ -1300,7 +1300,7 @@ export default function GraphViewer({ catalogId, mode }: GraphViewerProps) {
               <div className="grid grid-cols-2 gap-2">
                 <div className="p-2 bg-white/5 rounded-xl border border-white/5 font-mono">
                   <div className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">Toulmin logic</div>
-                  <div className="text-[10px] font-bold text-[#B6CFD6]">{selectedNode.toulmin_role || 'Warrant'}</div>
+                  <div className="text-[10px] font-bold text-[#FFCC33]">{selectedNode.toulmin_role || 'Warrant'}</div>
                 </div>
                 <div className="p-2 bg-white/5 rounded-xl border border-white/5 font-mono">
                   <div className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">Deontic force</div>
@@ -1311,7 +1311,7 @@ export default function GraphViewer({ catalogId, mode }: GraphViewerProps) {
 
             {/* Description */}
             <div className="space-y-1.5 text-left">
-              <div className="text-[9px] font-bold text-[#B6CFD6] uppercase tracking-widest font-mono">
+              <div className="text-[9px] font-bold text-[#FFCC33] uppercase tracking-widest font-mono">
                 {selectedNode.group === 'block' ? 'Catalog Section Text' : 'Narrative / Description'}
               </div>
               <div className={`p-4 bg-white/5 rounded-xl border border-white/5 text-slate-300 leading-relaxed whitespace-pre-wrap ${
@@ -1323,7 +1323,7 @@ export default function GraphViewer({ catalogId, mode }: GraphViewerProps) {
 
             {/* Immediate Interconnections */}
             <div className="space-y-4 pt-4 border-t border-white/5 text-left">
-              <h4 className="text-[10px] font-bold text-[#B6CFD6] uppercase tracking-wider font-mono">Immediate Interconnections</h4>
+              <h4 className="text-[10px] font-bold text-[#FFCC33] uppercase tracking-wider font-mono">Immediate Interconnections</h4>
               
               {/* Prerequisites */}
               {immediateInterconnections.prerequisites.length > 0 && (

@@ -18,7 +18,7 @@ interface DiagnosticsProps {
   catalogId: string;
 }
 
-const COLORS = ['#8C2232', '#B6CFD6', '#f57f17', '#e65100', '#7d1218', '#8ba7b0', '#0f2c52', '#0f766e'];
+const COLORS = ['#993333', '#FFCC33', '#f57f17', '#e65100', '#7d1218', '#E6B800', '#0f2c52', '#0f766e'];
 
 /**
  * Renders the diagnostics dashboard.
@@ -30,11 +30,18 @@ export default function DiagnosticsDashboard({ catalogId }: DiagnosticsProps) {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showGhostNodesModal, setShowGhostNodesModal] = useState(false);
-  const [totals, setTotals] = useState({
-    courses: 0,
-    programs: 0,
-    chunks: 0,
-    subjects: 0
+  // Each total is number when loaded, or null when its source endpoint failed
+  // (rendered as "—"), so one broken endpoint never blanks the whole panel.
+  const [totals, setTotals] = useState<{
+    courses: number | null;
+    programs: number | null;
+    chunks: number | null;
+    subjects: number | null;
+  }>({
+    courses: null,
+    programs: null,
+    chunks: null,
+    subjects: null
   });
   const [totalsLoading, setTotalsLoading] = useState(true);
 
@@ -61,43 +68,46 @@ export default function DiagnosticsDashboard({ catalogId }: DiagnosticsProps) {
     }
 
     async function loadTotals() {
-      try {
-        setTotalsLoading(true);
-        const coursesRes = await fetch('/api/db', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'get_courses', catalogId })
-        });
-        const progsRes = await fetch('/api/db', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'get_programs', catalogId })
-        });
-        const chunksRes = await fetch('/api/db', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'get_semantic_chunks', catalogId })
-        });
+      setTotalsLoading(true);
 
-        if (coursesRes.ok && progsRes.ok && chunksRes.ok) {
-          const coursesData = await coursesRes.json();
-          const progsData = await progsRes.json();
-          const chunksData = await chunksRes.json();
-
-          const uniquePrefixes = new Set(coursesData.map((c: any) => c.subject_prefix).filter(Boolean));
-
-          setTotals({
-            courses: coursesData.length,
-            programs: progsData.length,
-            chunks: chunksData.length,
-            subjects: uniquePrefixes.size
+      // Fetch one totals action, returning its rows or null on any failure. Each
+      // metric resolves independently, so a single failing endpoint (e.g. a schema
+      // drift in get_programs) never zeroes out the metrics that did load.
+      const fetchAction = async (action: string): Promise<any[] | null> => {
+        try {
+          const res = await fetch('/api/db', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action, catalogId })
           });
+          if (!res.ok) {
+            console.error(`Totals: '${action}' returned HTTP ${res.status}`);
+            return null;
+          }
+          return await res.json();
+        } catch (err) {
+          console.error(`Totals: '${action}' request failed:`, err);
+          return null;
         }
-      } catch (err) {
-        console.error("Error loading totals: ", err);
-      } finally {
-        setTotalsLoading(false);
-      }
+      };
+
+      const [coursesData, progsData, chunksData] = await Promise.all([
+        fetchAction('get_courses'),
+        fetchAction('get_programs'),
+        fetchAction('get_semantic_chunks')
+      ]);
+
+      // courses and subjects both derive from get_courses, so they share its fate.
+      setTotals({
+        courses: coursesData ? coursesData.length : null,
+        programs: progsData ? progsData.length : null,
+        chunks: chunksData ? chunksData.length : null,
+        subjects: coursesData
+          ? new Set(coursesData.map((c: any) => c.subject_prefix).filter(Boolean)).size
+          : null
+      });
+
+      setTotalsLoading(false);
     }
 
     loadDiagnostics();
@@ -129,7 +139,7 @@ export default function DiagnosticsDashboard({ catalogId }: DiagnosticsProps) {
   return (
     <div className="space-y-6 animate-in fade-in duration-300 font-sans">
       {/* Title Bar */}
-      <div className="bg-[#0b0f1d] p-4 rounded-xl border border-[#B6CFD6]/10 flex flex-col items-start gap-3 md:flex-row md:justify-between md:items-center">
+      <div className="bg-[#521a1a] p-4 rounded-xl border border-[#FFCC33]/10 flex flex-col items-start gap-3 md:flex-row md:justify-between md:items-center">
         <div>
           <h2 className="text-xl font-bold text-white serif-title">Metrics</h2>
           <p className="text-xs text-slate-400 font-medium">A friendly overview of your academic catalog's data, helping you track total courses, subject counts, and visual connections.</p>
@@ -152,9 +162,9 @@ export default function DiagnosticsDashboard({ catalogId }: DiagnosticsProps) {
       </div>
 
       {/* Catalog Totals Grid */}
-      <div className="glass-panel rounded-2xl p-6 border border-white/5 bg-[#0b0f1d]/30">
+      <div className="glass-panel rounded-2xl p-6 border border-white/5 bg-[#521a1a]/30">
         <h3 className="text-sm font-bold text-white serif-title mb-4 flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-[#B6CFD6]"></span>
+          <span className="w-2 h-2 rounded-full bg-[#FFCC33]"></span>
           Catalog Totals
         </h3>
 
@@ -168,29 +178,29 @@ export default function DiagnosticsDashboard({ catalogId }: DiagnosticsProps) {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {/* Metric 1 */}
             <div className="p-4 rounded-xl bg-white/5 border border-white/5 relative overflow-hidden">
-              <div className="text-[10px] font-bold text-[#B6CFD6] uppercase tracking-wider font-mono mb-1">Total Courses</div>
-              <div className="text-2xl font-extrabold text-white serif-title">{totals.courses}</div>
+              <div className="text-[10px] font-bold text-[#FFCC33] uppercase tracking-wider font-mono mb-1">Total Courses</div>
+              <div className="text-2xl font-extrabold text-white serif-title">{totals.courses ?? '—'}</div>
               <div className="text-[10px] text-slate-500 mt-1 font-mono">Master Catalog Rows</div>
             </div>
 
             {/* Metric 2 */}
             <div className="p-4 rounded-xl bg-white/5 border border-white/5 relative overflow-hidden">
-              <div className="text-[10px] font-bold text-[#B6CFD6] uppercase tracking-wider font-mono mb-1">Active Programs</div>
-              <div className="text-2xl font-extrabold text-white serif-title">{totals.programs}</div>
+              <div className="text-[10px] font-bold text-[#FFCC33] uppercase tracking-wider font-mono mb-1">Active Programs</div>
+              <div className="text-2xl font-extrabold text-white serif-title">{totals.programs ?? '—'}</div>
               <div className="text-[10px] text-slate-500 mt-1 font-mono">Degree Curriculums</div>
             </div>
 
             {/* Metric 3 */}
             <div className="p-4 rounded-xl bg-white/5 border border-white/5 relative overflow-hidden">
-              <div className="text-[10px] font-bold text-[#B6CFD6] uppercase tracking-wider font-mono mb-1">Subject Areas</div>
-              <div className="text-2xl font-extrabold text-white serif-title">{totals.subjects}</div>
+              <div className="text-[10px] font-bold text-[#FFCC33] uppercase tracking-wider font-mono mb-1">Subject Areas</div>
+              <div className="text-2xl font-extrabold text-white serif-title">{totals.subjects ?? '—'}</div>
               <div className="text-[10px] text-slate-500 mt-1 font-mono">Academic Disciplines</div>
             </div>
 
             {/* Metric 4 */}
             <div className="p-4 rounded-xl bg-white/5 border border-white/5 relative overflow-hidden">
-              <div className="text-[10px] font-bold text-[#B6CFD6] uppercase tracking-wider font-mono mb-1">Semantic Chunks</div>
-              <div className="text-2xl font-extrabold text-white serif-title">{totals.chunks}</div>
+              <div className="text-[10px] font-bold text-[#FFCC33] uppercase tracking-wider font-mono mb-1">Semantic Chunks</div>
+              <div className="text-2xl font-extrabold text-white serif-title">{totals.chunks ?? '—'}</div>
               <div className="text-[10px] text-slate-500 mt-1 font-mono">Parsed PDF Blobs</div>
             </div>
           </div>
@@ -202,7 +212,7 @@ export default function DiagnosticsDashboard({ catalogId }: DiagnosticsProps) {
         {/* Chart 1: Credit Hour Distribution */}
         <div className="glass-panel rounded-2xl p-6 border border-white/5 flex flex-col">
           <h3 className="text-sm font-bold text-white serif-title mb-4 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-[#8C2232]"></span>
+            <span className="w-2 h-2 rounded-full bg-[#993333]"></span>
             Course Credit Hour Distribution
           </h3>
           <div className="flex-1 min-h-[280px] w-full text-xs font-mono">
@@ -214,11 +224,11 @@ export default function DiagnosticsDashboard({ catalogId }: DiagnosticsProps) {
                   <XAxis dataKey="credits" stroke="#808285" fontSize={10} tickLine={false} />
                   <YAxis stroke="#808285" fontSize={10} tickLine={false} />
                   <Tooltip 
-                    contentStyle={{ background: '#0b0f1d', border: '1px solid rgba(182, 207, 214, 0.15)', borderRadius: '8px' }}
-                    labelStyle={{ color: '#B6CFD6', fontWeight: 'bold' }}
+                    contentStyle={{ background: '#521a1a', border: '1px solid rgba(182, 207, 214, 0.15)', borderRadius: '8px' }}
+                    labelStyle={{ color: '#FFCC33', fontWeight: 'bold' }}
                     itemStyle={{ color: '#fff' }}
                   />
-                  <Bar dataKey="count" fill="#8C2232" radius={[4, 4, 0, 0]} maxBarSize={45} />
+                  <Bar dataKey="count" fill="#993333" radius={[4, 4, 0, 0]} maxBarSize={45} />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -228,7 +238,7 @@ export default function DiagnosticsDashboard({ catalogId }: DiagnosticsProps) {
         {/* Chart 2: Course Counts */}
         <div className="glass-panel rounded-2xl p-6 border border-white/5 flex flex-col">
           <h3 className="text-sm font-bold text-white serif-title mb-4 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-[#B6CFD6]"></span>
+            <span className="w-2 h-2 rounded-full bg-[#FFCC33]"></span>
             Course Counts
           </h3>
           <div className="flex-1 max-h-[300px] overflow-y-auto custom-scrollbar pr-2 text-xs font-mono">
@@ -240,11 +250,11 @@ export default function DiagnosticsDashboard({ catalogId }: DiagnosticsProps) {
                   <XAxis type="number" stroke="#808285" fontSize={10} tickLine={false} />
                   <YAxis dataKey="subject" type="category" stroke="#808285" fontSize={10} tickLine={false} width={45} />
                   <Tooltip 
-                    contentStyle={{ background: '#0b0f1d', border: '1px solid rgba(182, 207, 214, 0.15)', borderRadius: '8px' }}
-                    labelStyle={{ color: '#B6CFD6', fontWeight: 'bold' }}
+                    contentStyle={{ background: '#521a1a', border: '1px solid rgba(182, 207, 214, 0.15)', borderRadius: '8px' }}
+                    labelStyle={{ color: '#FFCC33', fontWeight: 'bold' }}
                     itemStyle={{ color: '#fff' }}
                   />
-                  <Bar dataKey="count" fill="#B6CFD6" radius={[0, 4, 4, 0]} maxBarSize={18}>
+                  <Bar dataKey="count" fill="#FFCC33" radius={[0, 4, 4, 0]} maxBarSize={18}>
                     {subjectDistribution.map((entry: any, index: number) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
@@ -259,7 +269,7 @@ export default function DiagnosticsDashboard({ catalogId }: DiagnosticsProps) {
       {/* Ghost Nodes Modal */}
       {showGhostNodesModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-[#0b0f1d] border border-[#B6CFD6]/30 rounded-xl w-full max-w-2xl flex flex-col shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+          <div className="bg-[#521a1a] border border-[#FFCC33]/30 rounded-xl w-full max-w-2xl flex flex-col shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="px-6 py-4 border-b border-white/10 bg-black/50 flex justify-between items-center shrink-0">
               <div className="flex items-center gap-2 text-amber-400">
                 <svg className="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
@@ -279,7 +289,7 @@ export default function DiagnosticsDashboard({ catalogId }: DiagnosticsProps) {
                       <div className="font-bold text-amber-300 text-sm">{node.code}</div>
                       <div className="font-sans text-slate-300 mt-0.5">{node.title || 'Untitled Reference'}</div>
                     </div>
-                    <div className="mt-2 md:mt-0 text-slate-500 uppercase text-[10px] font-bold tracking-wider shrink-0 bg-[#8C2232]/10 border border-[#8C2232]/30 px-2 py-1 rounded">
+                    <div className="mt-2 md:mt-0 text-slate-500 uppercase text-[10px] font-bold tracking-wider shrink-0 bg-[#993333]/10 border border-[#993333]/30 px-2 py-1 rounded">
                       Missing Course Row
                     </div>
                   </div>
@@ -287,7 +297,7 @@ export default function DiagnosticsDashboard({ catalogId }: DiagnosticsProps) {
               </div>
             </div>
             <div className="px-6 py-4 border-t border-white/10 bg-black/50 flex justify-end gap-3 shrink-0">
-              <button onClick={() => setShowGhostNodesModal(false)} className="px-5 py-2 bg-[#8C2232] hover:bg-[#65121e] text-white rounded-lg text-xs font-bold transition-all cursor-pointer">
+              <button onClick={() => setShowGhostNodesModal(false)} className="px-5 py-2 bg-[#993333] hover:bg-[#7a2929] text-white rounded-lg text-xs font-bold transition-all cursor-pointer">
                 Close
               </button>
             </div>

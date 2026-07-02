@@ -239,10 +239,10 @@ export default function ImprovementPlan({ catalogId, catalogs = [], canEdit = fa
   return (
     <div className="h-full flex flex-col lg:flex-row gap-6 animate-in fade-in duration-300 font-sans">
       {/* LEFT: Catalog Improvement Assistant */}
-      <div className="w-full lg:w-[400px] xl:w-[440px] shrink-0 bg-[#0b0f1d] border border-[#B6CFD6]/20 rounded-2xl flex flex-col overflow-hidden shadow-2xl">
-        <div className="p-4 border-b border-[#B6CFD6]/10 bg-black/40 flex items-center gap-3 shrink-0">
-          <div className="w-9 h-9 rounded-full bg-[#8C2232]/20 flex items-center justify-center border border-[#8C2232]/50">
-            <svg className="w-4 h-4 text-[#8C2232]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+      <div className="w-full lg:w-[400px] xl:w-[440px] shrink-0 bg-[#521a1a] border border-[#FFCC33]/20 rounded-2xl flex flex-col overflow-hidden shadow-2xl">
+        <div className="p-4 border-b border-[#FFCC33]/10 bg-black/40 flex items-center gap-3 shrink-0">
+          <div className="w-9 h-9 rounded-full bg-[#993333]/20 flex items-center justify-center border border-[#993333]/50">
+            <svg className="w-4 h-4 text-[#993333]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
           </div>
           <div className="flex-1">
             <h3 className="text-sm font-bold text-white">Catalog Improvement Assistant</h3>
@@ -251,7 +251,7 @@ export default function ImprovementPlan({ catalogId, catalogs = [], canEdit = fa
               Catalog {currentVersion || '—'} · {currentYear}
             </p>
             {FEATURES.accreditation && (
-              <p className={`text-[10px] font-mono tracking-wide mt-0.5 flex items-center gap-1 ${grounding.grounded ? 'text-[#B6CFD6]' : 'text-slate-500'}`}>
+              <p className={`text-[10px] font-mono tracking-wide mt-0.5 flex items-center gap-1 ${grounding.grounded ? 'text-[#FFCC33]' : 'text-slate-500'}`}>
                 <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 {grounding.label}
               </p>
@@ -264,7 +264,7 @@ export default function ImprovementPlan({ catalogId, catalogs = [], canEdit = fa
             <div key={msg.id} className={`flex flex-col max-w-[92%] ${msg.role === 'user' ? 'ml-auto items-end' : 'mr-auto items-start'}`}>
               <div className={`p-3 rounded-2xl border text-xs leading-relaxed ${
                 msg.role === 'user'
-                  ? 'bg-[#8C2232] text-white border-[#8C2232]/50 rounded-br-none'
+                  ? 'bg-[#993333] text-white border-[#993333]/50 rounded-br-none'
                   : 'bg-white/5 text-slate-200 border-white/5 rounded-bl-none'
               }`}>
                 <div className="markdown-content">
@@ -297,11 +297,11 @@ export default function ImprovementPlan({ catalogId, catalogs = [], canEdit = fa
         </div>
 
         {/* Generate + chat input */}
-        <div className="p-4 bg-black/40 border-t border-[#B6CFD6]/10 shrink-0 space-y-3">
+        <div className="p-4 bg-black/40 border-t border-[#FFCC33]/10 shrink-0 space-y-3">
           <button
             onClick={handleGenerate}
             disabled={generating || !catalogId}
-            className="w-full px-4 py-2.5 bg-[#8C2232] hover:bg-[#a32a3c] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-sm font-bold transition-all shadow-md flex items-center justify-center gap-2"
+            className="w-full px-4 py-2.5 bg-[#993333] hover:bg-[#a32a3c] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-sm font-bold transition-all shadow-md flex items-center justify-center gap-2"
           >
             {generating ? (
               <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Generating plan…</>
@@ -318,11 +318,11 @@ export default function ImprovementPlan({ catalogId, catalogs = [], canEdit = fa
               value={chatInput}
               onChange={e => setChatInput(e.target.value)}
               placeholder={FEATURES.accreditation ? 'Ask about accreditation or a catalog section…' : 'Ask about catalog quality or a specific section…'}
-              className="w-full bg-black/50 border border-white/10 rounded-full pl-4 pr-12 py-2.5 text-sm text-white outline-none focus:border-[#B6CFD6]/50 transition-colors"
+              className="w-full bg-black/50 border border-white/10 rounded-full pl-4 pr-12 py-2.5 text-sm text-white outline-none focus:border-[#FFCC33]/50 transition-colors"
               disabled={isThinking}
             />
             <button type="submit" disabled={!chatInput.trim() || isThinking}
-              className="absolute right-1.5 p-1.5 bg-[#B6CFD6]/10 hover:bg-[#B6CFD6]/20 text-[#B6CFD6] rounded-full disabled:opacity-50 transition-colors">
+              className="absolute right-1.5 p-1.5 bg-[#FFCC33]/10 hover:bg-[#FFCC33]/20 text-[#FFCC33] rounded-full disabled:opacity-50 transition-colors">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
             </button>
           </form>
@@ -331,16 +331,16 @@ export default function ImprovementPlan({ catalogId, catalogs = [], canEdit = fa
 
       {/* RIGHT: Catalog Improvement Plan (flowchart) */}
       <div className="flex-1 flex flex-col gap-4 min-h-0">
-        <div className="bg-[#0b0f1d] p-5 rounded-2xl border border-[#B6CFD6]/10 shrink-0 shadow-lg flex flex-wrap justify-between items-center gap-3">
+        <div className="bg-[#521a1a] p-5 rounded-2xl border border-[#FFCC33]/10 shrink-0 shadow-lg flex flex-wrap justify-between items-center gap-3">
           <div>
             <h2 className="text-xl font-bold text-white serif-title">Catalog Improvement Plan</h2>
             <p className="text-xs text-slate-400 font-medium mt-1">
               A multi-year, dependency-mapped plan of quality-aligned catalog improvements. Items stay here until you select or amend them.
             </p>
           </div>
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#8C2232]/10 border border-[#8C2232]/30">
-            <svg className="w-3.5 h-3.5 text-[#8C2232]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-            <span className="text-[10px] text-[#B6CFD6] font-mono tracking-wide">{plans.length} items · drag to arrange · click for detail</span>
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#993333]/10 border border-[#993333]/30">
+            <svg className="w-3.5 h-3.5 text-[#993333]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <span className="text-[10px] text-[#FFCC33] font-mono tracking-wide">{plans.length} items · drag to arrange · click for detail</span>
           </div>
         </div>
 
@@ -403,43 +403,43 @@ function ManualAddModal({ yearOptions, currentYear, catalogId, onClose, onSaved 
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-[#0b0f1d] border border-[#B6CFD6]/20 rounded-xl w-full max-w-lg p-6 shadow-2xl">
+      <div className="bg-[#521a1a] border border-[#FFCC33]/20 rounded-xl w-full max-w-lg p-6 shadow-2xl">
         <h3 className="text-lg font-bold text-white mb-4 serif-title">Add Improvement Item</h3>
         <div className="space-y-4 text-sm">
           <div>
-            <label className="block text-[10px] font-bold text-[#B6CFD6] uppercase tracking-widest mb-1 font-mono">Title</label>
+            <label className="block text-[10px] font-bold text-[#FFCC33] uppercase tracking-widest mb-1 font-mono">Title</label>
             <input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })}
-              className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-white outline-none focus:border-[#8C2232]" placeholder="e.g. Standardize course description headers" />
+              className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-white outline-none focus:border-[#993333]" placeholder="e.g. Standardize course description headers" />
           </div>
           <div>
-            <label className="block text-[10px] font-bold text-[#B6CFD6] uppercase tracking-widest mb-1 font-mono">Description</label>
+            <label className="block text-[10px] font-bold text-[#FFCC33] uppercase tracking-widest mb-1 font-mono">Description</label>
             <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })}
-              className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-white outline-none focus:border-[#8C2232] h-20" />
+              className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-white outline-none focus:border-[#993333] h-20" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-[10px] font-bold text-[#B6CFD6] uppercase tracking-widest mb-1 font-mono">Criterion</label>
+              <label className="block text-[10px] font-bold text-[#FFCC33] uppercase tracking-widest mb-1 font-mono">Criterion</label>
               <input value={form.criterion_code} onChange={e => setForm({ ...form, criterion_code: e.target.value })}
-                className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-white outline-none focus:border-[#8C2232]" placeholder="e.g. 2.A" />
+                className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-white outline-none focus:border-[#993333]" placeholder="e.g. 2.A" />
             </div>
             <div>
-              <label className="block text-[10px] font-bold text-[#B6CFD6] uppercase tracking-widest mb-1 font-mono">Target Year</label>
+              <label className="block text-[10px] font-bold text-[#FFCC33] uppercase tracking-widest mb-1 font-mono">Target Year</label>
               <select value={form.target_year} onChange={e => setForm({ ...form, target_year: e.target.value })}
-                className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-white outline-none focus:border-[#8C2232]">
+                className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-white outline-none focus:border-[#993333]">
                 {yearOptions.map(y => <option key={y} value={y}>{y}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-[10px] font-bold text-[#B6CFD6] uppercase tracking-widest mb-1 font-mono">Category</label>
+              <label className="block text-[10px] font-bold text-[#FFCC33] uppercase tracking-widest mb-1 font-mono">Category</label>
               <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}
-                className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-white outline-none focus:border-[#8C2232]">
+                className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-white outline-none focus:border-[#993333]">
                 {['Formatting', 'Organizational', 'Policy', 'Accessibility', 'Assessment'].map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-[10px] font-bold text-[#B6CFD6] uppercase tracking-widest mb-1 font-mono">Status</label>
+              <label className="block text-[10px] font-bold text-[#FFCC33] uppercase tracking-widest mb-1 font-mono">Status</label>
               <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}
-                className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-white outline-none focus:border-[#8C2232]">
+                className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-white outline-none focus:border-[#993333]">
                 <option value="planned">Planned</option>
                 <option value="in_progress">In Progress</option>
               </select>
@@ -449,7 +449,7 @@ function ManualAddModal({ yearOptions, currentYear, catalogId, onClose, onSaved 
         <div className="mt-6 flex justify-end gap-3">
           <button onClick={onClose} className="px-4 py-2 text-xs font-bold text-slate-400 hover:text-white transition-colors">Cancel</button>
           <button onClick={submit} disabled={saving || !form.title.trim()}
-            className="px-4 py-2 bg-[#8C2232] hover:bg-[#65121e] disabled:opacity-50 text-white rounded-lg text-xs font-bold transition-all shadow-md">
+            className="px-4 py-2 bg-[#993333] hover:bg-[#7a2929] disabled:opacity-50 text-white rounded-lg text-xs font-bold transition-all shadow-md">
             {saving ? 'Saving…' : 'Add to Plan'}
           </button>
         </div>
