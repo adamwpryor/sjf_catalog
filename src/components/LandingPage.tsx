@@ -262,16 +262,6 @@ export default function LandingPage({ onTabChange, catalogId }: LandingPageProps
                   Generate and view a PDF of any catalog. Use this to preview a provisional PDF of a draft before publishing, or download the published catalog-of-record.
                 </span>
               </li>
-              <li
-                onClick={() => onTabChange('improvement')}
-                className="group/item flex items-start gap-2.5 p-2 rounded-lg hover:bg-white/5 transition-all cursor-pointer text-slate-300 hover:text-white"
-              >
-                <svg className="w-4 h-4 text-[#FFCC33] group-hover/item:text-white transition-colors mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
-                <span className="text-xs md:text-sm font-medium">
-                  <strong className="text-white group-hover/item:underline block">Catalog Improvement Plan</strong>
-                  View automatically detected catalog issues. Use this to check which errors have been fixed and which are still active.
-                </span>
-              </li>
             </ul>
           </div>
         </div>

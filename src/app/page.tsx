@@ -10,7 +10,6 @@ import GraphViewer from '@/components/GraphViewer';
 import TrackingDashboard from '@/components/TrackingDashboard';
 import CatalogAssistantChat from '@/components/CatalogAssistantChat';
 import AstExplorer from '@/components/AstExplorer';
-import ImprovementPlan from '@/components/ImprovementPlan';
 import DiffLog from '@/components/DiffLog';
 import CatalogProductionWizard from '@/components/CatalogProductionWizard';
 import IntakeFilingSystem from '@/components/IntakeFilingSystem';
@@ -150,8 +149,7 @@ export default function DashboardPage() {
       diff_log: 'tools',
       tracking: 'tools',
       produce: 'tools',
-      catalog_pdf: 'tools',
-      improvement: 'tools'
+      catalog_pdf: 'tools'
     };
     const section = tabToSectionMap[activeTab];
     if (section) {
@@ -320,7 +318,6 @@ export default function DashboardPage() {
                 <TabButton id="produce" label="Catalog Production" icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>} />
                 <TabButton id="tracking" label="New Catalog Builder" icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>} />
                 <TabButton id="catalog_pdf" label="Catalog PDF" icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>} />
-                <TabButton id="improvement" label="Catalog Improvement Plan" icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>} />
               </div>
             )}
           </div>
@@ -459,10 +456,6 @@ export default function DashboardPage() {
 
             {activeTab === 'ast_explorer' && (
               <AstExplorer catalogId={catalogId} />
-            )}
-
-            {activeTab === 'improvement' && (
-              <ImprovementPlan catalogId={catalogId} catalogs={catalogs} canEdit={!!user && user.role !== 'viewer'} />
             )}
 
             {activeTab === 'tracking' && (

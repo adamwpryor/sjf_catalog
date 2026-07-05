@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(awk -F/ '{print $1}')",
+      "Bash(python -c \"import json; d=json.load\\(open\\('tmp_test_scraper.json'\\)\\); print\\(type\\(d\\)\\); print\\(d.keys\\(\\) if isinstance\\(d,dict\\) else \\('list len', len\\(d\\)\\)\\)\")",
+      "Bash(grep -iE '\\\\.\\(json|csv|sql|parquet|ndjson|yaml|yml\\)$')",
+      "Bash(grep -viE 'node_modules|package-lock|/\\\\.next/')",
+      "Bash(python -c ' *)",
+      "Bash(node -e \"console.log\\('node ok'\\); try{require\\('pg'\\);console.log\\('pg available'\\)}catch\\(e\\){console.log\\('no pg'\\)}; try{require\\('@supabase/supabase-js'\\);console.log\\('supabase-js available'\\)}catch\\(e\\){console.log\\('no supabase-js'\\)}\")"
+    ]
+  }
+}
