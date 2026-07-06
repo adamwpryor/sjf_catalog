@@ -23,7 +23,8 @@
       "PowerShell(node \"C:\\\\Users\\\\adamw\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-adamw-coding-workspaces-sjf-catalog\\\\9f07df7d-3c0d-4a44-9b08-c8ca5822a5f6\\\\scratchpad\\\\check_ids2.js\")",
       "PowerShell(node \"C:\\\\Users\\\\adamw\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-adamw-coding-workspaces-sjf-catalog\\\\9f07df7d-3c0d-4a44-9b08-c8ca5822a5f6\\\\scratchpad\\\\check_ids3.js\")",
       "PowerShell(node \"C:\\\\Users\\\\adamw\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-adamw-coding-workspaces-sjf-catalog\\\\9f07df7d-3c0d-4a44-9b08-c8ca5822a5f6\\\\scratchpad\\\\check_ids5.js\")",
-      "PowerShell(node \"C:\\\\Users\\\\adamw\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-adamw-coding-workspaces-sjf-catalog\\\\9f07df7d-3c0d-4a44-9b08-c8ca5822a5f6\\\\scratchpad\\\\verify_ast.js\")"
+      "PowerShell(node \"C:\\\\Users\\\\adamw\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-adamw-coding-workspaces-sjf-catalog\\\\9f07df7d-3c0d-4a44-9b08-c8ca5822a5f6\\\\scratchpad\\\\verify_ast.js\")",
+      "PowerShell($r = Invoke-WebRequest -Uri http://localhost:3000/api/db -Method POST -ContentType 'application/json' -Body '{\"action\":\"get_catalogs\"}' -UseBasicParsing -TimeoutSec 60; $r.StatusCode; $r.Content.Substring\\(0, [Math]::Min\\(1200, $r.Content.Length\\)\\))"
     ]
   }
 }
