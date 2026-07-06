@@ -59,6 +59,9 @@ export default function AstExplorer({ catalogId }: AstExplorerProps) {
   const [selectedNode, setSelectedNode] = useState<AstNode | null>(null);
   const [hoverNode, setHoverNode] = useState<AstNode | null>(null);
   const [neighbors, setNeighbors] = useState<Map<string, Set<string>>>(new Map());
+  // Fit the camera once per data load, when the simulation first settles — not on every
+  // engine stop (dragging a node re-heats the engine and would yank the camera around).
+  const autoFitDoneRef = useRef(false);
 
   // 1. Fetch academic programs list on mount/catalogId change
   useEffect(() => {
@@ -111,6 +114,7 @@ export default function AstExplorer({ catalogId }: AstExplorerProps) {
             nMap.get(t)!.add(s);
           });
           setNeighbors(nMap);
+          autoFitDoneRef.current = false;
           setAstData({
             nodes: data.nodes,
             links: data.links,
@@ -290,6 +294,12 @@ export default function AstExplorer({ catalogId }: AstExplorerProps) {
               linkDirectionalParticleWidth={(link: any) => (selectedNode?.id === link.source.id || selectedNode?.id === link.target.id) ? 2 : 1}
               onNodeClick={handleNodeClick}
               onNodeHover={handleNodeHover}
+              onEngineStop={() => {
+                if (!autoFitDoneRef.current) {
+                  autoFitDoneRef.current = true;
+                  fgRef.current?.zoomToFit(400, 60);
+                }
+              }}
               cooldownTicks={160}
               d3AlphaDecay={0.045}
               d3VelocityDecay={0.45}
@@ -370,7 +380,7 @@ export default function AstExplorer({ catalogId }: AstExplorerProps) {
                   <ul className="space-y-1.5 text-xs text-slate-300 font-semibold font-sans">
                     <li className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#ea580c] inline-block"></span> Root Program</li>
                     <li className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#0284c7] inline-block"></span> Requirement Block</li>
-                    <li className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#993333] inline-block"></span> Leaf Course</li>
+                    <li className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#993333] inline-block"></span> Course</li>
                   </ul>
                 </div>
                 <div>
@@ -398,7 +408,7 @@ export default function AstExplorer({ catalogId }: AstExplorerProps) {
                       ? 'bg-sky-500/10 text-sky-400 border-sky-500/25'
                       : 'bg-[#993333]/10 text-[#FFCC33] border-[#993333]/25'
                 }`}>
-                  {selectedNode.group === 'program' ? 'Root Degree' : selectedNode.group === 'block' ? 'Requirement Block' : 'Course Leaf'}
+                  {selectedNode.group === 'program' ? 'Root Degree' : selectedNode.group === 'block' ? 'Requirement Block' : 'Course'}
                 </span>
                 <h3 className="text-base font-bold text-white serif-title mt-2 truncate w-60">{selectedNode.title || selectedNode.label}</h3>
               </div>

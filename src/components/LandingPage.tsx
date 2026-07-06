@@ -74,7 +74,7 @@ export default function LandingPage({ onTabChange, catalogId }: LandingPageProps
               📁 Overview
             </h4>
             <p className="text-xs md:text-sm text-slate-300 leading-relaxed font-medium mb-4">
-              Your homepage and files. Use this to check overall metrics, chat with the AI Catalog helper, or manage raw catalog files.
+              Your homepage. Use this to check overall metrics or chat with the AI Catalog helper.
             </p>
             <ul className="space-y-2">
               <li 
@@ -105,16 +105,6 @@ export default function LandingPage({ onTabChange, catalogId }: LandingPageProps
                 <span className="text-xs md:text-sm font-medium">
                   <strong className="text-white group-hover/item:underline block">AI Catalog Assistant</strong>
                   Ask questions in plain English to search degrees, credits, and policies. Use this to find specific catalog details quickly without digging through PDFs.
-                </span>
-              </li>
-              <li 
-                onClick={() => onTabChange('filing_cabinet')}
-                className="group/item flex items-start gap-2.5 p-2 rounded-lg hover:bg-white/5 transition-all cursor-pointer text-slate-300 hover:text-white"
-              >
-                <svg className="w-4 h-4 text-[#FFCC33] group-hover/item:text-white transition-colors mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
-                <span className="text-xs md:text-sm font-medium">
-                  <strong className="text-white group-hover/item:underline block">Intake Filing Cabinet</strong>
-                  Manage and preview raw catalog files. Use this to upload catalog source PDFs so they can be processed and verified.
                 </span>
               </li>
             </ul>
@@ -212,17 +202,27 @@ export default function LandingPage({ onTabChange, catalogId }: LandingPageProps
 
           {/* Card 4: Catalog Tools */}
           <div className="p-5 rounded-2xl bg-white/5 border border-white/5 hover:border-[#993333]/40 hover:bg-[#993333]/5 transition-all duration-300">
-            <h4 
-              onClick={() => onTabChange('diff_log')}
+            <h4
+              onClick={() => onTabChange('filing_cabinet')}
               className="text-base md:text-lg font-bold text-[#FFCC33] uppercase tracking-wider font-mono mb-2 flex items-center gap-2 cursor-pointer hover:underline hover:text-white transition-colors select-none"
             >
               ⚙️ Catalog Tools
             </h4>
             <p className="text-xs md:text-sm text-slate-300 leading-relaxed font-medium mb-3">
-              Catalog editor and publisher. Check edits, compare versions, and publish catalog releases.
+              Catalog editor and publisher. Upload source files, check edits, compare versions, and publish catalog releases.
             </p>
             <ul className="space-y-2">
-              <li 
+              <li
+                onClick={() => onTabChange('filing_cabinet')}
+                className="group/item flex items-start gap-2.5 p-2 rounded-lg hover:bg-white/5 transition-all cursor-pointer text-slate-300 hover:text-white"
+              >
+                <svg className="w-4 h-4 text-[#FFCC33] group-hover/item:text-white transition-colors mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
+                <span className="text-xs md:text-sm font-medium">
+                  <strong className="text-white group-hover/item:underline block">Intake Filing Cabinet</strong>
+                  Manage and preview raw catalog files. Use this to upload catalog source PDFs so they can be processed and verified.
+                </span>
+              </li>
+              <li
                 onClick={() => onTabChange('diff_log')}
                 className="group/item flex items-start gap-2.5 p-2 rounded-lg hover:bg-white/5 transition-all cursor-pointer text-slate-300 hover:text-white"
               >

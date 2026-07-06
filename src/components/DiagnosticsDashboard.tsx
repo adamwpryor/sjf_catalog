@@ -37,11 +37,15 @@ export default function DiagnosticsDashboard({ catalogId }: DiagnosticsProps) {
     programs: number | null;
     chunks: number | null;
     subjects: number | null;
+    // Breakdown of get_programs by program_type so the tile headlines genuine degree
+    // programs (majors) rather than a total inflated by minors/certificates.
+    programsByType: { major: number; minor: number; certificate: number; concentration: number } | null;
   }>({
     courses: null,
     programs: null,
     chunks: null,
-    subjects: null
+    subjects: null,
+    programsByType: null
   });
   const [totalsLoading, setTotalsLoading] = useState(true);
 
@@ -97,6 +101,18 @@ export default function DiagnosticsDashboard({ catalogId }: DiagnosticsProps) {
         fetchAction('get_semantic_chunks')
       ]);
 
+      // Tally programs by program_type (falling back to 'major' for rows the API left
+      // unclassified), so the tile can distinguish degree programs from minors/certs.
+      const tallyTypes = (progs: any[] | null) => {
+        if (!progs) return null;
+        const t = { major: 0, minor: 0, certificate: 0, concentration: 0 };
+        for (const p of progs) {
+          const k = p.program_type as keyof typeof t;
+          if (k && k in t) t[k] += 1; else t.major += 1;
+        }
+        return t;
+      };
+
       // courses and subjects both derive from get_courses, so they share its fate.
       setTotals({
         courses: coursesData ? coursesData.length : null,
@@ -104,7 +120,8 @@ export default function DiagnosticsDashboard({ catalogId }: DiagnosticsProps) {
         chunks: chunksData ? chunksData.length : null,
         subjects: coursesData
           ? new Set(coursesData.map((c: any) => c.subject_prefix).filter(Boolean)).size
-          : null
+          : null,
+        programsByType: tallyTypes(progsData)
       });
 
       setTotalsLoading(false);
@@ -135,6 +152,18 @@ export default function DiagnosticsDashboard({ catalogId }: DiagnosticsProps) {
   }
 
   const { creditDistribution, subjectDistribution, ghostNodesCount, ghostNodes } = data;
+
+  // Headline the degree-program (major) count; summarize the non-degree offerings beneath.
+  const bt = totals.programsByType;
+  const programHeadline = bt ? bt.major : totals.programs;
+  const programSubtitle = (() => {
+    if (!bt) return 'Degree Curriculums';
+    const parts: string[] = [];
+    if (bt.minor) parts.push(`${bt.minor} minor${bt.minor !== 1 ? 's' : ''}`);
+    if (bt.concentration) parts.push(`${bt.concentration} conc.`);
+    if (bt.certificate) parts.push(`${bt.certificate} cert${bt.certificate !== 1 ? 's' : ''}`);
+    return parts.length ? `+ ${parts.join(' · ')}` : 'Degree Curriculums';
+  })();
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300 font-sans">
@@ -185,9 +214,9 @@ export default function DiagnosticsDashboard({ catalogId }: DiagnosticsProps) {
 
             {/* Metric 2 */}
             <div className="p-4 rounded-xl bg-white/5 border border-white/5 relative overflow-hidden">
-              <div className="text-[10px] font-bold text-[#FFCC33] uppercase tracking-wider font-mono mb-1">Active Programs</div>
-              <div className="text-2xl font-extrabold text-white serif-title">{totals.programs ?? '—'}</div>
-              <div className="text-[10px] text-slate-500 mt-1 font-mono">Degree Curriculums</div>
+              <div className="text-[10px] font-bold text-[#FFCC33] uppercase tracking-wider font-mono mb-1">Degree Programs</div>
+              <div className="text-2xl font-extrabold text-white serif-title">{programHeadline ?? '—'}</div>
+              <div className="text-[10px] text-slate-500 mt-1 font-mono">{programSubtitle}</div>
             </div>
 
             {/* Metric 3 */}

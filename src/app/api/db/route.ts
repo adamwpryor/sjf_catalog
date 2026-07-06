@@ -102,6 +102,84 @@ function isNonProgramHeader(name: string | null | undefined): boolean {
 }
 
 /**
+ * Returns true when a chunk's leading `[Header 1: … > Header N: …]` breadcrumb names the
+ * given program section (by extracted heading path segment or program name).
+ *
+ * @param content - The raw chunk content.
+ * @param pathSegment - The heading path segment extracted from the requirement tree.
+ * @param programName - The program's display name.
+ * @returns True if the breadcrumb scopes this chunk to the program's own section.
+ */
+function chunkHeaderMatchesProgram(content: string, pathSegment: string, programName: string): boolean {
+  if (!content.startsWith('[Header')) return false;
+  const headerEnd = content.indexOf(']');
+  if (headerEnd === -1) return false;
+  const breadcrumb = content.slice(0, headerEnd);
+  return breadcrumb.includes(pathSegment) || breadcrumb.includes(programName);
+}
+
+/**
+ * Fetches the semantic chunks belonging to a program's own catalog section.
+ *
+ * Scoping strategy, in order of precision:
+ * 1. Chunks whose `[Header …]` breadcrumb names the program section. This is exact for
+ *    web-scraped catalogs, where every chunk shares `page_number = 1` and the legacy
+ *    page-neighborhood expansion would sweep in the ENTIRE catalog (the "program renders
+ *    almost every course" bug).
+ * 2. Legacy page-neighborhood expansion (matched pages + the following page) for
+ *    paginated PDF documents whose chunks lack a matching breadcrumb.
+ *
+ * @param tenantId - The tenant scope.
+ * @param documentId - The catalog document id.
+ * @param pathSegment - Heading path segment extracted from the requirement logic tree.
+ * @param programName - The program's display name (fallback match).
+ * @returns The chunks ({ page_number, content }) scoped to the program's section.
+ */
+async function fetchScopedProgramChunks(
+  tenantId: string,
+  documentId: string,
+  pathSegment: string,
+  programName: string
+): Promise<{ page_number: number; content: string }[]> {
+  const candidates = await query(
+    `SELECT page_number, content
+     FROM semantic_chunks
+     WHERE tenant_id = $1 AND document_id = $2 AND (content LIKE $3 OR content LIKE $4)
+     ORDER BY page_number ASC;`,
+    [tenantId, documentId, `%${pathSegment}%`, `%${programName}%`]
+  );
+
+  const headerScoped = candidates.filter((c: any) =>
+    chunkHeaderMatchesProgram(c.content, pathSegment, programName)
+  );
+  if (headerScoped.length > 0) return headerScoped;
+
+  // Legacy page-neighborhood scoping: pathSegment matches take precedence over
+  // program-name matches (mirrors the original two-step LIKE queries).
+  let pages: number[] = Array.from(new Set(
+    candidates.filter((c: any) => c.content.includes(pathSegment)).map((c: any) => c.page_number)
+  ));
+  if (pages.length === 0) {
+    pages = Array.from(new Set(candidates.map((c: any) => c.page_number)));
+  }
+  if (pages.length === 0) return [];
+
+  const targetPages = new Set<number>();
+  pages.forEach((p: number) => {
+    targetPages.add(p);
+    targetPages.add(p + 1);
+  });
+
+  return query(
+    `SELECT page_number, content
+     FROM semantic_chunks
+     WHERE tenant_id = $1 AND document_id = $2 AND page_number = ANY($3)
+     ORDER BY page_number ASC;`,
+    [tenantId, documentId, Array.from(targetPages)]
+  );
+}
+
+/**
  * Handles database operations requested by the frontend.
  * Supports varied actions like fetching graphs, catalogs, courses, and programs.
  *
@@ -618,7 +696,7 @@ export async function POST(req: Request) {
           const pReqs = programRequirements.filter((r: any) => r.program_id === p.id);
 
           let pathSegment = p.name;
-          if (pReqs.length > 0 && pReqs[0].logic_tree) {
+          if (pReqs.length > 0 && pReqs[0].logic_tree && !pReqs[0].logic_tree.startsWith('{')) {
             const firstLine = pReqs[0].logic_tree.split('\n')[0];
             const match = firstLine.match(/\[Header 1: [^>]+ > (Header 2: [^\]>]+|Header 3: [^\]>]+)/);
             if (match) {
@@ -626,18 +704,25 @@ export async function POST(req: Request) {
             }
           }
 
-          const matchedPages = new Set<number>();
-          allChunks.forEach((c: any) => {
-            if (c.content.includes(pathSegment) || c.content.includes(p.name)) {
-              matchedPages.add(c.page_number);
-            }
-          });
+          // Header-breadcrumb scoping first: exact for web-scraped catalogs where every
+          // chunk shares page_number = 1 and page expansion would sweep the whole catalog.
+          let matchedChunks: any[] = allChunks.filter((c: any) =>
+            chunkHeaderMatchesProgram(c.content, pathSegment, p.name)
+          );
 
-          let matchedChunks: any[] = [];
-          if (matchedPages.size > 0) {
-            matchedChunks = allChunks.filter((c: any) => {
-              return Array.from(matchedPages).some(pNum => c.page_number === pNum || c.page_number === pNum + 1);
+          if (matchedChunks.length === 0) {
+            const matchedPages = new Set<number>();
+            allChunks.forEach((c: any) => {
+              if (c.content.includes(pathSegment) || c.content.includes(p.name)) {
+                matchedPages.add(c.page_number);
+              }
             });
+
+            if (matchedPages.size > 0) {
+              matchedChunks = allChunks.filter((c: any) => {
+                return Array.from(matchedPages).some(pNum => c.page_number === pNum || c.page_number === pNum + 1);
+              });
+            }
           }
 
           const sourcesToProcess: { id: string; content: string }[] = [];
@@ -1284,10 +1369,11 @@ export async function POST(req: Request) {
               });
             });
 
-            // C. Find page numbers containing pathSegment
+            // C. Fetch chunks scoped to this program's own catalog section (header-
+            // breadcrumb match first, legacy page-neighborhood expansion second).
             let pathSegment = program.name;
             const reqsWithTree = requirements.filter(r => r.logic_tree !== null);
-            if (reqsWithTree.length > 0 && reqsWithTree[0].logic_tree) {
+            if (reqsWithTree.length > 0 && reqsWithTree[0].logic_tree && !reqsWithTree[0].logic_tree.startsWith('{')) {
               const firstLine = reqsWithTree[0].logic_tree.split('\n')[0];
               const match = firstLine.match(/\[Header 1: [^>]+ > (Header 2: [^\]>]+|Header 3: [^\]>]+)/);
               if (match) {
@@ -1295,39 +1381,7 @@ export async function POST(req: Request) {
               }
             }
 
-            let matchedPagesRes = await query(
-              `SELECT DISTINCT page_number 
-               FROM semantic_chunks 
-               WHERE tenant_id = $1 AND document_id = $2 AND content LIKE $3;`,
-              [tenantId, program.document_id, `%${pathSegment}%`]
-            );
-
-            if (matchedPagesRes.length === 0) {
-              matchedPagesRes = await query(
-                `SELECT DISTINCT page_number 
-                 FROM semantic_chunks 
-                 WHERE tenant_id = $1 AND document_id = $2 AND content LIKE $3;`,
-                [tenantId, program.document_id, `%${program.name}%`]
-              );
-            }
-
-            let chunks: any[] = [];
-            if (matchedPagesRes.length > 0) {
-              const pageNumbers = matchedPagesRes.map((r: any) => r.page_number);
-              const targetPages = new Set<number>();
-              pageNumbers.forEach((p: number) => {
-                targetPages.add(p);
-                targetPages.add(p + 1);
-              });
-              
-              chunks = await query(
-                `SELECT page_number, content 
-                 FROM semantic_chunks 
-                 WHERE tenant_id = $1 AND document_id = $2 AND page_number = ANY($3)
-                 ORDER BY page_number ASC;`,
-                [tenantId, program.document_id, Array.from(targetPages)]
-              );
-            }
+            const chunks = await fetchScopedProgramChunks(tenantId, program.document_id, pathSegment, program.name);
 
             const sourcesToProcess: { id: string; content: string }[] = [];
             if (chunks.length > 0) {
@@ -1645,149 +1699,176 @@ export async function POST(req: Request) {
           [tenantId, targetId]
         );
 
-        // Extract heading path segment (e.g. "Header 2: B.S. in Accounting (120 hours)")
-        let pathSegment = program.name;
-        if (reqs.length > 0 && reqs[0].logic_tree) {
-          const firstLine = reqs[0].logic_tree.split('\n')[0];
-          const match = firstLine.match(/\[Header 1: [^>]+ > (Header 2: [^\]>]+|Header 3: [^\]>]+)/);
-          if (match) {
-            pathSegment = match[1].trim();
-          }
-        }
+        const blocks: any[] = [];
 
-        // 4. Query semantic_chunks table using page-scoping logic
-        // Find pages that contain the path segment
-        let matchedPagesRes = await query(
-          `SELECT DISTINCT page_number 
-           FROM semantic_chunks 
-           WHERE tenant_id = $1 AND document_id = $2 AND content LIKE $3;`,
-          [tenantId, program.document_id, `%${pathSegment}%`]
+        // 3b. Authoritative requirement blocks (DB-first). Build blocks from the
+        // P2-gated program_requirement_courses link table — grouped by requirement +
+        // group_name, is_required straight from the DB flag — mirroring the curriculum
+        // graph and get_program_details. Only when a program has zero relational rows
+        // do we fall through to the legacy text parser below.
+        const authRows = await query(
+          `SELECT prc.requirement_id, prc.group_name, prc.or_group_id, prc.is_required,
+                  pr.degree_name, pr.logic_tree, c.course_code
+           FROM program_requirement_courses prc
+           JOIN program_requirements pr ON prc.requirement_id = pr.id
+           JOIN courses c ON prc.course_id = c.id
+           WHERE prc.tenant_id = $1 AND pr.program_id = $2 AND c.document_id = $3;`,
+          [tenantId, targetId, program.document_id]
         );
 
-        // Fallback: Find pages containing the program name
-        if (matchedPagesRes.length === 0) {
-          matchedPagesRes = await query(
-            `SELECT DISTINCT page_number 
-             FROM semantic_chunks 
-             WHERE tenant_id = $1 AND document_id = $2 AND content LIKE $3;`,
-            [tenantId, program.document_id, `%${program.name}%`]
-          );
-        }
-
-        let chunks: any[] = [];
-        if (matchedPagesRes.length > 0) {
-          const pageNumbers = matchedPagesRes.map((r: any) => r.page_number);
-          // Build a set of page numbers and their next pages (contiguous flow)
-          const targetPages = new Set<number>();
-          pageNumbers.forEach((p: number) => {
-            targetPages.add(p);
-            targetPages.add(p + 1);
+        if (authRows.length > 0) {
+          const authGroups = new Map<string, { groupName: string | null; degreeName: string | null; logicTree: string | null; orGroup: string | null; courses: { code: string; isRequired: boolean }[] }>();
+          authRows.forEach((r: any) => {
+            const key = `${r.requirement_id}::${r.group_name || ''}`;
+            if (!authGroups.has(key)) {
+              authGroups.set(key, { groupName: r.group_name, degreeName: r.degree_name, logicTree: r.logic_tree, orGroup: r.or_group_id, courses: [] });
+            }
+            authGroups.get(key)!.courses.push({ code: r.course_code.toUpperCase().trim(), isRequired: r.is_required !== false });
           });
-          
-          chunks = await query(
-            `SELECT page_number, content 
-             FROM semantic_chunks 
-             WHERE tenant_id = $1 AND document_id = $2 AND page_number = ANY($3)
-             ORDER BY page_number ASC;`,
-            [tenantId, program.document_id, Array.from(targetPages)]
-          );
-        }
 
-        const blocks: any[] = [];
-        const courseRegex = /\b([A-Z]{2,4})\s*[-]?\s*(\d{3,4})\b/g;
-
-        // Establish the data sources to process
-        const sourcesToProcess: { id: string; content: string }[] = [];
-        if (chunks.length > 0) {
-          chunks.forEach((c: any, idx: number) => {
-            sourcesToProcess.push({
-              id: `chunk_${c.page_number}_${idx}`,
-              content: c.content
-            });
-          });
-        } else {
-          // Fallback to program requirements logic tree text if no GCS semantic chunks are matched
-          reqs.forEach((r: any, idx: number) => {
-            sourcesToProcess.push({
-              id: `req_${r.id.substring(0, 4)}_${idx}`,
-              content: r.logic_tree
-            });
-          });
-        }
-
-        // Parse requirement blocks from text chunks
-        sourcesToProcess.forEach((src: any, srcIdx: number) => {
-          let cleanText = src.content;
-          
-          // A. Strip bracketed path prefix [Header 1: ... ]
-          cleanText = cleanText.replace(/^\[Header\s+\d+[\s\S]*?\](?:\r?\n|$)/i, '').trim();
-          
-          // B. Split into logical sections using headers
-          const sections = cleanText.split(/(?=\n##\s+|\n###\s+|\n\*\*)/);
-          
-          sections.forEach((sec: string, secIdx: number) => {
-            const lines = sec.split('\n');
-            const headerLine = lines[0] || '';
-            
-            // Clean section title
-            let title = headerLine.replace(/^#+\s*/, '').replace(/^\*+\s*/, '').replace(/\*+$/, '').trim();
-            if (!title || title.length < 3) {
-              title = `Requirement Block ${srcIdx + 1}.${secIdx + 1}`;
+          let aBlockIdx = 0;
+          authGroups.forEach((grp) => {
+            aBlockIdx++;
+            let title = (grp.groupName || grp.degreeName || '').trim();
+            if ((!title || title.length < 3) && grp.logicTree && !grp.logicTree.startsWith('{')) {
+              const firstLine = grp.logicTree.split('\n')[0];
+              const m = firstLine.match(/Header\s*\d+:\s*([^\]>\n]+)/);
+              if (m) title = m[1].trim();
             }
+            if (!title || title.length < 3) title = `Requirement Block ${aBlockIdx}`;
 
-            // Filter out non-coursework metadata blocks (like calendars or faculty sections)
-            if (
-              title.toLowerCase().includes('faculty') || 
-              title.toLowerCase().includes('mission statement') ||
-              title.toLowerCase().includes('vision statement')
-            ) {
-              return;
-            }
-
-            // C. Detect credit hours or choice values
-            let requiredValue = 0;
-            let logicType = 'ALL_OF'; // Default logic type
-            
-            const hoursMatch = sec.match(/(\d+)\s*(hour|credit|sem)/i);
-            if (hoursMatch) {
-              requiredValue = parseInt(hoursMatch[1], 10);
-              logicType = 'CREDITS_FROM';
-            }
-            
-            if (sec.toLowerCase().includes('elective') || sec.toLowerCase().includes('choose')) {
-              logicType = 'CHOOSE_N';
-              if (requiredValue === 0) requiredValue = 3; // Default elective choices
-            }
-
-            // D. Extract valid course codes
             const coursesList: string[] = [];
-            let match;
-            courseRegex.lastIndex = 0;
-            while ((match = courseRegex.exec(sec)) !== null) {
-              const prefix = match[1].toUpperCase();
-              const num = match[2];
-              const cleanCode = `${prefix} ${num}`;
-              
-              // Validate course presence in current catalog
-              if (courseDetailsMap.has(cleanCode)) {
-                if (!coursesList.includes(cleanCode)) {
-                  coursesList.push(cleanCode);
+            grp.courses.forEach((c) => {
+              if (courseDetailsMap.has(c.code) && !coursesList.includes(c.code)) {
+                coursesList.push(c.code);
+              }
+            });
+            if (coursesList.length === 0) return;
+
+            // OR-groups and any-optional membership render as CHOOSE_N; an
+            // all-required group is ALL_OF. required_value is left 0 (unknown N).
+            const anyOptional = grp.courses.some((c) => !c.isRequired);
+            blocks.push({
+              block_id: `auth_${aBlockIdx}`,
+              title,
+              logic_type: grp.orGroup || anyOptional ? 'CHOOSE_N' : 'ALL_OF',
+              required_value: 0,
+              courses: coursesList,
+              content: `Authoritative requirement group "${title}" compiled from the relational requirements database.`
+            });
+          });
+        }
+
+        if (blocks.length === 0) {
+          // Extract heading path segment (e.g. "Header 2: B.S. in Accounting (120 hours)")
+          let pathSegment = program.name;
+          if (reqs.length > 0 && reqs[0].logic_tree && !reqs[0].logic_tree.startsWith('{')) {
+            const firstLine = reqs[0].logic_tree.split('\n')[0];
+            const match = firstLine.match(/\[Header 1: [^>]+ > (Header 2: [^\]>]+|Header 3: [^\]>]+)/);
+            if (match) {
+              pathSegment = match[1].trim();
+            }
+          }
+
+          // 4. Fetch chunks scoped to this program's own catalog section (header-
+          // breadcrumb match first, legacy page-neighborhood expansion second).
+          const chunks = await fetchScopedProgramChunks(tenantId, program.document_id, pathSegment, program.name);
+
+          const courseRegex = /\b([A-Z]{2,4})\s*[-]?\s*(\d{3,4})\b/g;
+
+          // Establish the data sources to process
+          const sourcesToProcess: { id: string; content: string }[] = [];
+          if (chunks.length > 0) {
+            chunks.forEach((c: any, idx: number) => {
+              sourcesToProcess.push({
+                id: `chunk_${c.page_number}_${idx}`,
+                content: c.content
+              });
+            });
+          } else {
+            // Fallback to program requirements logic tree text if no GCS semantic chunks are matched
+            reqs.forEach((r: any, idx: number) => {
+              sourcesToProcess.push({
+                id: `req_${r.id.substring(0, 4)}_${idx}`,
+                content: r.logic_tree
+              });
+            });
+          }
+
+          // Parse requirement blocks from text chunks
+          sourcesToProcess.forEach((src: any, srcIdx: number) => {
+            let cleanText = src.content;
+
+            // A. Strip bracketed path prefix [Header 1: ... ]
+            cleanText = cleanText.replace(/^\[Header\s+\d+[\s\S]*?\](?:\r?\n|$)/i, '').trim();
+
+            // B. Split into logical sections using headers
+            const sections = cleanText.split(/(?=\n##\s+|\n###\s+|\n\*\*)/);
+
+            sections.forEach((sec: string, secIdx: number) => {
+              const lines = sec.split('\n');
+              const headerLine = lines[0] || '';
+
+              // Clean section title
+              let title = headerLine.replace(/^#+\s*/, '').replace(/^\*+\s*/, '').replace(/\*+$/, '').trim();
+              if (!title || title.length < 3) {
+                title = `Requirement Block ${srcIdx + 1}.${secIdx + 1}`;
+              }
+
+              // Filter out non-coursework metadata blocks (like calendars or faculty sections)
+              if (
+                title.toLowerCase().includes('faculty') ||
+                title.toLowerCase().includes('mission statement') ||
+                title.toLowerCase().includes('vision statement')
+              ) {
+                return;
+              }
+
+              // C. Detect credit hours or choice values
+              let requiredValue = 0;
+              let logicType = 'ALL_OF'; // Default logic type
+
+              const hoursMatch = sec.match(/(\d+)\s*(hour|credit|sem)/i);
+              if (hoursMatch) {
+                requiredValue = parseInt(hoursMatch[1], 10);
+                logicType = 'CREDITS_FROM';
+              }
+
+              if (sec.toLowerCase().includes('elective') || sec.toLowerCase().includes('choose')) {
+                logicType = 'CHOOSE_N';
+                if (requiredValue === 0) requiredValue = 3; // Default elective choices
+              }
+
+              // D. Extract valid course codes
+              const coursesList: string[] = [];
+              let match;
+              courseRegex.lastIndex = 0;
+              while ((match = courseRegex.exec(sec)) !== null) {
+                const prefix = match[1].toUpperCase();
+                const num = match[2];
+                const cleanCode = `${prefix} ${num}`;
+
+                // Validate course presence in current catalog
+                if (courseDetailsMap.has(cleanCode)) {
+                  if (!coursesList.includes(cleanCode)) {
+                    coursesList.push(cleanCode);
+                  }
                 }
               }
-            }
 
-            if (coursesList.length > 0) {
-              blocks.push({
-                block_id: `${src.id}-${secIdx}`,
-                title,
-                logic_type: logicType,
-                required_value: requiredValue,
-                courses: coursesList,
-                content: sec.trim()
-              });
-            }
+              if (coursesList.length > 0) {
+                blocks.push({
+                  block_id: `${src.id}-${secIdx}`,
+                  title,
+                  logic_type: logicType,
+                  required_value: requiredValue,
+                  courses: coursesList,
+                  content: sec.trim()
+                });
+              }
+            });
           });
-        });
+        }
 
         // 5. Compile into graph nodes & links for D3 force exploration
         const nodes: any[] = [];

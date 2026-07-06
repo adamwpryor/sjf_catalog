@@ -18,7 +18,12 @@
       "Bash(node scripts/backfill_course_codes.mjs)",
       "Bash(cp C:/Users/adamw/AppData/Local/Temp/claude/c--Users-adamw-coding-workspaces-sjf-catalog/f7eab86e-173f-4719-9f19-19bb5cb29180/scratchpad/validate_plan.mjs ./validate_plan.mjs)",
       "Bash(node validate_plan.mjs C:/Users/adamw/AppData/Local/Temp/claude/c--Users-adamw-coding-workspaces-sjf-catalog/f7eab86e-173f-4719-9f19-19bb5cb29180/scratchpad)",
-      "Bash(node scripts/backfill_course_codes.mjs --apply)"
+      "Bash(node scripts/backfill_course_codes.mjs --apply)",
+      "PowerShell(node \"C:\\\\Users\\\\adamw\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-adamw-coding-workspaces-sjf-catalog\\\\9f07df7d-3c0d-4a44-9b08-c8ca5822a5f6\\\\scratchpad\\\\check_ids.js\")",
+      "PowerShell(node \"C:\\\\Users\\\\adamw\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-adamw-coding-workspaces-sjf-catalog\\\\9f07df7d-3c0d-4a44-9b08-c8ca5822a5f6\\\\scratchpad\\\\check_ids2.js\")",
+      "PowerShell(node \"C:\\\\Users\\\\adamw\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-adamw-coding-workspaces-sjf-catalog\\\\9f07df7d-3c0d-4a44-9b08-c8ca5822a5f6\\\\scratchpad\\\\check_ids3.js\")",
+      "PowerShell(node \"C:\\\\Users\\\\adamw\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-adamw-coding-workspaces-sjf-catalog\\\\9f07df7d-3c0d-4a44-9b08-c8ca5822a5f6\\\\scratchpad\\\\check_ids5.js\")",
+      "PowerShell(node \"C:\\\\Users\\\\adamw\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-adamw-coding-workspaces-sjf-catalog\\\\9f07df7d-3c0d-4a44-9b08-c8ca5822a5f6\\\\scratchpad\\\\verify_ast.js\")"
     ]
   }
 }
