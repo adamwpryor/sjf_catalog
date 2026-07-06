@@ -62,6 +62,15 @@ TABLE_ORDER = [
     "program_requirements",
     "program_requirement_courses",
     "course_prerequisite_links",
+    # AIP-parity block/edge logic model + ghost log (WS2/WS3). Ordered after their
+    # parents (courses/programs/documents) so FK constraints hold on both the forward
+    # insert and the reverse-order purge: edges after blocks, block_courses after
+    # requirement_blocks. See migration 20260627000000_add_block_logic_and_ghost_model.
+    "course_prereq_blocks",
+    "course_prereq_edges",
+    "requirement_blocks",
+    "block_courses",
+    "ghost_log",
     "faculty",
     "program_faculty",
     "policy_mentions_courses",
@@ -175,6 +184,31 @@ def replicate_tenant_data(tenant_id: str, cloud_url: str = None):
                 (tenant_id,)
             )
             data_store[table] = (cols, rows)
+
+        # 5. Fetch AIP-parity block/edge logic model + ghost log (WS2/WS3).
+        # These ship with a later migration and may be ABSENT on a Hub that predates
+        # it. Fetch defensively: a missing relation degrades to zero rows (matching the
+        # prior behaviour where these tables were never replicated) instead of aborting
+        # the entire deployment. This loop runs LAST so a caught error's rollback — which
+        # discards the REPEATABLE READ snapshot — cannot affect the already-materialised
+        # fetches above.
+        for table in ["course_prereq_blocks", "course_prereq_edges", "requirement_blocks", "block_courses", "ghost_log"]:
+            try:
+                cols, rows = fetch_with_columns(
+                    hub_cur,
+                    sql.SQL("SELECT * FROM {} WHERE tenant_id = %s;").format(sql.Identifier(table)),
+                    (tenant_id,)
+                )
+                data_store[table] = (cols, rows)
+            except psycopg2.Error as e:
+                # UndefinedTable (42P01) on a pre-migration Hub, or any read error:
+                # log, roll back the aborted snapshot, and continue with zero rows.
+                hub_conn.rollback()
+                logger.warning(
+                    f"Hub table '{table}' unavailable ({getattr(e, 'pgcode', 'n/a')}); "
+                    "replicating 0 rows. Run the block-model migration on the Hub to populate it."
+                )
+                data_store[table] = ([], [])
 
         logger.info("Successfully fetched all tenant data blocks from local Hub.")
 

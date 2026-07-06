@@ -34,6 +34,74 @@ function cleanDescription(desc: string | null | undefined): string {
 }
 
 /**
+ * The academic *kind* of a row in the `programs` table. The Hub extractor dumps degree
+ * programs, minors, and certificates into one table keyed only by name, so the raw row
+ * count badly overstates the number of actual degree programs (for SJFU's 2025-2026
+ * undergraduate catalog: 118 rows = 63 majors + 46 minors + 7 certificates + junk, vs
+ * AIP's 64 degree programs). Classifying each row lets the UI count/group them correctly
+ * instead of reporting one conflated total.
+ */
+type ProgramType = 'major' | 'minor' | 'concentration' | 'certificate';
+
+/**
+ * Classify a program row by its title. Non-degree kinds are tested first because a
+ * "Minor in Accounting" or "Accounting Certificate" carries no B.S./B.A. marker; only a
+ * genuine degree title falls through to `major`.
+ *
+ * @param name - The program title.
+ * @returns The classified {@link ProgramType}.
+ */
+function classifyProgram(name: string | null | undefined): ProgramType {
+  const n = (name || '').toLowerCase();
+  if (/\bminors?\b/.test(n)) return 'minor';
+  if (/\bcertificates?\b/.test(n)) return 'certificate';
+  if (/\bconcentrations?\b/.test(n)) return 'concentration';
+  return 'major';
+}
+
+/**
+ * Detects rows that are NOT academic programs but catalog section headers or OCR garble
+ * the Hub extractor mistook for program titles — e.g. a bare "Certificate", "Degrees and
+ * Certificates", "Earning a Second Degree", or the OCR-mangled "er So urc es of As sist
+ * anc e" ("Other Sources of Assistance"). Returning true excludes the row entirely.
+ *
+ * All three tests are generic (no per-title denylist beyond two well-known instructional
+ * headers), so they generalize across catalogs without dropping real programs like
+ * "Minor in AI Literacy" or "Bachelor of Arts (B.A.) in Biology".
+ *
+ * @param name - The candidate program title.
+ * @returns True if the row is a header/garble artifact rather than a real program.
+ */
+function isNonProgramHeader(name: string | null | undefined): boolean {
+  const n = (name || '').trim();
+  if (!n) return true;
+
+  // 1. Category-only headers: nothing but program-kind keywords + connectors, with no
+  //    concrete discipline ("Certificate", "Degrees and Certificates", "Minors,
+  //    Concentrations, and Certificate").
+  const CATEGORY = '(?:degrees?|majors?|minors?|concentrations?|certificates?)';
+  if (new RegExp(`^${CATEGORY}(?:[\\s,&/]+(?:and\\s+)?${CATEGORY})*$`, 'i').test(n)) {
+    return true;
+  }
+
+  // 2. Generic instructional/policy headers that describe a rule, not a named program.
+  if (/^(?:earning a second degree|a minor in another discipline)\b/i.test(n)) {
+    return true;
+  }
+
+  // 3. OCR word-splitting garble: real titles are whole words. A title of many tokens
+  //    whose average length is tiny ("er So urc es of As sist anc e") is broken prose,
+  //    not a program name. Guarded to 6+ tokens so short real titles are never touched.
+  const tokens = n.split(/\s+/).filter((t) => /[a-z]/i.test(t));
+  if (tokens.length >= 6) {
+    const avgLen = tokens.reduce((sum, t) => sum + t.replace(/[^a-z]/gi, '').length, 0) / tokens.length;
+    if (avgLen < 3) return true;
+  }
+
+  return false;
+}
+
+/**
  * Handles database operations requested by the frontend.
  * Supports varied actions like fetching graphs, catalogs, courses, and programs.
  *
@@ -442,7 +510,7 @@ export async function POST(req: Request) {
         const programIdSet = new Set<string>();
         const belongsToLinksSet = new Set<string>(); // subject_id:program_id
 
-        const courseRegex = /\b([A-Z]{2,4})\s*[-]?\s*(\d{3})\b/g;
+        const courseRegex = /\b([A-Z]{2,4})\s*[-]?\s*(\d{3,4})\b/g;
 
         validatedPrograms.forEach((p: any) => {
           const nodeId = `program_${p.id}`;
@@ -946,11 +1014,19 @@ export async function POST(req: Request) {
           [tenantId, catalogId]
         );
 
-        const courseRegex = /\b([A-Z]{2,4})\s*[-]?\s*(\d{3})\b/g;
+        const courseRegex = /\b([A-Z]{2,4})\s*[-]?\s*(\d{3,4})\b/g;
 
         // 5. In-memory validation of degree programs
         const filteredPrograms = programsRes.filter((program: any) => {
           const pName = (program.name || '').trim();
+
+          // A0. Reject catalog section headers / OCR garble that the Hub mistook for
+          // programs (e.g. "Certificate", "Degrees and Certificates", "er So urc es of
+          // As sist anc e"). Runs before the degree-type logic because these rows can
+          // otherwise slip through on a stray "Degree"/"Certificate" keyword.
+          if (isNonProgramHeader(pName)) {
+            return false;
+          }
 
           // A. Dynamically extract degree type from title if it is null/empty in database using corrected boundary regex
           let degreeType = program.degree_type;
@@ -1122,9 +1198,14 @@ export async function POST(req: Request) {
             cleanOutcomes = null;
           }
 
+          const displayName = p.name.split('\n')[0].replace(/(?:The following|courses are required|are required|required|hours|credit|semester)[\s\S]*/i, '').trim();
+
           return {
             ...p,
-            name: p.name.split('\n')[0].replace(/(?:The following|courses are required|are required|required|hours|credit|semester)[\s\S]*/i, '').trim(),
+            name: displayName,
+            // Discriminator so the dashboard can count/group majors vs minors vs
+            // certificates instead of conflating all rows into one "programs" total.
+            program_type: classifyProgram(displayName),
             mission_statement: cleanMission,
             program_outcome_objectives: cleanOutcomes,
             additional_details: cleanDetails
@@ -1266,7 +1347,7 @@ export async function POST(req: Request) {
             }
 
             const parsedBlocks: any[] = [];
-            const courseRegex = /\b([A-Z]{2,4})\s*[-]?\s*(\d{3})\b/g;
+            const courseRegex = /\b([A-Z]{2,4})\s*[-]?\s*(\d{3,4})\b/g;
 
             sourcesToProcess.forEach((src: any, srcIdx: number) => {
               let cleanText = src.content;
@@ -1613,7 +1694,7 @@ export async function POST(req: Request) {
         }
 
         const blocks: any[] = [];
-        const courseRegex = /\b([A-Z]{2,4})\s*[-]?\s*(\d{3})\b/g;
+        const courseRegex = /\b([A-Z]{2,4})\s*[-]?\s*(\d{3,4})\b/g;
 
         // Establish the data sources to process
         const sourcesToProcess: { id: string; content: string }[] = [];

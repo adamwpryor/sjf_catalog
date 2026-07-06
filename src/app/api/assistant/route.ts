@@ -264,7 +264,7 @@ export async function retrieveGroundedChunks(
 
   // 0. Course Code Extraction, Typos Mapping & Direct Courses Table Grounding
   try {
-    const courseRegex = /\b([A-Za-z]{2,4})\s*[-]?\s*(\d{3})\b/gi;
+    const courseRegex = /\b([A-Za-z]{2,4})\s*[-]?\s*(\d{3,4})\b/gi;
     let match;
     const detectedCourses: { original: string; prefix: string; num: string; cleanCode: string }[] = [];
     

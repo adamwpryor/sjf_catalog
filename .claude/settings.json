@@ -6,7 +6,19 @@
       "Bash(grep -iE '\\\\.\\(json|csv|sql|parquet|ndjson|yaml|yml\\)$')",
       "Bash(grep -viE 'node_modules|package-lock|/\\\\.next/')",
       "Bash(python -c ' *)",
-      "Bash(node -e \"console.log\\('node ok'\\); try{require\\('pg'\\);console.log\\('pg available'\\)}catch\\(e\\){console.log\\('no pg'\\)}; try{require\\('@supabase/supabase-js'\\);console.log\\('supabase-js available'\\)}catch\\(e\\){console.log\\('no supabase-js'\\)}\")"
+      "Bash(node -e \"console.log\\('node ok'\\); try{require\\('pg'\\);console.log\\('pg available'\\)}catch\\(e\\){console.log\\('no pg'\\)}; try{require\\('@supabase/supabase-js'\\);console.log\\('supabase-js available'\\)}catch\\(e\\){console.log\\('no supabase-js'\\)}\")",
+      "Bash(python -m py_compile deploy_client_db.py)",
+      "Bash(node -e ' *)",
+      "Bash(cat)",
+      "Bash(node /tmp/re_test.mjs)",
+      "Bash(node C:/Users/adamw/AppData/Local/Temp/claude/c--Users-adamw-coding-workspaces-sjf-catalog/f7eab86e-173f-4719-9f19-19bb5cb29180/scratchpad/verify2.mjs C:/Users/adamw/AppData/Local/Temp/claude/c--Users-adamw-coding-workspaces-sjf-catalog/f7eab86e-173f-4719-9f19-19bb5cb29180/scratchpad)",
+      "Bash(grep -rnE '\\\\\\\\d\\\\{3\\(,4\\)?\\\\}|d\\\\{3\\\\}|\\\\[0-9\\\\]\\\\{3' --include='*.py' --include='*.ts' --include='*.tsx' --include='*.mjs' .)",
+      "Bash(grep -rnE 'd\\\\{3\\\\}[^,]' --include='*.ts' --include='*.tsx' src/)",
+      "Bash(grep -iE 'course|code|\\\\[A-Z\\\\]|\\\\\\\\d')",
+      "Bash(node scripts/backfill_course_codes.mjs)",
+      "Bash(cp C:/Users/adamw/AppData/Local/Temp/claude/c--Users-adamw-coding-workspaces-sjf-catalog/f7eab86e-173f-4719-9f19-19bb5cb29180/scratchpad/validate_plan.mjs ./validate_plan.mjs)",
+      "Bash(node validate_plan.mjs C:/Users/adamw/AppData/Local/Temp/claude/c--Users-adamw-coding-workspaces-sjf-catalog/f7eab86e-173f-4719-9f19-19bb5cb29180/scratchpad)",
+      "Bash(node scripts/backfill_course_codes.mjs --apply)"
     ]
   }
 }

@@ -27,7 +27,7 @@ const CODE_STOPWORDS = new Set(['AND', 'OR', 'THE', 'FOR', 'GPA', 'SJF', 'ONE', 
  */
 function extractCourseCodes(text: string): string[] {
   const out = new Set<string>();
-  const tokens = String(text || '').match(/\b[A-Z]{2,4}\b|\b\d{3}[A-Z]?\b/g) || [];
+  const tokens = String(text || '').match(/\b[A-Z]{2,4}\b|\b\d{3,4}[A-Z]?\b/g) || [];
   let subject = '';
   for (const t of tokens) {
     if (/^\d/.test(t)) { if (subject) out.add(`${subject} ${t}`); }

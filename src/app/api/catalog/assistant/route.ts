@@ -128,7 +128,7 @@ async function rewriteChunk(instruction: string, chunkContent: string): Promise<
 
 /** Gather candidate course/program rows that match terms in the registrar's request (grounding). */
 async function gatherCandidates(catalogId: string, text: string) {
-  const codes = Array.from(new Set((text.match(/\b[A-Z]{2,4}\s*-?\s*\d{3}[A-Z]?\b/g) || []).map(codeKey)));
+  const codes = Array.from(new Set((text.match(/\b[A-Z]{2,4}\s*-?\s*\d{3,4}[A-Z]?\b/g) || []).map(codeKey)));
   const words = Array.from(new Set((text.match(/[A-Za-z][A-Za-z&'-]{3,}/g) || []).map((w) => w.toLowerCase())))
     .filter((w) => !['the', 'this', 'that', 'with', 'under', 'should', 'change', 'program', 'programs', 'catalog', 'please', 'make', 'into', 'from', 'their', 'them', 'page'].includes(w))
     .slice(0, 6);
