@@ -233,6 +233,11 @@ export async function POST(req: Request) {
           programRequirements,   // 4.5 Program requirements plain-text structures (logic_tree strings)
           facultyList,           // 5. Faculty and program-faculty mappings
           programFacultyLinks,
+          // 5.5 Subject areas used by this catalog's courses. Every course carries a
+          // subject_id, so subject hubs anchor courses that no program requirement
+          // names (elective pools etc.) — without them most of the catalog floats
+          // unconnected in the curriculum graph.
+          subjectsList,
           policyCourseLinks,     // 6. Pre-computed policy-course semantic mentions
           policyProgramLinks,    // 7. Pre-computed policy-program semantic mentions
           semanticChunks,        // 8. All semantic chunks (Policies)
@@ -286,6 +291,13 @@ export async function POST(req: Request) {
              FROM program_faculty pf
              JOIN programs p ON pf.program_id = p.id
              WHERE pf.tenant_id = $1 AND p.document_id = $2;`,
+            [tenantId, catalogId]
+          ) : Promise.resolve([]),
+          includeCurriculum ? query(
+            `SELECT DISTINCT s.id, s.prefix, s.department_name
+             FROM subjects s
+             JOIN courses c ON c.subject_id = s.id
+             WHERE s.tenant_id = $1 AND c.document_id = $2;`,
             [tenantId, catalogId]
           ) : Promise.resolve([]),
           includePolicy ? query(
@@ -352,6 +364,29 @@ export async function POST(req: Request) {
           });
           courseCodeMap.set(c.course_code.trim().toUpperCase(), nodeId);
           courseIdSet.add(c.id);
+        });
+
+        // A.5 Add Subject Hub Nodes and Subject -> Course OFFERS links so every course
+        // is anchored under the subject area that offers it, even when no program
+        // requirement names it explicitly.
+        const subjectIdSet = new Set<string>(subjectsList.map((s: any) => s.id));
+        subjectsList.forEach((s: any) => {
+          nodes.push({
+            id: `subject_${s.id}`,
+            label: s.prefix,
+            title: s.department_name || `${s.prefix} Subject Area`,
+            description: `Subject area hub for all ${s.prefix} courses offered in this catalog.`,
+            group: 'subject'
+          });
+        });
+        courses.forEach((c: any) => {
+          if (c.subject_id && subjectIdSet.has(c.subject_id)) {
+            links.push({
+              source: `subject_${c.subject_id}`,
+              target: `course_${c.id}`,
+              type: 'OFFERS'
+            });
+          }
         });
 
         // B. Add Course Prerequisite Links (Reversed for logical progression flow: Prereq -> Subsequent Course)

@@ -20,7 +20,7 @@ interface GraphNode {
   label: string;
   title: string;
   description?: string;
-  group: 'course' | 'program' | 'faculty' | 'department' | 'policy' | 'block';
+  group: 'course' | 'program' | 'faculty' | 'department' | 'policy' | 'block' | 'subject';
   credits?: number;
   prerequisites_raw?: string;
   degree_type?: string;
@@ -38,7 +38,7 @@ interface GraphNode {
 interface GraphLink {
   source: string | { id: string };
   target: string | { id: string };
-  type: 'PREREQUISITE' | 'COREQUISITE' | 'GOVERNS' | 'BELONGS_TO' | 'MENTIONS';
+  type: 'PREREQUISITE' | 'COREQUISITE' | 'GOVERNS' | 'BELONGS_TO' | 'MENTIONS' | 'OFFERS';
   is_required?: boolean;
   mention_type?: 'course' | 'program';
 }
@@ -66,6 +66,8 @@ const getNodeColor = (node: GraphNode) => {
   switch (node.group) {
     case 'course':
       return '#993333'; // Red - Courses
+    case 'subject':
+      return '#14b8a6'; // Teal - Subject Area Hubs
     case 'block':
       return '#f97316'; // Orange - Requirement Blocks
     case 'program':
@@ -117,6 +119,8 @@ const getLinkColor = (link: any, isSelected: boolean, isFaded: boolean) => {
     }
     case 'MENTIONS':
       return `rgba(245, 158, 11, ${isSelected ? '0.95' : '0.4'})`; // Amber for semantic policy mentions
+    case 'OFFERS':
+      return `rgba(20, 184, 166, ${isSelected ? '0.9' : '0.22'})`; // Faint teal spokes: Subject -> Course
     default:
       return isSelected ? '#FFCC33' : 'rgba(148, 163, 184, 0.15)'; // Faint slate link
   }
@@ -647,6 +651,10 @@ export default function GraphViewer({ catalogId, mode }: GraphViewerProps) {
 
         programAndBlockIds.forEach(id => allowedIds.add(id));
 
+        // Keep the subject hub that anchors this prefix's courses
+        const subjectHub = modeNodes.find(n => n.group === 'subject' && n.label.toUpperCase() === selectedPrefix);
+        if (subjectHub) allowedIds.add(subjectHub.id);
+
         modeNodes = modeNodes.filter(n => allowedIds.has(n.id) || n.group === 'faculty');
         modeLinks = modeLinks.filter((l: any) => {
           const sId = typeof l.source === 'string' ? l.source : l.source.id;
@@ -736,7 +744,9 @@ export default function GraphViewer({ catalogId, mode }: GraphViewerProps) {
 
           if (l.type === 'PREREQUISITE' || l.type === 'COREQUISITE') prereqList.push(relation);
           else if (l.type === 'GOVERNS') governsList.push(relation);
-          else if (l.type === 'BELONGS_TO') belongsToList.push(relation);
+          // OFFERS (Subject -> Course) renders in the same "Subject Department" drawer
+          // section as BELONGS_TO membership links.
+          else if (l.type === 'BELONGS_TO' || l.type === 'OFFERS') belongsToList.push(relation);
           else if (l.type === 'MENTIONS') mentionsList.push(relation);
         }
       }
@@ -820,6 +830,7 @@ export default function GraphViewer({ catalogId, mode }: GraphViewerProps) {
                   <option value="">All Categories</option>
                   <option value="course">Catalog Courses</option>
                   <option value="program">Academic Programs</option>
+                  {mode === 'curriculum' && <option value="subject">Subject Areas</option>}
                   {mode === 'curriculum' && <option value="block">Requirement Blocks</option>}
                   {mode === 'curriculum' && <option value="department">Faculty / Departments</option>}
                   {mode === 'policy' && <option value="policy">Policy Chunks</option>}
@@ -972,6 +983,7 @@ export default function GraphViewer({ catalogId, mode }: GraphViewerProps) {
                 <h4 className="text-[10px] font-bold text-[#FFCC33] uppercase tracking-wider mb-2 border-b border-white/5 pb-1 font-mono">Node Legend</h4>
                 <ul className="space-y-1.5 text-xs text-slate-300 font-semibold font-sans">
                   <li className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#993333] inline-block"></span> Course</li>
+                  {mode === 'curriculum' && <li className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#14b8a6] inline-block"></span> Subject Area</li>}
                   <li className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#f97316] inline-block"></span> Requirement Block</li>
                   {mode === 'curriculum' && (
                     <>
@@ -994,6 +1006,7 @@ export default function GraphViewer({ catalogId, mode }: GraphViewerProps) {
                       <li className="flex items-center gap-2"><span className="w-4 h-1 rounded bg-[#f2a900] inline-block"></span> Co-requisite Link</li>
                       <li className="flex items-center gap-2"><span className="w-4 h-1 rounded bg-[#3b82f6] inline-block"></span> Required Course Connection</li>
                       <li className="flex items-center gap-2"><span className="w-4 h-1 rounded bg-[#a855f7] inline-block"></span> Elective Course Connection</li>
+                      <li className="flex items-center gap-2"><span className="w-4 h-1 rounded bg-[#14b8a6] inline-block"></span> Subject Offers Course</li>
                       <li className="flex items-center gap-2"><span className="w-4 h-1 rounded bg-[#eab308] inline-block"></span> Department to Program</li>
                       <li className="flex items-center gap-2"><span className="w-4 h-1 rounded bg-[#22c55e] inline-block"></span> Faculty to Department</li>
                     </>
@@ -1144,7 +1157,7 @@ export default function GraphViewer({ catalogId, mode }: GraphViewerProps) {
               ctx.fillStyle = color;
               ctx.beginPath();
               
-              const size = node.group === 'department' ? 9.5 : (node.group === 'program' ? 7.5 : (node.group === 'block' ? 5.5 : 3.5));
+              const size = node.group === 'department' ? 9.5 : (node.group === 'subject' ? 8 : (node.group === 'program' ? 7.5 : (node.group === 'block' ? 5.5 : 3.5)));
               ctx.arc(node.x, node.y, size, 0, 2 * Math.PI, false);
               ctx.fill();
 
@@ -1173,7 +1186,7 @@ export default function GraphViewer({ catalogId, mode }: GraphViewerProps) {
               ctx.font = `${fontSize}px Lato, sans-serif`;
               ctx.fillStyle = isSelected ? '#ffffff' : (isFaded ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.85)');
 
-              if (globalScale > 1.2 || isSelected || isHovered) {
+              if (globalScale > 1.2 || isSelected || isHovered || node.group === 'subject') {
                 ctx.fillText(label, node.x, node.y + size + 2);
               }
             }}
@@ -1252,8 +1265,10 @@ export default function GraphViewer({ catalogId, mode }: GraphViewerProps) {
                   </button>
                 )}
                 <span className={`px-2 py-0.5 rounded font-bold text-[8px] uppercase tracking-wider font-mono border ${
-                  selectedNode.group === 'course' 
+                  selectedNode.group === 'course'
                     ? 'bg-[#993333]/25 text-[#FFCC33] border-[#993333]/45'
+                    : selectedNode.group === 'subject'
+                      ? 'bg-teal-500/10 text-teal-400 border-teal-500/30'
                     : selectedNode.group === 'block'
                       ? 'bg-orange-500/10 text-orange-400 border-orange-500/30'
                       : selectedNode.group === 'program'
@@ -1264,10 +1279,12 @@ export default function GraphViewer({ catalogId, mode }: GraphViewerProps) {
                             ? 'bg-blue-500/10 text-blue-400 border-blue-500/30'
                             : 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30'
                 }`}>
-                  {selectedNode.group === 'course' 
-                    ? 'Catalog Course' 
-                    : selectedNode.group === 'program' 
-                      ? 'Academic Program' 
+                  {selectedNode.group === 'course'
+                    ? 'Catalog Course'
+                    : selectedNode.group === 'subject'
+                      ? 'Subject Area'
+                    : selectedNode.group === 'program'
+                      ? 'Academic Program'
                       : selectedNode.group === 'department'
                         ? 'Department'
                         : selectedNode.group === 'faculty' 
