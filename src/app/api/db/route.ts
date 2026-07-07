@@ -203,108 +203,132 @@ export async function POST(req: Request) {
     switch (action) {
       case 'get_graph': {
         if (!catalogId) return NextResponse.json({ error: "Catalog ID required." }, { status: 400 });
-        
-        // 1. Fetch all course nodes
-        const courses = await query(
-          `SELECT c.id, c.course_code, c.title, c.credits, c.description, c.prerequisites as prerequisites_raw, c.subject_id
-           FROM courses c
-           WHERE c.tenant_id = $1 AND c.document_id = $2;`,
-          [tenantId, catalogId]
-        );
 
-        // 2. Fetch all course prerequisite links (scoped to current catalog)
-        const prereqLinks = await query(
-          `SELECT cpl.course_id as source, cpl.prereq_course_id as target 
-           FROM course_prerequisite_links cpl
-           JOIN courses c1 ON cpl.course_id = c1.id
-           JOIN courses c2 ON cpl.prereq_course_id = c2.id
-           WHERE cpl.tenant_id = $1 AND c1.document_id = $2 AND c2.document_id = $2;`,
-          [tenantId, catalogId]
-        );
+        // Scope the payload to the requesting tab. 'curriculum' skips policy chunks and
+        // mention links (~3/4 of the full payload by bytes); 'policy' skips the
+        // requirement-block/faculty pipeline and its full-catalog chunk scan (the slow
+        // part). An absent or unknown mode returns the complete graph.
+        const graphMode: 'full' | 'curriculum' | 'policy' =
+          body.mode === 'curriculum' || body.mode === 'policy' ? body.mode : 'full';
+        const includePolicy = graphMode !== 'curriculum';
+        const includeCurriculum = graphMode !== 'policy';
 
-        // 3. Fetch all program nodes
-        const programs = await query(
-          `SELECT id, name, degree_type, NULL as description, total_credits, department_id 
-           FROM programs 
-           WHERE tenant_id = $1 AND document_id = $2;`,
-          [tenantId, catalogId]
-        );
+        // 1-8. All base datasets are independent, so fetch them concurrently — the
+        // remote pooler round-trips otherwise serialize into most of this endpoint's
+        // latency. Mode-gated queries resolve to [] without hitting the database.
+        const [
+          courses,               // 1. All course nodes
+          prereqLinks,           // 2. Course prerequisite links (scoped to current catalog)
+          // 3. All program nodes. The schema evolution dropped programs.department_id
+          // (and the departments table); department grouping now comes solely from the
+          // AST heading structure, so department_id is aliased NULL to keep the legacy
+          // linking code inert.
+          programs,
+          // 4. Program course linkages (Program -> Course), grouped by requirement.
+          // This is the authoritative, P2-gated `program_requirement_courses` link table;
+          // the curriculum graph builds its Requirement Block -> Course edges from these
+          // rows (DB-first, like get_program_details), falling back to text parsing only
+          // when a program has no relational requirement rows.
+          programRequirementLinks,
+          programRequirements,   // 4.5 Program requirements plain-text structures (logic_tree strings)
+          facultyList,           // 5. Faculty and program-faculty mappings
+          programFacultyLinks,
+          policyCourseLinks,     // 6. Pre-computed policy-course semantic mentions
+          policyProgramLinks,    // 7. Pre-computed policy-program semantic mentions
+          semanticChunks,        // 8. All semantic chunks (Policies)
+          // 9. All chunks for in-memory page scoping. Policy mode skips this: the scan
+          // only feeds requirement-block parsing and department placement, neither of
+          // which the policy tab renders.
+          allChunks,
+        ] = await Promise.all([
+          query(
+            `SELECT c.id, c.course_code, c.title, c.credits, c.description, c.prerequisites as prerequisites_raw, c.subject_id
+             FROM courses c
+             WHERE c.tenant_id = $1 AND c.document_id = $2;`,
+            [tenantId, catalogId]
+          ),
+          query(
+            `SELECT cpl.course_id as source, cpl.prereq_course_id as target
+             FROM course_prerequisite_links cpl
+             JOIN courses c1 ON cpl.course_id = c1.id
+             JOIN courses c2 ON cpl.prereq_course_id = c2.id
+             WHERE cpl.tenant_id = $1 AND c1.document_id = $2 AND c2.document_id = $2;`,
+            [tenantId, catalogId]
+          ),
+          query(
+            `SELECT id, name, degree_type, NULL as description, total_credits, NULL as department_id
+             FROM programs
+             WHERE tenant_id = $1 AND document_id = $2;`,
+            [tenantId, catalogId]
+          ),
+          includeCurriculum ? query(
+            `SELECT pr.program_id as source, prc.course_id as target, prc.is_required,
+                    prc.requirement_id, prc.group_name, prc.or_group_id
+             FROM program_requirement_courses prc
+             JOIN program_requirements pr ON prc.requirement_id = pr.id
+             JOIN courses c ON prc.course_id = c.id
+             WHERE prc.tenant_id = $1 AND pr.tenant_id = $1 AND c.document_id = $2;`,
+            [tenantId, catalogId]
+          ) : Promise.resolve([]),
+          includeCurriculum ? query(
+            `SELECT pr.id, pr.program_id, pr.degree_name, pr.logic_tree
+             FROM program_requirements pr
+             JOIN programs p ON pr.program_id = p.id
+             WHERE p.tenant_id = $1 AND p.document_id = $2 AND pr.logic_tree IS NOT NULL;`,
+            [tenantId, catalogId]
+          ) : Promise.resolve([]),
+          includeCurriculum ? query(
+            `SELECT id, name FROM faculty WHERE tenant_id = $1;`,
+            [tenantId]
+          ) : Promise.resolve([]),
+          includeCurriculum ? query(
+            `SELECT pf.program_id, pf.faculty_id
+             FROM program_faculty pf
+             JOIN programs p ON pf.program_id = p.id
+             WHERE pf.tenant_id = $1 AND p.document_id = $2;`,
+            [tenantId, catalogId]
+          ) : Promise.resolve([]),
+          includePolicy ? query(
+            `SELECT pmc.policy_chunk_id as source, pmc.course_id as target
+             FROM policy_mentions_courses pmc
+             JOIN semantic_chunks sc ON pmc.policy_chunk_id = sc.id
+             JOIN courses c ON pmc.course_id = c.id
+             WHERE pmc.tenant_id = $1 AND sc.document_id = $2 AND c.document_id = $2;`,
+            [tenantId, catalogId]
+          ) : Promise.resolve([]),
+          includePolicy ? query(
+            `SELECT pmp.policy_chunk_id as source, pmp.program_id as target
+             FROM policy_mentions_programs pmp
+             JOIN semantic_chunks sc ON pmp.policy_chunk_id = sc.id
+             JOIN programs p ON pmp.program_id = p.id
+             WHERE pmp.tenant_id = $1 AND sc.document_id = $2 AND p.document_id = $2;`,
+            [tenantId, catalogId]
+          ) : Promise.resolve([]),
+          includePolicy ? query(
+            `SELECT sc.id, sc.section_header, sc.content, sc.page_number, sc.sequence_order,
+                    NULL as quinean_weight, NULL as toulmin_role, NULL as deontic_modality,
+                    ct.label as lookup_chunk_type, tr.label as lookup_toulmin_role,
+                    dm.label as lookup_deontic_modality, qw.label as lookup_quinean_class
+             FROM semantic_chunks sc
+             LEFT JOIN chunk_types ct ON sc.chunk_type_id = ct.id
+             LEFT JOIN toulmin_roles tr ON sc.toulmin_role_id = tr.id
+             LEFT JOIN deontic_modalities dm ON sc.deontic_modality_id = dm.id
+             LEFT JOIN quinean_web_classifications qw ON sc.quinean_classification_id = qw.id
+             WHERE sc.tenant_id = $1 AND sc.document_id = $2;`,
+            [tenantId, catalogId]
+          ) : Promise.resolve([]),
+          includeCurriculum ? query(
+            `SELECT page_number, content
+             FROM semantic_chunks
+             WHERE tenant_id = $1 AND document_id = $2
+             ORDER BY page_number ASC;`,
+            [tenantId, catalogId]
+          ) : Promise.resolve([]),
+        ]);
 
-        // 4. Fetch all program course linkages (Program -> Course), grouped by requirement.
-        // This is the authoritative, P2-gated `program_requirement_courses` link table; the
-        // curriculum graph builds its Requirement Block -> Course edges from these rows
-        // (DB-first, like get_program_details), falling back to text parsing only when a
-        // program has no relational requirement rows.
-        const programRequirementLinks = await query(
-          `SELECT pr.program_id as source, prc.course_id as target, prc.is_required,
-                  prc.requirement_id, prc.group_name, prc.or_group_id
-           FROM program_requirement_courses prc
-           JOIN program_requirements pr ON prc.requirement_id = pr.id
-           JOIN courses c ON prc.course_id = c.id
-           WHERE prc.tenant_id = $1 AND pr.tenant_id = $1 AND c.document_id = $2;`,
-          [tenantId, catalogId]
-        );
-
-        // 4.5 Fetch program requirements plain-text structures (logic_tree strings)
-        const programRequirements = await query(
-          `SELECT pr.id, pr.program_id, pr.degree_name, pr.logic_tree
-           FROM program_requirements pr
-           JOIN programs p ON pr.program_id = p.id
-           WHERE p.tenant_id = $1 AND p.document_id = $2 AND pr.logic_tree IS NOT NULL;`,
-          [tenantId, catalogId]
-        );
-
-        // 5. Fetch faculty, program-faculty mappings, and departments
-        const facultyList = await query(
-          `SELECT id, name FROM faculty WHERE tenant_id = $1;`,
-          [tenantId]
-        );
-        const programFacultyLinks = await query(
-          `SELECT pf.program_id, pf.faculty_id
-           FROM program_faculty pf
-           JOIN programs p ON pf.program_id = p.id
-           WHERE pf.tenant_id = $1 AND p.document_id = $2;`,
-          [tenantId, catalogId]
-        );
-        const departmentsList = await query(
-          `SELECT id, name FROM departments WHERE tenant_id = $1;`,
-          [tenantId]
-        );
-
-        // 6. Fetch pre-computed policy-course semantic mentions
-        const policyCourseLinks = await query(
-          `SELECT pmc.policy_chunk_id as source, pmc.course_id as target
-           FROM policy_mentions_courses pmc
-           JOIN semantic_chunks sc ON pmc.policy_chunk_id = sc.id
-           JOIN courses c ON pmc.course_id = c.id
-           WHERE pmc.tenant_id = $1 AND sc.document_id = $2 AND c.document_id = $2;`,
-          [tenantId, catalogId]
-        );
-
-        // 7. Fetch pre-computed policy-program semantic mentions
-        const policyProgramLinks = await query(
-          `SELECT pmp.policy_chunk_id as source, pmp.program_id as target
-           FROM policy_mentions_programs pmp
-           JOIN semantic_chunks sc ON pmp.policy_chunk_id = sc.id
-           JOIN programs p ON pmp.program_id = p.id
-           WHERE pmp.tenant_id = $1 AND sc.document_id = $2 AND p.document_id = $2;`,
-          [tenantId, catalogId]
-        );
-
-        // 8. Fetch all semantic chunks (Policies)
-        const semanticChunks = await query(
-          `SELECT sc.id, sc.section_header, sc.content, sc.page_number, sc.sequence_order,
-                  NULL as quinean_weight, NULL as toulmin_role, NULL as deontic_modality,
-                  ct.label as lookup_chunk_type, tr.label as lookup_toulmin_role, 
-                  dm.label as lookup_deontic_modality, qw.label as lookup_quinean_class
-           FROM semantic_chunks sc 
-           LEFT JOIN chunk_types ct ON sc.chunk_type_id = ct.id 
-           LEFT JOIN toulmin_roles tr ON sc.toulmin_role_id = tr.id 
-           LEFT JOIN deontic_modalities dm ON sc.deontic_modality_id = dm.id 
-           LEFT JOIN quinean_web_classifications qw ON sc.quinean_classification_id = qw.id
-           WHERE sc.tenant_id = $1 AND sc.document_id = $2;`,
-          [tenantId, catalogId]
-        );
+        // The legacy departments table no longer exists post schema evolution; department
+        // nodes are derived from the AST heading structure instead.
+        const departmentsList: any[] = [];
 
         // Compile Nodes and Links with color-group attributes
         const nodes: any[] = [];
@@ -441,15 +465,6 @@ export async function POST(req: Request) {
             activeFacultyList.push(f);
           }
         });
-
-        // Fetch all semantic chunks once for in-memory page scoping lookup
-        const allChunks = await query(
-          `SELECT page_number, content 
-           FROM semantic_chunks 
-           WHERE tenant_id = $1 AND document_id = $2 
-           ORDER BY page_number ASC;`,
-          [tenantId, catalogId]
-        );
 
         programs.forEach((p: any) => {
           p.cleanName = (p.name || '').split('\n')[0].replace(/(?:The following|courses are required|are required|required|hours|credit|semester)[\s\S]*/i, '').trim();

@@ -24,7 +24,8 @@
       "PowerShell(node \"C:\\\\Users\\\\adamw\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-adamw-coding-workspaces-sjf-catalog\\\\9f07df7d-3c0d-4a44-9b08-c8ca5822a5f6\\\\scratchpad\\\\check_ids3.js\")",
       "PowerShell(node \"C:\\\\Users\\\\adamw\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-adamw-coding-workspaces-sjf-catalog\\\\9f07df7d-3c0d-4a44-9b08-c8ca5822a5f6\\\\scratchpad\\\\check_ids5.js\")",
       "PowerShell(node \"C:\\\\Users\\\\adamw\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-adamw-coding-workspaces-sjf-catalog\\\\9f07df7d-3c0d-4a44-9b08-c8ca5822a5f6\\\\scratchpad\\\\verify_ast.js\")",
-      "PowerShell($r = Invoke-WebRequest -Uri http://localhost:3000/api/db -Method POST -ContentType 'application/json' -Body '{\"action\":\"get_catalogs\"}' -UseBasicParsing -TimeoutSec 60; $r.StatusCode; $r.Content.Substring\\(0, [Math]::Min\\(1200, $r.Content.Length\\)\\))"
+      "PowerShell($r = Invoke-WebRequest -Uri http://localhost:3000/api/db -Method POST -ContentType 'application/json' -Body '{\"action\":\"get_catalogs\"}' -UseBasicParsing -TimeoutSec 60; $r.StatusCode; $r.Content.Substring\\(0, [Math]::Min\\(1200, $r.Content.Length\\)\\))",
+      "PowerShell($sw = [Diagnostics.Stopwatch]::StartNew\\(\\); try { $r = Invoke-WebRequest -Uri http://localhost:3000/api/db -Method POST -ContentType 'application/json' -Body '{\"action\":\"get_graph\",\"catalogId\":\"4c5af1e3-90b9-533e-8cf3-88590a9fcf4e\"}' -UseBasicParsing -TimeoutSec 180; $sw.Stop\\(\\); \"status=$\\($r.StatusCode\\) ms=$\\($sw.ElapsedMilliseconds\\) bytes=$\\($r.Content.Length\\)\" } catch { $sw.Stop\\(\\); \"FAILED after ms=$\\($sw.ElapsedMilliseconds\\): $\\($_.Exception.Message\\)\" })"
     ]
   }
 }

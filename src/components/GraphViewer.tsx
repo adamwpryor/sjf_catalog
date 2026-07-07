@@ -48,6 +48,12 @@ interface GraphViewerProps {
   mode: 'curriculum' | 'policy';
 }
 
+// Session-scoped payload cache keyed by catalog + mode. The viewer unmounts on every
+// tab switch and the graph payload is megabytes pulled from a remote database, so
+// without this each visit to the tab re-pays a multi-second download. A full page
+// reload starts fresh; data edited mid-session shows after reload.
+const graphPayloadCache = new Map<string, { nodes: GraphNode[]; links: GraphLink[] }>();
+
 // Visual Palette conforming to institution Crimson & Slate branding guidelines
 // Visual Palette conforming to User Specification
 /**
@@ -161,35 +167,44 @@ export default function GraphViewer({ catalogId, mode }: GraphViewerProps) {
         setSelectedNode(null);
         setHoverNode(null);
 
-        const res = await fetch('/api/db', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'get_graph', catalogId })
+        const cacheKey = `${catalogId}:${mode}`;
+        let cleanedNodes: GraphNode[];
+        let cleanedLinks: GraphLink[];
+
+        const cached = graphPayloadCache.get(cacheKey);
+        if (cached) {
+          cleanedNodes = cached.nodes;
+          cleanedLinks = cached.links;
+        } else {
+          const res = await fetch('/api/db', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'get_graph', catalogId, mode })
+          });
+          if (!res.ok) return;
+
+          const data = await res.json();
+          cleanedNodes = data.nodes;
+          cleanedLinks = data.links;
+          graphPayloadCache.set(cacheKey, { nodes: cleanedNodes, links: cleanedLinks });
+        }
+
+        // Precompute Neighbors Map for O(1) hover lookups based on CLEANED links
+        const nMap = new Map<string, Set<string>>();
+        cleanedLinks.forEach((l: any) => {
+          const s = typeof l.source === 'string' ? l.source : l.source.id;
+          const t = typeof l.target === 'string' ? l.target : l.target.id;
+          if (!nMap.has(s)) nMap.set(s, new Set());
+          if (!nMap.has(t)) nMap.set(t, new Set());
+          nMap.get(s)!.add(t);
+          nMap.get(t)!.add(s);
         });
 
-        if (res.ok) {
-          const data = await res.json();
-
-          const cleanedNodes = data.nodes;
-          const cleanedLinks = data.links;
-
-          // Precompute Neighbors Map for O(1) hover lookups based on CLEANED links
-          const nMap = new Map<string, Set<string>>();
-          cleanedLinks.forEach((l: any) => {
-            const s = typeof l.source === 'string' ? l.source : l.source.id;
-            const t = typeof l.target === 'string' ? l.target : l.target.id;
-            if (!nMap.has(s)) nMap.set(s, new Set());
-            if (!nMap.has(t)) nMap.set(t, new Set());
-            nMap.get(s)!.add(t);
-            nMap.get(t)!.add(s);
-          });
-
-          setNeighbors(nMap);
-          setGraphData({
-            nodes: cleanedNodes,
-            links: cleanedLinks
-          });
-        }
+        setNeighbors(nMap);
+        setGraphData({
+          nodes: cleanedNodes,
+          links: cleanedLinks
+        });
       } catch (err) {
         console.error("Failed to load prerequisites & policy graph: ", err);
       } finally {
