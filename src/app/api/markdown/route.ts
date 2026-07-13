@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getStorageClient, resolveBucketName } from '@/lib/gcs';
-import { TENANT_ID, GCS_BUCKET } from '@/lib/brand';
+import { TENANT_ID } from '@/lib/brand';
 
 /**
  * Fetches markdown content from a designated Google Cloud Storage bucket.
@@ -106,11 +106,15 @@ export async function GET(req: Request) {
       return NextResponse.json({
         error: "ACCESS_FORBIDDEN",
         status: 403,
-        message: `Authentication succeeded but the Service Account lacks permission to read the bucket.`,
+        // Google's own message names the exact principal that was denied — which is the
+        // one fact needed to write the IAM grant. The canned remedy below cannot know it
+        // (the runtime identity may come from Vercel's GCP integration rather than any
+        // env var), so pass it through verbatim instead of discarding it.
+        message: `Authenticated, but this identity may not read gs://${resolveBucketName()}. Google reported: ${err.message}`,
         remedy: {
           steps: [
             "1. Open your GCP Console and go to IAM & Admin.",
-            `2. Verify that the Service Account (${process.env.GCP_SERVICE_ACCOUNT_EMAIL || 'your-service-account'}) has been granted the 'Storage Object Viewer' role on bucket '${process.env.GCP_BUCKET_NAME || GCS_BUCKET}'.`,
+            `2. Grant the principal named above the 'Storage Object Viewer' role on bucket '${resolveBucketName()}'.`,
             "3. If using Workload Identity, verify the principalSet matches Vercel's OIDC federation subject."
           ]
         }

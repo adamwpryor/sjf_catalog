@@ -1,0 +1,498 @@
+/**
+ * backfill_source_pages.mjs — repair `markdown_url` provenance across the catalog.
+ *
+ * THE TWO DEFECTS THIS FIXES
+ *
+ *   1. WRONG BUCKET. Every stored URL says `gs://ccsj-assets/catalogs/SJFU/...`, a
+ *      bucket that contains no SJFU objects at all (it holds CCSJ/ and GLOBAL/ only).
+ *      The SJFU assets live in `gs://sjfu-assets/` under the identical path suffix,
+ *      so only the bucket segment is wrong.
+ *
+ *   2. EVERY COURSE AND CHUNK POINTS AT PAGE 1. `semantic_chunks.page_number` is 1
+ *      for all 39,544 rows (a web-scrape artifact), and the original backfill derived
+ *      `markdown_url` from that number — so all 8 catalogs collapse onto `page_0001.md`.
+ *      The real per-page assets DO exist (e.g. 771 pages for 2025-2026-undergraduate);
+ *      the database simply lost the mapping. This script rebuilds it from the assets.
+ *
+ * HOW A COURSE IS MAPPED
+ *   A course code appears on many pages — most of them program requirement listings
+ *   ("* HIST 301 - P1 Japanese History through Film (3)"). Those are mentions, not
+ *   sources. The authoritative source is the course-description entry, which is a
+ *   markdown heading: "## HIST-301 P1 Japanese Hist Thru Film (3)". We index ONLY
+ *   headings, so a course links to the page that actually describes it. Note the dual
+ *   numbering ("HIST 301" in the DB vs "HIST-301" in the heading) — codes are
+ *   normalised to "SUBJ NNN" on both sides before comparison.
+ *
+ * HOW A CHUNK IS MAPPED
+ *   Chunk bodies are verbatim runs of catalog prose (after their "[Header 1: ...]"
+ *   breadcrumb prefix). We index every 8-word shingle of every page, then look up the
+ *   chunk's opening shingle — an O(1) exact match rather than a fuzzy score, so a hit
+ *   is a genuine textual identity, not a guess. Several offsets are tried before a
+ *   chunk is declared unmatched.
+ *
+ * UNMATCHED ROWS ARE NULLED, NOT GUESSED. A row we cannot place gets `markdown_url =
+ * NULL`, which makes the UI fall back to its (accurate) database-compiled view. Leaving
+ * a wrong-but-plausible page 1 link would render confidently incorrect provenance —
+ * strictly worse than admitting we don't know.
+ *
+ * PROGRAMS. `programs.markdown_url` values (e.g. .../programs/biochemistry_bs.md) are
+ * fabricated: zero objects exist under any `programs/` prefix in the bucket. They are
+ * nulled so programs fall back to their rich compiled view instead of 404ing forever.
+ *
+ * Every prior value is copied into `source_page_backfill_backup` before any write, so
+ * the whole operation is reversible (see --restore).
+ *
+ * Usage:
+ *   node scripts/backfill_source_pages.mjs                 # dry run — reports, writes nothing
+ *   node scripts/backfill_source_pages.mjs --apply         # perform the backfill
+ *   node scripts/backfill_source_pages.mjs --restore       # roll back from the backup table
+ *   node scripts/backfill_source_pages.mjs --version 2025-2026-undergraduate --apply
+ */
+
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import pg from 'pg';
+import { Storage } from '@google-cloud/storage';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const REPO_ROOT = path.resolve(__dirname, '..');
+
+const SHINGLE_WORDS = 8;
+// Word offsets to try when a chunk's opening shingle misses (leading boilerplate,
+// a stray bullet, reflowed whitespace). Later offsets are progressively deeper into
+// the body, where the text is more likely to be a clean verbatim run.
+const PROBE_OFFSETS = [0, 2, 4, 8, 12, 16, 24];
+
+// ── Minimal .env.local loader (Node scripts don't auto-load it like Next.js). ──
+function loadEnvLocal() {
+  const envPath = path.join(REPO_ROOT, '.env.local');
+  if (!fs.existsSync(envPath)) return;
+  for (const rawLine of fs.readFileSync(envPath, 'utf-8').split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith('#')) continue;
+    const eq = line.indexOf('=');
+    if (eq === -1) continue;
+    const key = line.slice(0, eq).trim();
+    let val = line.slice(eq + 1);
+    const hash = val.indexOf(' #'); // inline comment delimiter
+    if (hash !== -1) val = val.slice(0, hash);
+    val = val.trim().replace(/^["']|["']$/g, '');
+    if (key && !(key in process.env)) process.env[key] = val;
+  }
+}
+
+function parseArgs(argv) {
+  const out = { apply: false, restore: false, version: null, concurrency: 24 };
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i];
+    if (a === '--apply') out.apply = true;
+    else if (a === '--restore') out.restore = true;
+    else if (a === '--version') out.version = argv[++i];
+    else if (a.startsWith('--version=')) out.version = a.split('=')[1];
+    else if (a === '--concurrency') out.concurrency = parseInt(argv[++i], 10);
+  }
+  return out;
+}
+
+const BUCKET = process.env.GCP_BUCKET_NAME || process.env.GCS_BUCKET || 'sjfu-assets';
+
+/** Collapse whitespace and lowercase, so PDF line wrapping can't defeat a comparison. */
+function normText(s) {
+  return s.replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+/** "HIST-301" / "hist 301" / "HIST  301" → "HIST 301". */
+function normCode(code) {
+  return code.toUpperCase().replace(/[\s\-–—_]+/g, ' ').trim();
+}
+
+/** Strip the "[Header 1: ... > Header 2: ...]" breadcrumb the chunker prepends. */
+function chunkBody(content) {
+  return content.replace(/^\s*\[[^\]]*\]\s*/, '');
+}
+
+function pageUrl(version, page) {
+  const padded = String(page).padStart(4, '0');
+  return `gs://${BUCKET}/catalogs/SJFU/${version}/pages/page_${padded}.md`;
+}
+
+/** Download every page_NNNN.md for a catalog version. Returns [{page, text}] ascending. */
+async function loadPages(storage, version, concurrency) {
+  const prefix = `catalogs/SJFU/${version}/pages/`;
+  const [files] = await storage.bucket(BUCKET).getFiles({ prefix });
+  const mdFiles = files.filter((f) => f.name.endsWith('.md'));
+
+  const pages = [];
+  let cursor = 0;
+  async function worker() {
+    while (cursor < mdFiles.length) {
+      const file = mdFiles[cursor++];
+      const m = file.name.match(/page_(\d+)\.md$/);
+      if (!m) continue;
+      const [buf] = await file.download();
+      pages.push({ page: parseInt(m[1], 10), text: buf.toString('utf-8') });
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(concurrency, mdFiles.length) }, worker));
+
+  pages.sort((a, b) => a.page - b.page);
+  return pages;
+}
+
+/**
+ * Index course-description headings → page.
+ *
+ * Matches "## HIST-301 P1 Japanese Hist Thru Film (3)" and tolerates the spaced
+ * variant. Only headings count; a bare mention in a requirements list does not.
+ * Earliest page wins (descriptions are listed once; a later repeat is an index/appendix).
+ */
+function indexCourseHeadings(pages) {
+  const index = new Map();
+  // {3,4} digits, not {3}: this catalog runs dual numbering — legacy three-digit codes
+  // (HIST 301) alongside four-digit ones (CRIM 1299). A {3} pattern silently drops every
+  // four-digit course, which is ~20% of the undergraduate catalog.
+  const headingRe = /^#{1,6}\s+([A-Z]{2,6})[\s\-–—]\s*(\d{3,4}[A-Z]?)\b/gm;
+
+  for (const { page, text } of pages) {
+    for (const m of text.matchAll(headingRe)) {
+      const key = normCode(`${m[1]} ${m[2]}`);
+      if (!index.has(key)) index.set(key, page);
+    }
+  }
+  return index;
+}
+
+/** Index every 8-word shingle of every page → earliest page containing it. */
+function indexShingles(pages) {
+  const index = new Map();
+
+  for (const { page, text } of pages) {
+    const words = normText(text).split(' ');
+    for (let i = 0; i + SHINGLE_WORDS <= words.length; i++) {
+      const key = words.slice(i, i + SHINGLE_WORDS).join(' ');
+      if (!index.has(key)) index.set(key, page);
+    }
+  }
+  return index;
+}
+
+/**
+ * Index each page's heading lines → the pages carrying that heading.
+ *
+ * Roughly 45% of chunks are heading-only ("# Attendance Policy"), too short to
+ * fingerprint with an 8-word shingle. Their heading text still locates them exactly,
+ * provided it is unique in the catalog — hence a page LIST, so ambiguous headings
+ * ("## Policies", which recurs on dozens of pages) can be rejected rather than
+ * mapped to an arbitrary first hit.
+ */
+function indexHeadings(pages) {
+  const index = new Map();
+
+  for (const { page, text } of pages) {
+    for (const line of text.split(/\r?\n/)) {
+      const m = line.match(/^#{1,6}\s+(.*\S)\s*$/);
+      if (!m) continue;
+      const key = normText(m[1]);
+      if (!key) continue;
+      if (!index.has(key)) index.set(key, new Set());
+      index.get(key).add(page);
+    }
+  }
+  return index;
+}
+
+/**
+ * Locate a chunk by probing its body's opening shingles against the page index.
+ *
+ * @returns The page number, or null if the body is too short / not found verbatim.
+ */
+function locateChunk(shingles, content) {
+  const words = normText(chunkBody(content)).split(' ').filter(Boolean);
+  if (words.length < SHINGLE_WORDS) return null;
+
+  for (const offset of PROBE_OFFSETS) {
+    if (offset + SHINGLE_WORDS > words.length) break;
+    const probe = words.slice(offset, offset + SHINGLE_WORDS).join(' ');
+    const page = shingles.get(probe);
+    if (page !== undefined) return page;
+  }
+  return null;
+}
+
+/**
+ * Locate a heading-only chunk by its heading text, but ONLY when that heading occurs
+ * on exactly one page. A heading appearing on several pages tells us nothing about
+ * which one this chunk came from, so we decline and let neighbour inheritance decide.
+ */
+function locateHeading(headings, content) {
+  const body = chunkBody(content).trim();
+  const m = body.match(/^#{1,6}\s+(.*\S)\s*$/);
+  const key = normText(m ? m[1] : body);
+  if (!key) return null;
+
+  const found = headings.get(key);
+  return found && found.size === 1 ? [...found][0] : null;
+}
+
+/** Capture current values so --restore can put everything back exactly as it was. */
+async function backup(client) {
+  await client.query(`
+    CREATE TABLE IF NOT EXISTS source_page_backfill_backup (
+      table_name   text NOT NULL,
+      row_id       uuid NOT NULL,
+      markdown_url text,
+      page_number  integer,
+      backed_up_at timestamptz NOT NULL DEFAULT now(),
+      PRIMARY KEY (table_name, row_id)
+    )
+  `);
+
+  // ON CONFLICT DO NOTHING keeps the FIRST (pristine) capture if the script is re-run,
+  // so a second pass can never overwrite the backup with already-modified values.
+  await client.query(`
+    INSERT INTO source_page_backfill_backup (table_name, row_id, markdown_url, page_number)
+    SELECT 'courses', id, markdown_url, NULL FROM courses
+    ON CONFLICT (table_name, row_id) DO NOTHING
+  `);
+  await client.query(`
+    INSERT INTO source_page_backfill_backup (table_name, row_id, markdown_url, page_number)
+    SELECT 'semantic_chunks', id, markdown_url, page_number FROM semantic_chunks
+    ON CONFLICT (table_name, row_id) DO NOTHING
+  `);
+  await client.query(`
+    INSERT INTO source_page_backfill_backup (table_name, row_id, markdown_url, page_number)
+    SELECT 'programs', id, markdown_url, NULL FROM programs
+    ON CONFLICT (table_name, row_id) DO NOTHING
+  `);
+
+  const { rows } = await client.query('SELECT count(*)::int AS n FROM source_page_backfill_backup');
+  console.log(`  backup table holds ${rows[0].n} original rows`);
+}
+
+async function restore(client) {
+  const courses = await client.query(`
+    UPDATE courses c SET markdown_url = b.markdown_url
+    FROM source_page_backfill_backup b
+    WHERE b.table_name = 'courses' AND b.row_id = c.id
+  `);
+  const chunks = await client.query(`
+    UPDATE semantic_chunks s SET markdown_url = b.markdown_url, page_number = b.page_number
+    FROM source_page_backfill_backup b
+    WHERE b.table_name = 'semantic_chunks' AND b.row_id = s.id
+  `);
+  const programs = await client.query(`
+    UPDATE programs p SET markdown_url = b.markdown_url
+    FROM source_page_backfill_backup b
+    WHERE b.table_name = 'programs' AND b.row_id = p.id
+  `);
+  console.log(
+    `Restored: ${courses.rowCount} courses, ${chunks.rowCount} chunks, ${programs.rowCount} programs.`
+  );
+}
+
+/** Push a batch of (id → url/page) updates using a single parameterised statement. */
+async function updateCourses(client, updates) {
+  if (!updates.length) return;
+  await client.query(
+    `UPDATE courses AS c SET markdown_url = v.url
+     FROM (SELECT unnest($1::uuid[]) AS id, unnest($2::text[]) AS url) AS v
+     WHERE c.id = v.id`,
+    [updates.map((u) => u.id), updates.map((u) => u.url)]
+  );
+}
+
+async function updateChunks(client, updates) {
+  if (!updates.length) return;
+  await client.query(
+    `UPDATE semantic_chunks AS s SET markdown_url = v.url, page_number = v.page
+     FROM (SELECT unnest($1::uuid[]) AS id, unnest($2::text[]) AS url, unnest($3::int[]) AS page) AS v
+     WHERE s.id = v.id`,
+    [updates.map((u) => u.id), updates.map((u) => u.url), updates.map((u) => u.page)]
+  );
+}
+
+async function main() {
+  loadEnvLocal();
+  const args = parseArgs(process.argv.slice(2));
+
+  const dbUrl = process.env.DATABASE_URL;
+  if (!dbUrl) throw new Error('DATABASE_URL is not set (check .env.local).');
+
+  const client = new pg.Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
+  await client.connect();
+
+  try {
+    if (args.restore) {
+      await restore(client);
+      return;
+    }
+
+    const mode = args.apply ? 'APPLY' : 'DRY RUN (no writes — pass --apply to commit)';
+    console.log(`\nSource-page backfill — ${mode}\nBucket: gs://${BUCKET}\n`);
+
+    // Catalog versions are recoverable from the stored URLs: only the bucket segment
+    // is wrong, the "catalogs/SJFU/<version>/..." suffix is correct.
+    const { rows: versionRows } = await client.query(`
+      SELECT DISTINCT substring(markdown_url from 'catalogs/SJFU/([^/]+)/') AS version
+      FROM semantic_chunks
+      WHERE markdown_url IS NOT NULL
+      ORDER BY 1
+    `);
+    let versions = versionRows.map((r) => r.version).filter(Boolean);
+    if (args.version) versions = versions.filter((v) => v === args.version);
+    if (!versions.length) throw new Error('No catalog versions found.');
+
+    if (args.apply) {
+      console.log('Backing up current values…');
+      await backup(client);
+      console.log('');
+    }
+
+    const storage = new Storage({ projectId: process.env.GCP_PROJECT_ID });
+    const totals = {
+      courseMatched: 0, courseUnmatched: 0,
+      chunkMatched: 0, chunkUnmatched: 0,
+    };
+
+    for (const version of versions) {
+      console.log(`── ${version}`);
+      const pages = await loadPages(storage, version, args.concurrency);
+      if (!pages.length) {
+        console.log('   no page assets in bucket — skipping\n');
+        continue;
+      }
+
+      const headings = indexCourseHeadings(pages);
+      const shingles = indexShingles(pages);
+      console.log(
+        `   ${pages.length} pages · ${headings.size} course headings · ${shingles.size} shingles`
+      );
+
+      const urlLike = `%catalogs/SJFU/${version}/%`;
+
+      // ── Courses ──
+      const { rows: courses } = await client.query(
+        'SELECT id, course_code FROM courses WHERE markdown_url LIKE $1',
+        [urlLike]
+      );
+      const courseUpdates = [];
+      let cMatched = 0;
+      for (const c of courses) {
+        const page = c.course_code ? headings.get(normCode(c.course_code)) : undefined;
+        if (page !== undefined) {
+          courseUpdates.push({ id: c.id, url: pageUrl(version, page) });
+          cMatched++;
+        } else {
+          courseUpdates.push({ id: c.id, url: null }); // don't keep a false page-1 link
+        }
+      }
+      const cUnmatched = courses.length - cMatched;
+      totals.courseMatched += cMatched;
+      totals.courseUnmatched += cUnmatched;
+      console.log(`   courses: ${cMatched} mapped, ${cUnmatched} unmatched → NULL`);
+
+      // ── Semantic chunks: three passes, strongest evidence first ──
+      // Read in document order so pass 3 can reason about neighbours.
+      const { rows: chunks } = await client.query(
+        `SELECT id, content, document_id, sequence_order
+         FROM semantic_chunks
+         WHERE markdown_url LIKE $1
+         ORDER BY document_id, sequence_order`,
+        [urlLike]
+      );
+
+      const resolved = new Array(chunks.length).fill(null);
+      const via = { body: 0, heading: 0, neighbour: 0 };
+
+      // Pass 1 — verbatim body text (exact, strongest).
+      for (let i = 0; i < chunks.length; i++) {
+        const page = chunks[i].content ? locateChunk(shingles, chunks[i].content) : null;
+        if (page !== null) { resolved[i] = page; via.body++; }
+      }
+
+      // Pass 2 — heading-only chunks whose heading is unique in the catalog.
+      for (let i = 0; i < chunks.length; i++) {
+        if (resolved[i] !== null || !chunks[i].content) continue;
+        const page = locateHeading(headings, chunks[i].content);
+        if (page !== null) { resolved[i] = page; via.heading++; }
+      }
+
+      // Pass 3 — a heading sits on the page of the section it introduces, so inherit
+      // from the next resolved chunk of the SAME document (falling back to the previous
+      // one at a document's tail). Confined to one document: bleeding a page number
+      // across a document boundary would invent provenance rather than recover it.
+      for (let i = 0; i < chunks.length; i++) {
+        if (resolved[i] !== null) continue;
+        const doc = chunks[i].document_id;
+
+        let inherited = null;
+        for (let j = i + 1; j < chunks.length && chunks[j].document_id === doc; j++) {
+          if (resolved[j] !== null) { inherited = resolved[j]; break; }
+        }
+        if (inherited === null) {
+          for (let j = i - 1; j >= 0 && chunks[j].document_id === doc; j--) {
+            if (resolved[j] !== null) { inherited = resolved[j]; break; }
+          }
+        }
+        if (inherited !== null) { resolved[i] = inherited; via.neighbour++; }
+      }
+
+      const chunkUpdates = chunks.map((s, i) =>
+        resolved[i] !== null
+          ? { id: s.id, url: pageUrl(version, resolved[i]), page: resolved[i] }
+          : { id: s.id, url: null, page: null }
+      );
+
+      const sMatched = resolved.filter((p) => p !== null).length;
+      const sUnmatched = chunks.length - sMatched;
+      totals.chunkMatched += sMatched;
+      totals.chunkUnmatched += sUnmatched;
+      console.log(
+        `   chunks:  ${sMatched} mapped (${via.body} body, ${via.heading} heading, ` +
+        `${via.neighbour} neighbour), ${sUnmatched} unmatched → NULL`
+      );
+
+      const distinctPages = new Set(chunkUpdates.filter((u) => u.page).map((u) => u.page)).size;
+      console.log(`   chunks now span ${distinctPages} distinct pages (was 1)\n`);
+
+      if (args.apply) {
+        const BATCH = 1000;
+        for (let i = 0; i < courseUpdates.length; i += BATCH) {
+          await updateCourses(client, courseUpdates.slice(i, i + BATCH));
+        }
+        for (let i = 0; i < chunkUpdates.length; i += BATCH) {
+          await updateChunks(client, chunkUpdates.slice(i, i + BATCH));
+        }
+      }
+    }
+
+    // ── Programs: the referenced assets do not exist, in any bucket. ──
+    const { rows: progRows } = await client.query(
+      'SELECT count(*)::int AS n FROM programs WHERE markdown_url IS NOT NULL'
+    );
+    console.log(
+      `── programs: ${progRows[0].n} fabricated URLs → NULL (no programs/ objects exist in the bucket)\n`
+    );
+    if (args.apply) {
+      await client.query('UPDATE programs SET markdown_url = NULL WHERE markdown_url IS NOT NULL');
+    }
+
+    console.log('Totals');
+    console.log(`  courses: ${totals.courseMatched} mapped, ${totals.courseUnmatched} unmatched`);
+    console.log(`  chunks:  ${totals.chunkMatched} mapped, ${totals.chunkUnmatched} unmatched`);
+    console.log(
+      args.apply
+        ? '\nApplied. Re-run with --restore to roll back from source_page_backfill_backup.\n'
+        : '\nDry run only — nothing written. Re-run with --apply to commit.\n'
+    );
+  } finally {
+    await client.end();
+  }
+}
+
+main().catch((err) => {
+  console.error(`\nBackfill failed: ${err.message}\n`);
+  process.exit(1);
+});

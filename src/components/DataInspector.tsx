@@ -4,21 +4,59 @@ import React, { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import ReportErrorModal from './ReportErrorModal';
-import { INSTITUTION, TENANT_ID, GCS_BUCKET } from '@/lib/brand';
+import { INSTITUTION } from '@/lib/brand';
 
-// Helper to compile beautiful fallback markdown for a program when GCS is private or 403s
+/** Reads the page number out of a `.../pages/page_0360.md` source URL. */
+const parsePageFromUrl = (url?: string | null): number | null => {
+  const m = url?.match(/page_(\d+)\.md$/);
+  return m ? parseInt(m[1], 10) : null;
+};
+
+/** Re-points a source URL at another page, so the page navigator can browse the catalog. */
+const withPage = (url: string, page: number): string =>
+  url.replace(/page_\d+\.md$/, `page_${String(page).padStart(4, '0')}.md`);
+
 /**
- * Helper to compile beautiful fallback markdown for a program when GCS is private or 403s.
+ * Explains, truthfully, why a database-compiled view is being shown instead of the
+ * source page.
+ *
+ * These strings used to be a single sentence blaming "the private storage repository"
+ * for every failure — which meant a missing environment variable, an expired token, a
+ * dead bucket and a record that simply has no source page all looked identical, and all
+ * looked like something only a storage admin could fix. Naming the actual cause is what
+ * makes the difference between a five-minute config fix and a day of bucket archaeology.
+ */
+type FallbackReason =
+  | { kind: 'no-source' }
+  | { kind: 'not-found'; url: string }
+  | { kind: 'error'; detail: string };
+
+const fallbackNote = (reason: FallbackReason): string => {
+  switch (reason.kind) {
+    case 'no-source':
+      return `> [!NOTE]
+> **No source page linked.** This record has no page in the source catalog we can trace it to, so the view below is compiled from the ${INSTITUTION.legalName} catalog database.`;
+    case 'not-found':
+      return `> [!WARNING]
+> **Source page not found.** The linked catalog page (\`${reason.url}\`) is not present in storage. Showing the database record instead.`;
+    case 'error':
+      return `> [!WARNING]
+> **Source page could not be loaded.** ${reason.detail} Showing the database record instead — this is a retrieval problem, not missing data.`;
+  }
+};
+
+/**
+ * Helper to compile beautiful fallback markdown for a program from database records.
  *
  * @param {any} program - The program data object.
  * @param {any} details - The detailed requirements data object.
+ * @param {FallbackReason} reason - Why the source page is not being shown.
  * @returns {string} The markdown content.
  */
-const compileProgramFallbackMarkdown = (program: any, details: any) => {
+const compileProgramFallbackMarkdown = (program: any, details: any, reason: FallbackReason) => {
   if (!program) return '';
 
-  let md = `> [!NOTE]
-> **Database Fallback:** The high-fidelity markdown curriculum guide could not be retrieved from the GCS bucket (\`${GCS_BUCKET}\`). Displaying live records compiled dynamically from the ${INSTITUTION.legalName} catalog database.
+  let md = `${fallbackNote(reason)}
 
 # ${program.name || 'Academic Program'}
 
@@ -94,19 +132,18 @@ const compileProgramFallbackMarkdown = (program: any, details: any) => {
   return md;
 };
 
-// Helper to compile fallback markdown for a course when the GCS source page is unreachable.
 /**
- * Helper to compile fallback markdown for a course when the GCS source page 403s / 404s.
+ * Helper to compile fallback markdown for a course from its database record.
  * Renders the structured DB record so the "Source Catalog Page" tab is never blank.
  *
  * @param {any} course - The course data object.
+ * @param {FallbackReason} reason - Why the source page is not being shown.
  * @returns {string} The markdown content.
  */
-const compileCourseFallbackMarkdown = (course: any) => {
+const compileCourseFallbackMarkdown = (course: any, reason: FallbackReason) => {
   if (!course) return '';
 
-  let md = `> [!NOTE]
-> **Database Fallback:** The source catalog page asset could not be retrieved from the private storage repository. Displaying the course record loaded from our structured database.
+  let md = `${fallbackNote(reason)}
 
 # ${course.course_code || 'Course'}${course.title ? ` — ${course.title}` : ''}
 
@@ -117,18 +154,17 @@ const compileCourseFallbackMarkdown = (course: any) => {
   return md;
 };
 
-// Helper to compile beautiful fallback markdown for a policy when GCS is private or 403s
 /**
- * Helper to compile beautiful fallback markdown for a policy when GCS is private or 403s.
+ * Helper to compile beautiful fallback markdown for a policy from database records.
  *
  * @param {any} chunk - The policy chunk data.
+ * @param {FallbackReason} reason - Why the source page is not being shown.
  * @returns {string} The markdown content.
  */
-const compilePolicyFallbackMarkdown = (chunk: any) => {
+const compilePolicyFallbackMarkdown = (chunk: any, reason: FallbackReason) => {
   if (!chunk) return '';
 
-  return `> [!NOTE]
-> **Database Fallback:** The direct GCS catalog page asset could not be retrieved from the private storage repository. Displaying catalog semantic text loaded from our structured database.
+  return `${fallbackNote(reason)}
 
 # ${chunk.section_header || 'Academic Policy Section'}
 
@@ -170,10 +206,12 @@ export default function DataInspector({ catalogId, initialView }: DataInspectorP
   const [currentCatalogVersion, setCurrentCatalogVersion] = useState<string>('2025-2026');
   const [currentPage, setCurrentPage] = useState<number | null>(null);
 
-  // Sync current page state when selected entity changes
+  // Sync current page state when selected entity changes.
+  // `courses` has no page_number column, so fall back to the page encoded in the source
+  // URL — that keeps the page navigator working for courses, not just policy chunks.
   useEffect(() => {
     if (selectedEntity) {
-      setCurrentPage(selectedEntity.page_number || null);
+      setCurrentPage(selectedEntity.page_number || parsePageFromUrl(selectedEntity.markdown_url));
     } else {
       setCurrentPage(null);
     }
@@ -278,69 +316,69 @@ export default function DataInspector({ catalogId, initialView }: DataInspectorP
       return;
     }
 
+    // Render the database-compiled view for whichever entity type is selected, stating
+    // plainly why the source page isn't being shown.
+    function showFallback(reason: FallbackReason) {
+      const md =
+        view === 'programs'
+          ? compileProgramFallbackMarkdown(selectedEntity, entityDetails, reason)
+          : view === 'policies'
+            ? compilePolicyFallbackMarkdown(selectedEntity, reason)
+            : compileCourseFallbackMarkdown(selectedEntity, reason);
+
+      setMarkdownContent(md);
+      setMarkdownError(null);
+      setMarkdownLoading(false);
+    }
+
     async function fetchMarkdown() {
       setMarkdownLoading(true);
       setMarkdownError(null);
       setMarkdownContent('');
 
-      let targetUrl = '';
+      // `markdown_url` is the single source of truth. (A previous version synthesised a
+      // URL from `page_number` when it was absent — but that template pointed at a path
+      // layout that does not exist in the bucket, and `page_number` was 1 on every row,
+      // so it could only ever produce a link to page 1 of the catalog.)
+      const sourceUrl: string = selectedEntity.markdown_url || '';
 
-      // Prioritize explicitly defined markdown_url, then fallback to page_number mapping
-      if (selectedEntity.markdown_url) {
-        targetUrl = selectedEntity.markdown_url;
-      } else if (currentPage !== null) {
-        const paddedPage = String(currentPage).padStart(4, '0');
-        targetUrl = `gs://${GCS_BUCKET}/${currentCatalogVersion}-${TENANT_ID}-Catalog/page_${paddedPage}.md`;
-      }
-
-      if (!targetUrl) {
-        if (view === 'courses') {
-          // No source page linked (e.g. a ghost/referenced course) — show the DB record instead of erroring.
-          setMarkdownContent(compileCourseFallbackMarkdown(selectedEntity));
-          setMarkdownError(null);
-          setMarkdownLoading(false);
-          return;
-        }
-        setMarkdownError(
-          view === 'programs'
-            ? `No Markdown Guide URL linked yet. Set the "markdown_url" column in Supabase programs table (e.g. gs://${GCS_BUCKET}/catalogs/${currentCatalogVersion}/programs/...).`
-            : `No GCS Page URL linked. Add "markdown_url" in Supabase, or ensure a "page_number" is defined on the semantic chunk.`
-        );
-        setMarkdownLoading(false);
+      if (!sourceUrl) {
+        showFallback({ kind: 'no-source' });
         return;
       }
 
+      // The page navigator browses away from the record's own page; honour wherever it is.
+      const targetUrl =
+        currentPage !== null && currentPage !== parsePageFromUrl(sourceUrl)
+          ? withPage(sourceUrl, currentPage)
+          : sourceUrl;
+
       try {
         const response = await fetch(`/api/markdown?url=${encodeURIComponent(targetUrl)}`);
+
         if (!response.ok) {
-          throw new Error(`Failed to load: ${response.status} ${response.statusText}`);
+          if (response.status === 404) {
+            showFallback({ kind: 'not-found', url: targetUrl });
+            return;
+          }
+          // Surface what the server actually said (missing GCS config, IAM denial, …)
+          // rather than flattening every failure into "asset unavailable".
+          const body = await response.json().catch(() => null);
+          const detail: string =
+            body?.message || body?.error || `The server returned ${response.status} ${response.statusText}.`;
+          showFallback({ kind: 'error', detail });
+          return;
         }
+
         const text = await response.text();
         if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html') || text.includes('<body')) {
-          throw new Error("Received an HTML document instead of raw GCS Markdown. Please clear your browser cache or perform a hard refresh.");
+          throw new Error('Received an HTML document instead of raw Markdown (likely a stale cache — try a hard refresh).');
         }
         setMarkdownContent(text);
-      } catch (err: any) {
-        console.error("Error loading GCS markdown, compiling dynamic DB fallback:", err);
-        if (view === 'programs') {
-          const fallbackMd = compileProgramFallbackMarkdown(selectedEntity, entityDetails);
-          setMarkdownContent(fallbackMd);
-          setMarkdownError(null);
-        } else if (view === 'policies') {
-          const fallbackMd = compilePolicyFallbackMarkdown(selectedEntity);
-          setMarkdownContent(fallbackMd);
-          setMarkdownError(null);
-        } else if (view === 'courses') {
-          const fallbackMd = compileCourseFallbackMarkdown(selectedEntity);
-          setMarkdownContent(fallbackMd);
-          setMarkdownError(null);
-        } else {
-          setMarkdownError(
-            `Could not load document from GCS: ${err.message}. \n\nEnsure the GCS bucket "${GCS_BUCKET}" is set to public-read access and your markdown file exists at: \n${targetUrl}`
-          );
-        }
-      } finally {
         setMarkdownLoading(false);
+      } catch (err: any) {
+        console.error('Error loading source markdown, compiling database fallback:', err);
+        showFallback({ kind: 'error', detail: err.message });
       }
     }
 

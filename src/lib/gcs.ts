@@ -127,6 +127,17 @@ export async function getStorageClient(req?: Request): Promise<Storage> {
       projectId: process.env.GCP_PROJECT_ID,
       authClient: authClient as any,
     });
+  } else if (process.env.VERCEL) {
+    // No credentials, but we are running on Vercel — the ADC fallback below cannot
+    // work here (there is no gcloud ADC file in a serverless runtime). Failing loudly
+    // with the missing variable names beats letting the SDK fail deep in a download()
+    // call, where the error surfaces to the UI as an unhelpful "asset unavailable".
+    throw new Error(
+      'GCS is not configured for this deployment. Set either the keyless Workload Identity ' +
+      'variables (GCP_PROJECT_NUMBER, GCP_WORKLOAD_IDENTITY_POOL_ID, ' +
+      'GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID, GCP_SERVICE_ACCOUNT_EMAIL) or a service-account ' +
+      'key (GCP_SERVICE_ACCOUNT_EMAIL + GCP_PRIVATE_KEY) in the Vercel project environment.'
+    );
   } else {
     // Option 4: Local development fallback (uses gcloud ADC)
     console.log("[GCS SDK] No active cloud credentials found. Falling back to local credentials...");
@@ -137,9 +148,28 @@ export async function getStorageClient(req?: Request): Promise<Storage> {
 }
 
 /**
- * Retrieves the base bucket name, defaulting to the institution's configured
- * asset bucket (`GCS_BUCKET`), overridable per-call or via `GCP_BUCKET_NAME`.
+ * Resolves the institution's configured asset bucket.
+ *
+ * The configured bucket ALWAYS wins over `legacyName`. Stored `markdown_url`
+ * values are historical data, not configuration: rows carried over from the CCSJ
+ * hub still say `gs://ccsj-assets/...`, a bucket that holds no SJFU objects. Honouring
+ * the bucket parsed out of such a URL sends every read to a dead path, so a legacy
+ * name is treated as a hint to be healed rather than an override to be obeyed.
+ *
+ * `GCP_BUCKET_NAME` (hub convention) and `GCS_BUCKET` (spoke convention) are both
+ * accepted so the same code authenticates under either deployment's env contract.
+ *
+ * @param legacyName - Bucket parsed from a stored URL. Logged when it disagrees; never obeyed.
+ * @returns The configured asset bucket name.
  */
-export function resolveBucketName(overrideName?: string): string {
-  return overrideName || process.env.GCP_BUCKET_NAME || GCS_BUCKET;
+export function resolveBucketName(legacyName?: string): string {
+  const configured = process.env.GCP_BUCKET_NAME || process.env.GCS_BUCKET || GCS_BUCKET;
+
+  if (legacyName && legacyName !== configured) {
+    console.warn(
+      `[GCS] Stored URL names bucket "${legacyName}" but this spoke's assets live in "${configured}". Healing to "${configured}".`
+    );
+  }
+
+  return configured;
 }
