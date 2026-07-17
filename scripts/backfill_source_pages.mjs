@@ -35,9 +35,13 @@
  * a wrong-but-plausible page 1 link would render confidently incorrect provenance —
  * strictly worse than admitting we don't know.
  *
- * PROGRAMS. `programs.markdown_url` values (e.g. .../programs/biochemistry_bs.md) are
- * fabricated: zero objects exist under any `programs/` prefix in the bucket. They are
- * nulled so programs fall back to their rich compiled view instead of 404ing forever.
+ * HOW A PROGRAM IS MAPPED
+ *   The stored `programs.markdown_url` values (.../programs/biochemistry_bs.md) are pure
+ *   fiction — zero objects exist under any `programs/` prefix, and every one of them named
+ *   the same catalog (2022-2023-graduate) whatever the program. There is no per-program
+ *   asset to point at, but each program IS described on a catalog page, so we link to that
+ *   page via its heading ("## B.S. in Biochemistry"). Programs are matched through
+ *   `documents.version`, since their own URL cannot say which catalog they belong to.
  *
  * Every prior value is copied into `source_page_backfill_backup` before any write, so
  * the whole operation is reversible (see --restore).
@@ -47,6 +51,9 @@
  *   node scripts/backfill_source_pages.mjs --apply         # perform the backfill
  *   node scripts/backfill_source_pages.mjs --restore       # roll back from the backup table
  *   node scripts/backfill_source_pages.mjs --version 2025-2026-undergraduate --apply
+ *   node scripts/backfill_source_pages.mjs --pages-dir <dir>   # read pages from a local cache
+ *                                                              # instead of GCS (avoids ADC expiry):
+ *     gcloud storage cp -r "gs://sjfu-assets/catalogs/SJFU/*" <dir>/
  */
 
 import fs from 'fs';
@@ -84,7 +91,7 @@ function loadEnvLocal() {
 }
 
 function parseArgs(argv) {
-  const out = { apply: false, restore: false, version: null, concurrency: 24 };
+  const out = { apply: false, restore: false, version: null, concurrency: 24, pagesDir: null };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--apply') out.apply = true;
@@ -92,6 +99,8 @@ function parseArgs(argv) {
     else if (a === '--version') out.version = argv[++i];
     else if (a.startsWith('--version=')) out.version = a.split('=')[1];
     else if (a === '--concurrency') out.concurrency = parseInt(argv[++i], 10);
+    else if (a === '--pages-dir') out.pagesDir = argv[++i];
+    else if (a.startsWith('--pages-dir=')) out.pagesDir = a.split('=')[1];
   }
   return out;
 }
@@ -116,6 +125,28 @@ function chunkBody(content) {
 function pageUrl(version, page) {
   const padded = String(page).padStart(4, '0');
   return `gs://${BUCKET}/catalogs/SJFU/${version}/pages/page_${padded}.md`;
+}
+
+/**
+ * Read a catalog version's pages from a local cache directory.
+ *
+ * Offered because the GCS client authenticates via gcloud ADC locally, whose reauth
+ * token expires within the hour — long enough to fail midway through an 8-catalog run.
+ * Populate the cache with the (separately authenticated) CLI:
+ *   gcloud storage cp -r "gs://sjfu-assets/catalogs/SJFU/*" <dir>/
+ */
+function loadPagesFromDisk(pagesDir, version) {
+  const dir = path.join(pagesDir, version, 'pages');
+  if (!fs.existsSync(dir)) return [];
+
+  const pages = [];
+  for (const name of fs.readdirSync(dir)) {
+    const m = name.match(/page_(\d+)\.md$/);
+    if (!m) continue;
+    pages.push({ page: parseInt(m[1], 10), text: fs.readFileSync(path.join(dir, name), 'utf-8') });
+  }
+  pages.sort((a, b) => a.page - b.page);
+  return pages;
 }
 
 /** Download every page_NNNN.md for a catalog version. Returns [{page, text}] ascending. */
@@ -222,6 +253,62 @@ function locateChunk(shingles, content) {
 }
 
 /**
+ * Candidate heading spellings for a program name.
+ *
+ * The catalog and the database disagree on how a degree is written, and the `programs`
+ * table itself carries two naming families for the same degree ("Biology B.A." and
+ * "Bachelor of Arts (B.A.) in Biology"), while the page heading is usually a third
+ * ("## B.A. in Biology"). Rather than fuzzy-matching — which would happily map a program
+ * to a neighbouring department's page — we enumerate the exact spellings the catalog is
+ * known to use and require one of them to match a heading verbatim.
+ *
+ * @param {string} name - The program name as stored in the database.
+ * @returns {string[]} Normalised candidate headings, most specific first.
+ */
+function programHeadingCandidates(name) {
+  const out = [];
+  const push = (s) => { const k = normText(s); if (k && !out.includes(k)) out.push(k); };
+  const n = name.trim();
+
+  push(n);
+
+  // "Bachelor of Science (B.S.) in Biology" → "B.S. in Biology" / "Biology"
+  const paren = n.match(/\(([^)]+)\)\s*in\s+(.+)$/i);
+  if (paren) { push(`${paren[1]} in ${paren[2]}`); push(paren[2]); }
+
+  // "Public Health B.S." → "B.S. in Public Health" / "Public Health"
+  const trailing = n.match(/^(.*?)[,\s]+((?:[A-Z]\.){1,3}|(?:Ed|Ph|Psy)\.[A-Z]\.)$/);
+  if (trailing) { push(`${trailing[2]} in ${trailing[1]}`); push(trailing[1]); }
+
+  // "Minor in American Studies" → "American Studies"
+  const minor = n.match(/^Minor in\s+(.+)$/i);
+  if (minor) push(minor[1]);
+
+  // "Accounting Certificate" → "Certificate in Accounting" / "Accounting"
+  const cert = n.match(/^(.*?)\s+(?:Advanced\s+)?Certificate$/i);
+  if (cert) { push(`certificate in ${cert[1]}`); push(cert[1]); }
+
+  return out;
+}
+
+/**
+ * Locate the page describing a program, by heading, requiring an unambiguous hit.
+ *
+ * A program's own page is not derivable from anything in the database (unlike a course,
+ * which has a code), so the heading IS the evidence. Bare-topic candidates like
+ * "Biology" match a department overview, a course list AND the degree page, so any
+ * candidate landing on multiple pages is rejected outright rather than resolved by
+ * picking the first — a wrong program page is worse than an honest database view.
+ */
+function locateProgram(headings, name) {
+  for (const candidate of programHeadingCandidates(name)) {
+    const pagesFound = headings.get(candidate);
+    if (pagesFound && pagesFound.size === 1) return [...pagesFound][0];
+  }
+  return null;
+}
+
+/**
  * Locate a heading-only chunk by its heading text, but ONLY when that heading occurs
  * on exactly one page. A heading appearing on several pages tells us nothing about
  * which one this chunk came from, so we decline and let neighbour inheritance decide.
@@ -313,6 +400,16 @@ async function updateChunks(client, updates) {
   );
 }
 
+async function updatePrograms(client, updates) {
+  if (!updates.length) return;
+  await client.query(
+    `UPDATE programs AS p SET markdown_url = v.url
+     FROM (SELECT unnest($1::uuid[]) AS id, unnest($2::text[]) AS url) AS v
+     WHERE p.id = v.id`,
+    [updates.map((u) => u.id), updates.map((u) => u.url)]
+  );
+}
+
 async function main() {
   loadEnvLocal();
   const args = parseArgs(process.argv.slice(2));
@@ -332,14 +429,13 @@ async function main() {
     const mode = args.apply ? 'APPLY' : 'DRY RUN (no writes — pass --apply to commit)';
     console.log(`\nSource-page backfill — ${mode}\nBucket: gs://${BUCKET}\n`);
 
-    // Catalog versions are recoverable from the stored URLs: only the bucket segment
-    // is wrong, the "catalogs/SJFU/<version>/..." suffix is correct.
-    const { rows: versionRows } = await client.query(`
-      SELECT DISTINCT substring(markdown_url from 'catalogs/SJFU/([^/]+)/') AS version
-      FROM semantic_chunks
-      WHERE markdown_url IS NOT NULL
-      ORDER BY 1
-    `);
+    // `documents.version` already carries the full "2025-2026-undergraduate" key that
+    // names the asset folder. Read it from there rather than parsing it back out of
+    // markdown_url — the URLs are the very thing being repaired, and once a prior run
+    // has nulled the unmatchable ones they can no longer enumerate the catalogs.
+    const { rows: versionRows } = await client.query(
+      'SELECT DISTINCT version FROM documents WHERE version IS NOT NULL ORDER BY 1'
+    );
     let versions = versionRows.map((r) => r.version).filter(Boolean);
     if (args.version) versions = versions.filter((v) => v === args.version);
     if (!versions.length) throw new Error('No catalog versions found.');
@@ -354,33 +450,48 @@ async function main() {
     const totals = {
       courseMatched: 0, courseUnmatched: 0,
       chunkMatched: 0, chunkUnmatched: 0,
+      programMatched: 0, programUnmatched: 0,
     };
 
     for (const version of versions) {
       console.log(`── ${version}`);
-      const pages = await loadPages(storage, version, args.concurrency);
+      const pages = args.pagesDir
+        ? loadPagesFromDisk(args.pagesDir, version)
+        : await loadPages(storage, version, args.concurrency);
       if (!pages.length) {
-        console.log('   no page assets in bucket — skipping\n');
+        console.log('   no page assets available — skipping\n');
         continue;
       }
 
-      const headings = indexCourseHeadings(pages);
+      // Two distinct indexes, deliberately named apart: `courseHeadings` maps a course
+      // CODE to one page; `pageHeadings` maps arbitrary heading TEXT to every page
+      // carrying it. They are not interchangeable — passing one where the other is
+      // expected silently yields no matches rather than an error.
+      const courseHeadings = indexCourseHeadings(pages);
+      const pageHeadings = indexHeadings(pages);
       const shingles = indexShingles(pages);
       console.log(
-        `   ${pages.length} pages · ${headings.size} course headings · ${shingles.size} shingles`
+        `   ${pages.length} pages · ${courseHeadings.size} course headings · ` +
+        `${pageHeadings.size} page headings · ${shingles.size} shingles`
       );
 
-      const urlLike = `%catalogs/SJFU/${version}/%`;
+      // Rows are selected by `documents.version`, NOT by their markdown_url. Filtering on
+      // the URL would make the script one-way: a row nulled by an earlier run no longer
+      // matches any version pattern, so it could never be reconsidered on a re-run (say,
+      // after re-ingesting a catalog). Joining the document keeps every run a full,
+      // idempotent recomputation from evidence.
 
       // ── Courses ──
       const { rows: courses } = await client.query(
-        'SELECT id, course_code FROM courses WHERE markdown_url LIKE $1',
-        [urlLike]
+        `SELECT c.id, c.course_code FROM courses c
+         JOIN documents d ON d.id = c.document_id
+         WHERE d.version = $1`,
+        [version]
       );
       const courseUpdates = [];
       let cMatched = 0;
       for (const c of courses) {
-        const page = c.course_code ? headings.get(normCode(c.course_code)) : undefined;
+        const page = c.course_code ? courseHeadings.get(normCode(c.course_code)) : undefined;
         if (page !== undefined) {
           courseUpdates.push({ id: c.id, url: pageUrl(version, page) });
           cMatched++;
@@ -396,11 +507,12 @@ async function main() {
       // ── Semantic chunks: three passes, strongest evidence first ──
       // Read in document order so pass 3 can reason about neighbours.
       const { rows: chunks } = await client.query(
-        `SELECT id, content, document_id, sequence_order
-         FROM semantic_chunks
-         WHERE markdown_url LIKE $1
-         ORDER BY document_id, sequence_order`,
-        [urlLike]
+        `SELECT s.id, s.content, s.document_id, s.sequence_order
+         FROM semantic_chunks s
+         JOIN documents d ON d.id = s.document_id
+         WHERE d.version = $1
+         ORDER BY s.document_id, s.sequence_order`,
+        [version]
       );
 
       const resolved = new Array(chunks.length).fill(null);
@@ -415,7 +527,7 @@ async function main() {
       // Pass 2 — heading-only chunks whose heading is unique in the catalog.
       for (let i = 0; i < chunks.length; i++) {
         if (resolved[i] !== null || !chunks[i].content) continue;
-        const page = locateHeading(headings, chunks[i].content);
+        const page = locateHeading(pageHeadings, chunks[i].content);
         if (page !== null) { resolved[i] = page; via.heading++; }
       }
 
@@ -455,7 +567,33 @@ async function main() {
       );
 
       const distinctPages = new Set(chunkUpdates.filter((u) => u.page).map((u) => u.page)).size;
-      console.log(`   chunks now span ${distinctPages} distinct pages (was 1)\n`);
+      console.log(`   chunks now span ${distinctPages} distinct pages (was 1)`);
+
+      // ── Programs ──
+      // Programs are joined through `documents.version` rather than their stored URL:
+      // every program's original markdown_url named the same catalog (2022-2023-graduate)
+      // regardless of the actual program, so that URL cannot identify its catalog.
+      const { rows: programs } = await client.query(
+        `SELECT p.id, p.name FROM programs p
+         JOIN documents d ON d.id = p.document_id
+         WHERE d.version = $1`,
+        [version]
+      );
+      const programUpdates = [];
+      let pMatched = 0;
+      for (const p of programs) {
+        const page = p.name ? locateProgram(pageHeadings, p.name) : null;
+        if (page !== null) {
+          programUpdates.push({ id: p.id, url: pageUrl(version, page) });
+          pMatched++;
+        } else {
+          programUpdates.push({ id: p.id, url: null });
+        }
+      }
+      const pUnmatched = programs.length - pMatched;
+      totals.programMatched += pMatched;
+      totals.programUnmatched += pUnmatched;
+      console.log(`   programs: ${pMatched} mapped, ${pUnmatched} unmatched → NULL\n`);
 
       if (args.apply) {
         const BATCH = 1000;
@@ -465,23 +603,16 @@ async function main() {
         for (let i = 0; i < chunkUpdates.length; i += BATCH) {
           await updateChunks(client, chunkUpdates.slice(i, i + BATCH));
         }
+        for (let i = 0; i < programUpdates.length; i += BATCH) {
+          await updatePrograms(client, programUpdates.slice(i, i + BATCH));
+        }
       }
     }
 
-    // ── Programs: the referenced assets do not exist, in any bucket. ──
-    const { rows: progRows } = await client.query(
-      'SELECT count(*)::int AS n FROM programs WHERE markdown_url IS NOT NULL'
-    );
-    console.log(
-      `── programs: ${progRows[0].n} fabricated URLs → NULL (no programs/ objects exist in the bucket)\n`
-    );
-    if (args.apply) {
-      await client.query('UPDATE programs SET markdown_url = NULL WHERE markdown_url IS NOT NULL');
-    }
-
     console.log('Totals');
-    console.log(`  courses: ${totals.courseMatched} mapped, ${totals.courseUnmatched} unmatched`);
-    console.log(`  chunks:  ${totals.chunkMatched} mapped, ${totals.chunkUnmatched} unmatched`);
+    console.log(`  courses:  ${totals.courseMatched} mapped, ${totals.courseUnmatched} unmatched`);
+    console.log(`  chunks:   ${totals.chunkMatched} mapped, ${totals.chunkUnmatched} unmatched`);
+    console.log(`  programs: ${totals.programMatched} mapped, ${totals.programUnmatched} unmatched`);
     console.log(
       args.apply
         ? '\nApplied. Re-run with --restore to roll back from source_page_backfill_backup.\n'
