@@ -235,6 +235,33 @@ function indexHeadings(pages) {
 }
 
 /**
+ * Program-heading "core" form: the normalised heading with a trailing "program(s)" word
+ * removed. Catalog headings frequently append it ("Nursing B.S." in the DB vs
+ * "Nursing B.S. Program" on the page) — pure ingestion noise, since the heading is the
+ * program name plus a fixed suffix. Collapsing both sides to this form lets them match.
+ */
+function programCoreKey(s) {
+  return normText(s).replace(/\s+programs?$/, '').trim();
+}
+
+/** Like indexHeadings, but keyed by the program-core form (trailing "program" dropped). */
+function indexHeadingsCore(pages) {
+  const index = new Map();
+
+  for (const { page, text } of pages) {
+    for (const line of text.split(/\r?\n/)) {
+      const m = line.match(/^#{1,6}\s+(.*\S)\s*$/);
+      if (!m) continue;
+      const key = programCoreKey(m[1]);
+      if (!key) continue;
+      if (!index.has(key)) index.set(key, new Set());
+      index.get(key).add(page);
+    }
+  }
+  return index;
+}
+
+/**
  * Locate a chunk by probing its body's opening shingles against the page index.
  *
  * @returns The page number, or null if the body is too short / not found verbatim.
@@ -300,9 +327,17 @@ function programHeadingCandidates(name) {
  * candidate landing on multiple pages is rejected outright rather than resolved by
  * picking the first — a wrong program page is worse than an honest database view.
  */
-function locateProgram(headings, name) {
+function locateProgram(headings, headingsCore, name) {
+  // Pass 1 — exact heading, any candidate spelling.
   for (const candidate of programHeadingCandidates(name)) {
     const pagesFound = headings.get(candidate);
+    if (pagesFound && pagesFound.size === 1) return [...pagesFound][0];
+  }
+  // Pass 2 — tolerate a trailing "Program" on the page heading. Still requires a UNIQUE
+  // page, so an item that appears both in a table-of-contents ("X") and as content
+  // ("X Program") stays ambiguous and is declined rather than guessed.
+  for (const candidate of programHeadingCandidates(name)) {
+    const pagesFound = headingsCore.get(programCoreKey(candidate));
     if (pagesFound && pagesFound.size === 1) return [...pagesFound][0];
   }
   return null;
@@ -469,6 +504,7 @@ async function main() {
       // expected silently yields no matches rather than an error.
       const courseHeadings = indexCourseHeadings(pages);
       const pageHeadings = indexHeadings(pages);
+      const pageHeadingsCore = indexHeadingsCore(pages);
       const shingles = indexShingles(pages);
       console.log(
         `   ${pages.length} pages · ${courseHeadings.size} course headings · ` +
@@ -582,7 +618,7 @@ async function main() {
       const programUpdates = [];
       let pMatched = 0;
       for (const p of programs) {
-        const page = p.name ? locateProgram(pageHeadings, p.name) : null;
+        const page = p.name ? locateProgram(pageHeadings, pageHeadingsCore, p.name) : null;
         if (page !== null) {
           programUpdates.push({ id: p.id, url: pageUrl(version, page) });
           pMatched++;
