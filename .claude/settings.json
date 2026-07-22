@@ -54,7 +54,10 @@
       "Bash(curl -s -m 40 -o /dev/null -w \"HTTP %{http_code}\\\\n\" \"https://ccsj-catalog.vercel.app/api/markdown?url=gs%3A%2F%2Fccsj-assets%2Fcatalogs%2FCCSJ%2F__probe__.md\")",
       "Bash(curl -s -m 40 -o /dev/null -w \"HTTP %{http_code}\\\\n\" \"https://sjf-catalog-bice.vercel.app/api/markdown?url=gs%3A%2F%2Fsjfu-assets%2Fcatalogs%2FSJFU%2F2025-2026-undergraduate%2Fpages%2Fpage_0360.md\")",
       "Bash(curl -s -m 40 -w \"\\\\nHTTP %{http_code}  time=%{time_total}s\\\\n\" \"https://sjf-catalog-bice.vercel.app/api/markdown?url=gs%3A%2F%2Fsjfu-assets%2Fcatalogs%2FSJFU%2F2025-2026-undergraduate%2Fpages%2Fpage_0360.md\")",
-      "Bash(curl -s -m 20 -o /dev/null -w \"app page HTTP %{http_code}\\\\n\" \"https://sjf-catalog-bice.vercel.app/\")"
+      "Bash(curl -s -m 20 -o /dev/null -w \"app page HTTP %{http_code}\\\\n\" \"https://sjf-catalog-bice.vercel.app/\")",
+      "Bash(C=\"/c/Users/adamw/AppData/Local/Temp/claude/c--Users-adamw-coding-workspaces-sjf-catalog/82b2d6d8-f8ea-4aac-accf-cf7006af8bf8/scratchpad/pagecache/2025-2026-undergraduate/pages\" *)",
+      "Read(//c/Users/adamw/AppData/Local/Temp/claude/c--Users-adamw-coding-workspaces-sjf-catalog/82b2d6d8-f8ea-4aac-accf-cf7006af8bf8/scratchpad/pagecache/2025-2026-undergraduate/pages/**)",
+      "Bash(grep -oE \"^\\\\| \\\\`[A-FTX][0-9]+\\\\`\" DOUBLE_CHECK.md)"
     ]
   }
 }
