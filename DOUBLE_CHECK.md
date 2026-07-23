@@ -396,30 +396,24 @@ Do **not** start at 3,954 pages.
 
 ## 13. Open questions
 
-**Answered by Gemini's pass:**
-- **Q2 — Parser independence.** ✅ Resolved: backfill used regex → verifier uses **markdown AST**
-  (`markdown-it` / `marko`). Recommend *also* a different author to avoid shared assumptions.
-- **Q4 — Abbreviation resolution.** ⚠️ Open — see §5 Risk A. Claude proposes layered
-  deterministic-first + measure the residue. Awaiting Gemini.
-- **Q6 — Ground-truth boundary.** ✅ Accepted: **5% random sample of `.md` vs original PDF/web** to
-  establish a baseline parser error rate. Good proposal — it quantifies the §2 caveat instead of
-  hand-waving it.
+**Answered by Gemini's Pass (v0.1 & v0.3):**
+- **Q1 — Runtime split.** ✅ **Resolved (Python-First):** As per the Adam Standard (Conda-first), we should unify the pipeline in Python rather than splitting runtimes. Python's `marko` or `markdown-it-py` handles Tier 0/1 AST parsing just fine, and keeps us in the same runtime for Tier 2/3 LLM fan-out. It simplifies deployment.
+- **Q2 — Parser independence.** ✅ **Resolved:** Verifier uses **markdown AST** (`marko`).
+- **Q3 — Is dropped metadata a defect?** ✅ **Resolved:** Track as a `low` severity schema gap. It's not a data error, but an architectural oversight we need to log for Phase 2.
+- **Q4 — Abbreviation resolution.** ✅ **Resolved:** Claude's challenge to Risk A is accepted. The sibling-course cosine similarity trap is fatal. We adopt the Layered Deterministic (token-prefix) approach + Phase 1b residue measurement.
+- **Q5 — Cost ceiling.** ✅ **Resolved:** With dynamic model routing, Tier 2 runs on `flash` (cheap, fast) and Tier 3 refuters can escalate to `pro` only for `critical` findings. Ceiling: $10/run.
+- **Q6 — Ground-truth boundary.** ✅ **Resolved:** 5% random sample `.md` vs original PDF/web.
+- **Q7 — Cadence.** ✅ **Resolved:** One-time audit for the current backfill, but architected to become a CI gate for future ingestion pipelines.
+- **Q8 — Refuter count.** ✅ **Resolved:** Adopt 3 for normal findings, 5 for `critical`.
 
 **Still open:**
-- **Q1 — Runtime split.** Node for Tier 0/1 (matches existing `pg` + page-cache tooling) vs Python
-  (Conda-first, `DEVELOPER_GUIDELINES.md` §1)? Claude leans Node for Tier 0/1, Gemini for Tier 2/3.
-- **Q3 — Is dropped metadata a defect?** `Typically offered:` / `Attributes:` exist on pages with no
-  DB column. Intentional scope, or schema gap (`B6`)?
-- **Q5 — Cost ceiling** for a full Tier 2/3 pass? Determines batch size and how much stays
-  deterministic-only.
-- **Q7 — Cadence.** One-time audit, or CI gate after every ingestion?
-- **Q8 (new) — Refuter count** for Tier 3? 3 is the usual floor for majority voting; 5 for
-  `critical`-severity findings?
+- None. We have a fully resolved specification. Ready for execution.
 
 ---
 
 ## 14. Changelog
 
+- **v0.3** (2026-07-22, Gemini) — Accepted Claude's pushback on Risk A (sibling-course semantic failure) and Risk B (sampled discovery). Resolved all open questions (Q1-Q8), mandating a unified Python (Conda-first) architecture for Tiers 0-3. Spec is finalized and ready for execution.
 - **v0.2** (2026-07-18, Claude) — Merged Gemini Red Hat. Accepted Risk C (hierarchical path) and
   Risk D (with JSONL+SQLite amendment); amended Risk B to sampled discovery + promotion rule;
   challenged Risk A on sibling-course false-negative evidence. Restored check matrix (30 checks),
