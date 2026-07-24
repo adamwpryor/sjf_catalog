@@ -27,10 +27,22 @@ class Finding(BaseModel):
 
 class ExtractedHeading(BaseModel):
     level: int
+    line: int
     text: str
     ancestor_path: List[str] = Field(default_factory=list)
 
+class ExtractedCourse(BaseModel):
+    code: str
+    title: str
+    credits: Optional[int] = None
+    credits_raw: Optional[str] = None
+    heading_line: int
+    ancestor_path: List[str] = Field(default_factory=list)
+
 class PageFacts(BaseModel):
-    page: int
     catalog_version: str
+    page: int
+    page_role: Literal["content", "toc", "index", "title", "faculty_directory", "requirements_list", "blank", "unknown"]
+    leading_orphan_text: bool
     headings: List[ExtractedHeading] = Field(default_factory=list)
+    courses: List[ExtractedCourse] = Field(default_factory=list)
