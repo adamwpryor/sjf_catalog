@@ -43,3 +43,12 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 /scratch
+
+# ── Verification harness (Python) ─────────────────────────────────
+# Derived audit artifacts are additionally ignored by verification_harness/artifacts/.gitignore.
+verification_harness/artifacts/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/

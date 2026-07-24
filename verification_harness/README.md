@@ -1,0 +1,134 @@
+# verification_harness/
+
+**A standalone, read-only audit subsystem for the SJF catalog.** It compares the source catalog
+pages (ground truth, in Google Cloud Storage) against the derived Supabase database — page by page —
+and reports every discrepancy it can find. It is a distinct function within this repo: it does not
+serve the app, and it **never writes to the catalog database**.
+
+> **New here? Read this file, then [`../DOUBLE_CHECK.md`](../DOUBLE_CHECK.md) (the spec) and
+> [`../DOUBLE_CHECK_IMPLEMENTATION.md`](../DOUBLE_CHECK_IMPLEMENTATION.md) (the build plan).**
+
+---
+
+## Why this exists
+
+Every row in the catalog database is a *derived artifact* of a scrape-and-parse pipeline that has
+already been proven lossy in several distinct ways (course codes silently dropped, everything mapped
+to page 1, program URLs fabricated, staff bios ingested as programs). This harness answers one
+question exhaustively:
+
+> For every source page, does the database faithfully and completely represent what is on that page —
+> and does every database row correspond to something that actually exists on the page it claims?
+
+It tunes for **recall** (catch as many real errors as possible), then suppresses false positives
+with adversarial verification rather than by weakening checks.
+
+## How it relates to the rest of the repo
+
+| | This harness | The app (`src/`, `scripts/`) |
+|---|---|---|
+| Language | **Python** (Conda) | Node / TypeScript |
+| Role | Offline QA / audit | Runtime product + data backfill |
+| DB access | **Read-only** | Read/write |
+| Ground truth | The GCS `.md` pages | — |
+
+The Python/Node split is deliberate. **Design Principle P1:** a verifier must not share parsing code
+with the thing it verifies, or it validates its own blind spots. The backfill
+(`../scripts/backfill_source_pages.mjs`) is Node + regex; this harness is Python + Markdown-AST. It
+imports **nothing** from `../scripts` or `../src`.
+
+---
+
+## Directory map
+
+```
+verification_harness/
+├── README.md              ← you are here
+├── config.py              paths, catalog-version reference data, run gates (NO secrets)
+├── models.py              [Gemini]  Pydantic contracts: Finding, PageFacts, ExtractedHeading
+├── db.py                  [Claude]  version-scoped read-only DB facts (psycopg2)
+├── cli.py                 [shared]  orchestration entry point (fetch → extract → check → load → report)
+│
+├── extract/               ── Tier 0: source pages → structured facts ──
+│   ├── ast_extractor.py     [Gemini]  marko AST walk → PageFacts (headings + ancestor_path)
+│   ├── permissive_scan.py   [Gemini]  permissive line-scan diffed vs AST (catches malformed headings)
+│   └── page_role.py         [Gemini]  structural page-role classifier (content/toc/index/…)
+│
+├── checks/                ── Tier 1: deterministic diff ──
+│   ├── registry.py          [shared]  check registration + runner
+│   ├── coverage.py          [Gemini]  A1–A6
+│   ├── fidelity.py          [Gemini]  B1–B7
+│   ├── provenance.py        [Claude]  C1–C7
+│   ├── headings.py          [Claude]  D1–D7
+│   ├── integrity.py         [Claude]  E1–E4
+│   └── semantic.py          [later]   F1–F4 (Tier 2, LLM-adjudicated)
+│
+├── report/                ── outputs ──
+│   ├── sqlite_loader.py     [Claude]  findings.jsonl → findings.sqlite (triage index)
+│   └── report.py            [Claude]  findings.sqlite → report.md
+│
+├── tests/
+│   ├── fixtures/            frozen golden JSON — CROSS-AUTHORED (extractor's oracle, per P1)
+│   └── test_*.py
+│
+└── artifacts/             ── all derived outputs; GIT-IGNORED ──
+    ├── page-cache/           gcloud-synced source .md pages
+    ├── extracted_facts/<version>/page_NNNN.json   one file per page (Tier 0 output)
+    ├── findings.jsonl        append-only interchange format (all tiers write here)
+    ├── findings.sqlite       derived triage index
+    └── report.md             human-readable report
+```
+
+`[Gemini]` / `[Claude]` mark current build ownership. Per P1, **the author of a module does not write
+its tests** — the golden fixtures under `tests/fixtures/` are authored by the *other* agent.
+
+## Data flow
+
+```
+GCS pages ──sync──► artifacts/page-cache/
+                          │
+              Tier 0 (extract/) ──► artifacts/extracted_facts/<version>/page_NNNN.json
+                          │
+   Supabase ──db.py──► db_facts (version-scoped, read-only)
+                          │
+              Tier 1 (checks/) ──► artifacts/findings.jsonl
+                          │
+   Tier 2/3 (semantic + adversarial verify, later) ──► findings.jsonl
+                          │
+       report/sqlite_loader.py ──► findings.sqlite ──► report/report.py ──► report.md
+```
+
+## Running it (once implemented)
+
+```bash
+conda activate sjfu-catalog                          # deps live in ../environment.yml
+export DATABASE_URL=...                               # read-only creds; from .env.local, never committed
+
+# 1. materialize the source pages locally (avoids per-check GCS auth; local ADC expires ~1h)
+gcloud storage cp -r "gs://sjfu-assets/catalogs/SJFU/*" verification_harness/artifacts/page-cache/
+
+# 2. run one catalog end to end
+python -m verification_harness --version 2025-2026-undergraduate
+
+# 3. review
+open verification_harness/artifacts/report.md
+```
+
+## Guardrails (from the spec — do not remove)
+
+- **Read-only.** No check writes to the catalog DB. Remediation is a separate, reviewed, backed-up
+  step (mirroring `../scripts/backfill_source_pages.mjs`: dry-run default, `--apply`, `--restore`).
+- **Version scoping.** Every DB query joins `documents.version` — never parse `markdown_url`. This
+  was the exact trap that made the original backfill one-way.
+- **Findings, not asserts.** A check *records* a finding; it never `assert`s (that would crash the
+  run and hide every later finding).
+- **Never silently drop a finding.** A finding that fails to serialize is itself a `critical` finding.
+  Under-reporting is the worst failure mode.
+- **Known-answer validation.** The harness is untrusted until it independently rediscovers the seeded
+  defects in `DOUBLE_CHECK.md` §11. A run reporting zero findings means a broken harness.
+
+## Standards
+
+Follows `../DEVELOPER_GUIDELINES.md`: PEP 8, type hints on all signatures, Google-style docstrings,
+Black + Ruff + MyPy, JSON structured logging (`python-json-logger`), no secrets in source. Python
+dependencies are declared in the repo-root `../environment.yml`, not a local requirements file.

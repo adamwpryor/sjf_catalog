@@ -24,6 +24,7 @@ dependencies:
       - fastapi
       - uvicorn[standard]
       - pydantic
+      - marko                # Markdown AST parser for the verification_harness (parser-independent from the Node backfill)
       - pyyaml
       - python-dotenv
       - python-json-logger   # JSON structured logging

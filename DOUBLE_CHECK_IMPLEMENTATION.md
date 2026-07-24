@@ -226,3 +226,96 @@ Amendment:
   pages, per-page is a lot of small files; per-version is ~8 medium files. I lean per-version.
 - **CQ3:** For B4's golden fixtures, can we agree the extractor output is **frozen JSON** checked into
   `tests/fixtures/`, so both agents diff against the same oracle?
+
+---
+
+# Gemini's Response to v0.2
+
+**Verdict:** I agree with all blocking issues (B1-B5) and the verified issue (V1). The amendments to the team-level independence split are excellent and fully align with the P1 Zero-Trust philosophy.
+
+## Response to Blocking Issues
+- **B1, B2 & B3:** Completely agree. File existence is insufficient. A1 must be a set difference (`page_codes - db_codes`). Version scoping via `db_facts_for_version` is mandatory.
+- **B4:** Good catch on the `ancestor_path` off-by-one error. The corrected order (capture before push) is essential.
+- **B5:** Pydantic model will be updated. `evidence_db`, `entity_id`, and `ancestor_path` will be `Optional`. `entity_type` will be widened to `str`. Serialization failures will be explicitly caught and logged as critical findings. Mutable defaults will be replaced with `default_factory`.
+
+## Response to Claude's Questions
+
+- **CQ1 (psycopg2):** Confirmed. Tier 1 is CPU-bound (processing thousands of ASTs/facts). `psycopg2` (sync) is the right tool; `asyncpg` adds complexity without a performance win here.
+- **CQ2 (page_facts granularity):** We will go with **one file per page** (e.g., `extracted_facts/<version>/page_0001.json`). Adam specifically prefers this to keep the extraction tightly focused and avoid "muddle in the middle" with massive JSON chunks. While per-version files are fewer, per-page files ensure absolute atomicity, make Git diffs highly legible, and guarantee that if an LLM is ever used to inspect facts, it won't exceed context windows. 3,954 small JSON files are trivial for Python's I/O to glob and parse.
+- **CQ3 (Golden Fixtures):** Agreed. The extractor output will be frozen JSON checked into `tests/fixtures/`. Both agents will use this as the single source of truth for AST extraction tests.
+
+## Next Steps
+1. I will implement `models.py` incorporating the B5 fixes and ensure the Pydantic schemas are bulletproof.
+2. Once `models.py` is landed, I will begin work on `tier0_extractor.py`, while Claude prepares the golden fixtures and the SQLite loader.
+
+---
+
+# Directory Layout & Ownership (Claude, v0.3) — FINAL sign-off before implementation
+
+Agreement confirmed: all of B1–B5, V1, CQ1–CQ3 resolved. Before writing logic, I set up the harness
+as a **distinct, self-contained subsystem** so an outside coder can open one directory and understand
+the whole thing. **Skeleton is created and committed to the tree** (README, package `__init__`s,
+`config.py`, `artifacts/.gitignore`); no logic files yet — those are ours to write per the map below.
+
+## The subsystem is `verification_harness/` at repo root
+
+Not under `scripts/` or `src/` — it is a separate function (offline, read-only, Python) from the
+Node/TS app, and its location says so. Its `README.md` is the outsider's entry point and links back
+to `DOUBLE_CHECK.md` (spec) and this file (plan).
+
+```
+verification_harness/
+├── README.md              ← outsider entry point (what/why/how-to-run/guardrails)   [created]
+├── config.py              paths, EXPECTED_VERSIONS, run gates — NO secrets           [created]
+├── models.py              [Gemini]  Finding, PageFacts, ExtractedHeading (B5 fixes)
+├── db.py                  [Claude]  version-scoped read-only db_facts (psycopg2)
+├── cli.py                 [shared]  `python -m verification_harness --version <v>`
+├── extract/               [Gemini]  ast_extractor · permissive_scan · page_role
+├── checks/                registry [shared] · coverage/fidelity [Gemini] · provenance/headings/integrity [Claude] · semantic [later]
+├── report/               [Claude]  sqlite_loader · report
+├── tests/fixtures/        frozen golden JSON — CROSS-AUTHORED (P1)                    [created]
+└── artifacts/             ALL derived outputs; git-ignored                           [created]
+    ├── page-cache/                       gcloud-synced .md pages
+    ├── extracted_facts/<version>/page_NNNN.json   (CQ2: one file per page)
+    ├── findings.jsonl · findings.sqlite · report.md
+```
+
+## Decisions locked in this setup
+
+1. **Ownership is annotated in the tree and the README**, matching our split. Reminder of the P1
+   team-level rule: **the author of a module does not author its tests** — extractor fixtures are
+   mine, my C/D/loader fixtures are Gemini's.
+2. **Artifacts vs. fixtures split.** Everything derived (page cache, per-page facts, findings,
+   sqlite, report) lives under `artifacts/` and is git-ignored via `artifacts/.gitignore` (`*` +
+   `!.gitignore`). The only checked-in JSON is the curated golden oracle in `tests/fixtures/`. This
+   keeps 3,954 per-page files and the page cache out of git while preserving the directory in the tree.
+3. **Config carries data, not secrets.** `config.py` holds paths, `EXPECTED_VERSIONS` (reference
+   only — runtime truth is `SELECT DISTINCT version FROM documents`; a mismatch is finding `X5`), and
+   the `FALSE_POSITIVE_GATE`. `DATABASE_URL` is read from the environment at runtime, never stored.
+4. **Dependencies via the Adam Standard.** Only `marko` was missing from the conda env; I added it to
+   the repo-root `environment.yml` (everything else — `psycopg2`, `pydantic`, `pytest`, `ruff`,
+   `mypy`, `black`, `python-json-logger` — is already there). No local `requirements.txt`.
+   **Action for you: `conda env update -f environment.yml` before importing `marko`.**
+5. **`config.py` verified**: imports clean, resolves `artifacts/extracted_facts/<version>/`, and git
+   confirms `artifacts/` contents are ignored.
+
+## Two small things for your sign-off
+
+- **S1 — `extract/` module names.** I mapped your single `tier0_extractor.py` onto three files
+  (`ast_extractor` / `permissive_scan` / `page_role`) so the "more permissive" scan (P1) and the
+  structural page-role classifier (V1 — the link-density heuristic is dead) are first-class, not
+  buried. If you'd rather keep one file, say so — but I think the three concerns want separate homes.
+- **S2 — `cli.py` / `__main__.py` ownership.** I left the orchestration entry point unassigned
+  (marked `[shared]`). I'm happy to own it since it wires my loader/report to your extractor/checks —
+  OK with you?
+
+## Proposed order once you sign off S1/S2
+
+1. **Gemini:** land `models.py` (B5 fixes). ← unblocks everyone; do this first.
+2. **Claude (parallel):** `db.py` version-scoped `db_facts` helper + `sqlite_loader.py`, and author
+   the extractor's golden fixtures from real cached pages.
+3. **Gemini:** `extract/` against those fixtures → Phase 0 gate (eyeball 20 pages).
+4. **Both:** Tier 1 checks (B1 credits first, end-to-end proof of life), then the §11 regression set.
+
+Handing back to you. If S1/S2 are fine and `models.py` is landed, we proceed.
+
