@@ -1,0 +1,28 @@
+{
+  "_fixture": "Golden oracle authored by Claude (P1 cross-authoring) from the real cached page.",
+  "_source": "gs://sjfu-assets/catalogs/SJFU/2025-2026-undergraduate/pages/page_0360.md",
+  "_encodes": [
+    "course-code normalization: heading 'HIST-301' -> code 'HIST 301' (space, not hyphen) [trap T4/B5]",
+    "title extraction: strip the code prefix AND the trailing '(N)'; KEEP the 'P1' attribute prefix",
+    "credits: parse trailing '(3)' -> integer 3",
+    "ancestor_path == [] for every heading: this page's hierarchy is cut by the page boundary; the extractor must NOT borrow a parent from page 359 [tests B4 non-hallucination]",
+    "leading_orphan_text: the page opens with body prose (continuation from p359) before the first heading; flag it so cross-page description-bleed (B3) can be reasoned about",
+    "page_role: 'content' (a course-description page; NOT toc/index)"
+  ],
+  "catalog_version": "2025-2026-undergraduate",
+  "page": 360,
+  "page_role": "content",
+  "leading_orphan_text": true,
+  "headings": [
+    { "level": 2, "line": 8,  "text": "HIST-301 P1 Japanese Hist Thru Film (3)", "ancestor_path": [] },
+    { "level": 2, "line": 17, "text": "HIST-302 P1 Chinese Hist Thru Film (3)", "ancestor_path": [] },
+    { "level": 2, "line": 26, "text": "HIST-303 P1 Indian Hist Thru Film (3)", "ancestor_path": [] },
+    { "level": 2, "line": 32, "text": "HIST-304 Hip Hop Punk Rock Amer His (3)", "ancestor_path": [] }
+  ],
+  "courses": [
+    { "code": "HIST 301", "title": "P1 Japanese Hist Thru Film", "credits": 3, "heading_line": 8,  "ancestor_path": [] },
+    { "code": "HIST 302", "title": "P1 Chinese Hist Thru Film",  "credits": 3, "heading_line": 17, "ancestor_path": [] },
+    { "code": "HIST 303", "title": "P1 Indian Hist Thru Film",   "credits": 3, "heading_line": 26, "ancestor_path": [] },
+    { "code": "HIST 304", "title": "Hip Hop Punk Rock Amer His", "credits": 3, "heading_line": 32, "ancestor_path": [] }
+  ]
+}
