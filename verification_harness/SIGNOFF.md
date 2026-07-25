@@ -15,9 +15,9 @@ A phase is not "done" until Adam's box is checked. Agents do not check Adam's bo
 
 | Phase | Scope | Owner(s) | Status | Adam |
 |---|---|---|---|---|
-| **S** | Setup & scaffolding (skeleton, config, models, DB layer, loader, this ledger) | Claude + Gemini | 🔨 | ⬜ |
-| **0** | Tier 0 extractor + page-role classifier; golden fixtures; eyeball 20 pages | Gemini (code) · Claude (fixtures) | ⬜ | ⬜ |
-| **1** | Tier 1 checks on `2025-2026-undergraduate` (A–E). **Gate: FP rate < 20%** | Both | ⬜ | ⬜ |
+| **S** | Setup & scaffolding (skeleton, config, models, DB layer, loader, this ledger) | Claude + Gemini | ☑️ | ⬜ |
+| **0** | Tier 0 extractor + page-role classifier; golden fixtures; eyeball 20 pages | Gemini (code) · Claude (fixtures) | 🔨 | ⬜ |
+| **1** | Tier 1 checks on `2025-2026-undergraduate` (A–E). **Gate: FP rate < 20%** | Both | 🔨 | ⬜ |
 | **1b** | `B2` abbreviation residue measurement → decide LLM-or-not | Claude | ⬜ | ⬜ |
 | **2** | Tier 1 across all 8 catalogs + §11 regression set independently rediscovered | Both | ⬜ | ⬜ |
 | **3** | Tier 2 LLM adjudication (B2 residue, B3/B4/B7, F1–F4) | Gemini | ⬜ | ⬜ |
@@ -116,11 +116,30 @@ catalog. B1 (credits) lands first, end-to-end, as proof of life.
 - [ ] Every check is version-scoped through `documents.version` (B3).
 
 ### Work log
-- _pending_
+- `2026-07-18` **[Claude]** Built the check framework (`checks/registry.py`: `@register`, crash-safe
+  runner, P5-safe `write_findings`), `normalize.py` (code/url helpers, §7 traps), and **6 pure-DB
+  checks** now running: **C1** (page_number↔url), **C4** (sequence_order unique), **C5** (cross-
+  catalog contamination), **C6** (source_chunk provenance), **D2** (duplicate courses), **E4**
+  (non-program rows). Registered 6 page-dependent checks (C2, C3, D1, D5, D6, D7) as `needs_pages`
+  stubs — they auto-skip until Gemini's Tier 0 extractor lands. Ran across all 8 catalogs vs the LIVE DB.
+
+### Deliverables / evidence (Claude's checks — 8-catalog run)
+- **Backfill held (0 findings, as it should):** C1, C4, C5, D2 all clean — page numbers match urls,
+  no duplicate sequence_order, no cross-catalog/`ccsj-assets` contamination, no duplicate courses.
+  These validate the earlier repair *and* prove the checks run without false positives.
+- **P6 known-answer:** **E4 independently rediscovered 19 non-program rows** (the §11 section-header
+  class: `Degrees and Certificates`, `B.A. Language Proficiency Requirement`, …) — more complete than
+  the 12 unlinked ones, since E4 scans all programs. Surfaced the *class*, not a hard-coded list.
+- **FP-gate discipline in action (C6):** first run flooded **4,934 findings** (C6 = 4,915). Investigated
+  rather than shipped: `source_chunk_id` is systematically stale from the re-chunk history (~57% dangle;
+  88% of resolvable refs within ±1 page). Redesigned C6 to report the systemic condition as per-catalog
+  **aggregates** with example course codes, at `low` severity (internal lineage, not user-facing).
+  Result: **4,934 → 415 → 35 findings** (C6=16 aggregates, E4=19). 0 harness-error crashes. `ruff` clean.
 
 ### Sign-off
-- [ ] **Gemini** (A, B) complete · **Claude** (C, D, E) complete
+- [ ] **Gemini** (A, B) complete · [x] **Claude** (C, D, E) — 6 pure-DB checks done; C2/C3/D1/D5/D6/D7 await extractor
 - [ ] Cross-confirm: each agent triages a sample of the *other's* findings
+- [ ] Hand-triage 30-finding sample → **FP rate < 20%** gate (35 findings total so far; needs Adam/triage)
 - [ ] ✅ **ADAM APPROVED** — _date / FP rate: ___%_
 
 ---

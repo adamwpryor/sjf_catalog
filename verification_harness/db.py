@@ -122,7 +122,7 @@ def db_facts_for_version(version: str) -> DbFacts:
 
         cur.execute(
             """
-            SELECT c.id, c.course_code, c.title, c.credits, c.description,
+            SELECT c.id, c.document_id, c.course_code, c.title, c.credits, c.description,
                    c.prerequisites, c.markdown_url, c.is_ghost, c.subject_id, c.source_chunk_id
             FROM courses c
             JOIN documents d ON d.id = c.document_id
@@ -135,7 +135,7 @@ def db_facts_for_version(version: str) -> DbFacts:
 
         cur.execute(
             """
-            SELECT p.id, p.name, p.degree_type, p.total_credits, p.markdown_url
+            SELECT p.id, p.document_id, p.name, p.degree_type, p.total_credits, p.markdown_url
             FROM programs p
             JOIN documents d ON d.id = p.document_id
             WHERE d.version = %s
@@ -147,7 +147,7 @@ def db_facts_for_version(version: str) -> DbFacts:
 
         cur.execute(
             """
-            SELECT s.id, s.section_header, s.content, s.page_number, s.markdown_url,
+            SELECT s.id, s.document_id, s.section_header, s.content, s.page_number, s.markdown_url,
                    s.sequence_order, s.content_hash
             FROM semantic_chunks s
             JOIN documents d ON d.id = s.document_id
