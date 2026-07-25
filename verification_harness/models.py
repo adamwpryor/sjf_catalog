@@ -46,3 +46,4 @@ class PageFacts(BaseModel):
     leading_orphan_text: bool
     headings: List[ExtractedHeading] = Field(default_factory=list)
     courses: List[ExtractedCourse] = Field(default_factory=list)
+    malformed_headings: List[str] = Field(default_factory=list)

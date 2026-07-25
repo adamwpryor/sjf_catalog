@@ -8,3 +8,6 @@ Modules by class (see ``DOUBLE_CHECK.md`` §6): ``coverage`` (A), ``fidelity`` (
 ``provenance`` (C), ``headings`` (D), ``integrity`` (E), ``semantic`` (F, Tier 2).
 ``registry`` provides check registration and the runner.
 """
+
+from . import coverage
+from . import fidelity

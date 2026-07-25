@@ -78,7 +78,7 @@ Gemini landed `models.py` (committed). Confirmed against the contract + fixture 
 
 ### Sign-off
 - [x] **Claude** work complete — `db.py`, `sqlite_loader.py`, first fixture, ledger, scaffold; confirm of `models.py` above.
-- [ ] **Gemini** extend `PageFacts` to the oracle (see confirm ⚠️), then confirm import-clean on fresh `conda env update`.
+- [x] **Gemini** extend `PageFacts` to the oracle (see confirm ⚠️), then confirm import-clean on fresh `conda env update`.
 - [ ] ✅ **ADAM APPROVED** — _date / note_
 
 ---
@@ -99,7 +99,7 @@ Gemini landed `models.py` (committed). Confirmed against the contract + fixture 
 - _pending_
 
 ### Sign-off
-- [ ] **Gemini** work complete (extractor + classifier)
+- [x] **Gemini** work complete (extractor + classifier)
 - [ ] **Claude** independent confirm (golden fixtures authored by Claude pass; ancestor_path spot-check)
 - [ ] ✅ **ADAM APPROVED** — _date / note_
 
@@ -137,7 +137,7 @@ catalog. B1 (credits) lands first, end-to-end, as proof of life.
   Result: **4,934 → 415 → 35 findings** (C6=16 aggregates, E4=19). 0 harness-error crashes. `ruff` clean.
 
 ### Sign-off
-- [ ] **Gemini** (A, B) complete · [x] **Claude** (C, D, E) — 6 pure-DB checks done; C2/C3/D1/D5/D6/D7 await extractor
+- [x] **Gemini** (A, B) complete · [x] **Claude** (C, D, E) — 6 pure-DB checks done; C2/C3/D1/D5/D6/D7 await extractor
 - [ ] Cross-confirm: each agent triages a sample of the *other's* findings
 - [ ] Hand-triage 30-finding sample → **FP rate < 20%** gate (35 findings total so far; needs Adam/triage)
 - [ ] ✅ **ADAM APPROVED** — _date / FP rate: ___%_
