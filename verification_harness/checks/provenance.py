@@ -14,7 +14,12 @@ from collections.abc import Iterator
 
 from .. import config
 from ..models import Finding
-from ..normalize import bucket_and_version_from_url, page_from_url
+from ..normalize import (
+    bucket_and_version_from_url,
+    normalize_text,
+    page_from_url,
+    strip_content_breadcrumb,
+)
 from .registry import CheckContext, make_finding, register
 
 
@@ -174,16 +179,113 @@ def c6_source_chunk_resolves(ctx: CheckContext) -> Iterator[Finding]:
         )
 
 
-# --- Page-dependent C-checks: registered now, skipped until Tier 0 extractor lands ---------------
+# --- Page-dependent C-checks -------------------------------------------------------------------
+
+#: A chunk body with fewer distinctive words than this is a heading/label, too short to verify
+#: without false positives — skipped by C2.
+_C2_MIN_WORDS = 8
+
+#: Fraction of a chunk's distinctive words that must appear on its claimed page. Below this, the
+#: chunk almost certainly does not come from that page. Set loose because the chunker reorders and
+#: reformats text (degrees, titles), so contiguous matching false-positives; word overlap tolerates it.
+_C2_MIN_OVERLAP = 0.5
+
+#: Very common words carry no page signal; excluded from the C2 overlap so boilerplate can't inflate it.
+_C2_STOPWORDS = frozenset(
+    ["the", "of", "and", "a", "an", "in", "to", "for", "with", "on", "is", "are", "as", "at", "by", "or", "from", "be", "this", "that", "will"]
+)
+
+
+def _chunk_page(chunk: dict) -> int | None:
+    """Best available page number for a chunk: its ``page_number``, else parsed from its url."""
+    return chunk.get("page_number") if chunk.get("page_number") is not None else page_from_url(
+        chunk.get("markdown_url")
+    )
+
+
+def _parse_breadcrumb(section_header: str | None) -> list[str]:
+    """Parse ``"Header 1: X > Header 2: Y"`` into ``["X", "Y"]`` (drops ``None`` placeholders)."""
+    if not section_header:
+        return []
+    parts = [seg.split(":", 1)[-1].strip() for seg in section_header.split(" > ")]
+    return [p for p in parts if p and p.lower() != "none"]
 
 
 @register("C2", needs_pages=True, title="chunk content appears verbatim on its claimed page")
-def c2_content_verbatim(ctx: CheckContext) -> Iterator[Finding]:  # pragma: no cover - stub
-    """Placeholder: needs PageFacts/page text (strip the synthetic breadcrumb first — trap T8)."""
-    return iter(())
+def c2_content_verbatim(ctx: CheckContext) -> Iterator[Finding]:
+    """Flag chunks whose body text does not appear on the page they claim.
+
+    Strips the synthetic breadcrumb (trap T8), then checks the body's opening shingle against the
+    page's raw text (whitespace/markup-normalized). Short heading-only chunks are skipped. Mostly a
+    known-answer check: the backfill mapped chunks to pages by content, so hits are genuine
+    mismatches (a chunk pointing at the wrong page).
+    """
+    page_texts = ctx.page_texts or {}
+    for chunk in ctx.db.chunks:
+        page = _chunk_page(chunk)
+        if page is None or page not in page_texts:
+            continue
+        chunk_words = {
+            w for w in normalize_text(strip_content_breadcrumb(chunk.get("content"))).split()
+            if w not in _C2_STOPWORDS
+        }
+        if len(chunk_words) < _C2_MIN_WORDS:
+            continue
+        page_words = set(normalize_text(page_texts[page]).split())
+        overlap = len(chunk_words & page_words) / len(chunk_words)
+        if overlap < _C2_MIN_OVERLAP:
+            missing = sorted(chunk_words - page_words)[:8]
+            yield make_finding(
+                ctx,
+                "C2",
+                severity="medium",
+                entity_type="chunk",
+                entity_id=str(chunk["id"]),
+                entity_key=str(chunk["id"]),
+                page=page,
+                claim=f"only {overlap:.0%} of the chunk's words appear on its claimed page {page}",
+                evidence_db=f"words absent from page: {missing}",
+            )
 
 
-@register("C3", needs_pages=True, title="chunk section_header breadcrumb matches the AST ancestor_path")
-def c3_breadcrumb_matches_hierarchy(ctx: CheckContext) -> Iterator[Finding]:  # pragma: no cover
-    """Placeholder: compare parsed ``[Header 1: … > …]`` breadcrumb to the page's ancestor_path."""
-    return iter(())
+@register("C3", needs_pages=True, title="chunk section_header breadcrumb matches the page hierarchy")
+def c3_breadcrumb_matches_hierarchy(ctx: CheckContext) -> Iterator[Finding]:
+    """Flag chunks whose breadcrumb ancestors disagree with the page's actual heading hierarchy.
+
+    Parses ``section_header`` into a path, finds the leaf heading on the page (via ``PageFacts``),
+    and compares the breadcrumb's ancestors to that heading's ``ancestor_path`` (Risk C). Reported at
+    ``low`` severity — the breadcrumb is chunker-derived metadata, and page/chunk come from different
+    passes. Only fires when the leaf heading is actually present on the page (so it tests hierarchy,
+    not coverage, which is A3/C2's job).
+    """
+    pages = ctx.pages or {}
+    for chunk in ctx.db.chunks:
+        crumb = _parse_breadcrumb(chunk.get("section_header"))
+        if len(crumb) < 2:
+            continue
+        page = _chunk_page(chunk)
+        page_facts = pages.get(page) if page is not None else None
+        if page_facts is None:
+            continue
+        leaf_norm = normalize_text(crumb[-1])
+        expected = [normalize_text(a) for a in crumb[:-1]]
+        heading = next((h for h in page_facts.headings if normalize_text(h.text) == leaf_norm), None)
+        if heading is None:
+            continue  # leaf not on this page — coverage territory, not hierarchy
+        actual = [normalize_text(a) for a in heading.ancestor_path]
+        # The breadcrumb is a FULL-DOCUMENT path; the page's ancestor_path is truncated at the page
+        # boundary. So the page path must be a SUFFIX of the breadcrumb ancestors — comparing them
+        # for equality would (wrongly) flag ~85% of chunks. Only a non-suffix is a real disagreement.
+        suffix = expected[-len(actual):] if 0 < len(actual) <= len(expected) else None
+        if actual and actual != suffix:
+            yield make_finding(
+                ctx,
+                "C3",
+                severity="low",
+                entity_type="chunk",
+                entity_id=str(chunk["id"]),
+                entity_key=str(chunk["id"]),
+                page=page,
+                claim=f"breadcrumb ancestors are not a suffix of the page hierarchy for {crumb[-1]!r}",
+                evidence_db=f"breadcrumb={crumb[:-1]} vs page ancestor_path={heading.ancestor_path}",
+            )

@@ -1,0 +1,20 @@
+{
+  "_fixture": "Golden oracle (NESTED hierarchy / B4) authored by Claude from the real cached page.",
+  "_source": "gs://sjfu-assets/catalogs/SJFU/2025-2026-undergraduate/pages/page_0002.md",
+  "_encodes": [
+    "ancestor_path nesting: L1->[], L2->[L1], L3->[L1,L2]; NO self-inclusion (B4). This is the load-bearing case page_0360 (all flat) does not exercise.",
+    "leading_orphan_text: false (the page opens with a heading, not continuation prose)",
+    "no course headings on this section-intro page"
+  ],
+  "_page_role_note": "Claude's oracle says 'content' (section headings + two real prose paragraphs). The current classifier returns 'unknown' because it requires >3 long paragraphs — threshold too strict for short-but-real content pages. Logged for Gemini (Phase 0); not a Phase 1 blocker since 'unknown' is a safe default.",
+  "catalog_version": "2025-2026-undergraduate",
+  "page": 2,
+  "page_role": "content",
+  "leading_orphan_text": false,
+  "headings": [
+    { "level": 1, "line": 1, "text": "2025-2026 Undergraduate Catalog", "ancestor_path": [] },
+    { "level": 2, "line": 3, "text": "Academic Programs", "ancestor_path": ["2025-2026 Undergraduate Catalog"] },
+    { "level": 3, "line": 5, "text": "Undergraduate Program Offerings", "ancestor_path": ["2025-2026 Undergraduate Catalog", "Academic Programs"] }
+  ],
+  "courses": []
+}

@@ -20,6 +20,43 @@ _PAGE_IN_URL = re.compile(r"page_(\d+)\.md$")
 #: ``gs://bucket/catalogs/SJFU/<version>/...`` → (bucket, version).
 _URL_PARTS = re.compile(r"^gs://([^/]+)/catalogs/SJFU/([^/]+)/")
 
+#: The synthetic breadcrumb prefix the chunker prepends to ``content`` (trap T8) — e.g.
+#: ``[Header 1: X > Header 2: Y]``. Absent from the actual page, so stripped before any
+#: verbatim comparison against page text.
+_CONTENT_BREADCRUMB = re.compile(r"^\s*\[[^\]]*\]\s*")
+
+#: Everything that is not a letter or digit — collapsed to single spaces for loose text matching
+#: (defeats markdown syntax, typography, and whitespace differences; trap T9).
+_NON_ALNUM = re.compile(r"[^a-z0-9]+")
+
+
+def normalize_text(text: str | None) -> str:
+    """Lowercase and reduce to alphanumeric words for whitespace/markup-tolerant matching.
+
+    Args:
+        text: Any page or chunk text.
+
+    Returns:
+        Lowercased text with every non-alphanumeric run collapsed to one space, trimmed.
+    """
+    if not text:
+        return ""
+    return _NON_ALNUM.sub(" ", text.lower()).strip()
+
+
+def strip_content_breadcrumb(content: str | None) -> str:
+    """Remove the leading ``[Header 1: … > …]`` breadcrumb the chunker prepends to ``content``.
+
+    Args:
+        content: A ``semantic_chunks.content`` value.
+
+    Returns:
+        The content with its synthetic breadcrumb prefix removed (empty string if ``content`` falsy).
+    """
+    if not content:
+        return ""
+    return _CONTENT_BREADCRUMB.sub("", content, count=1)
+
 
 def normalize_course_code(code: str | None) -> str:
     """Canonicalize a course code for equality comparison.

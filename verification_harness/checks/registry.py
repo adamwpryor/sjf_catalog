@@ -18,7 +18,6 @@ import logging
 from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 from ..db import DbFacts
 from ..models import Finding, PageFacts
@@ -37,11 +36,14 @@ class CheckContext:
         db: Version-scoped DERIVED facts (read-only).
         pages: Tier 0 ``PageFacts`` keyed by page number, or ``None`` until the extractor lands.
             Checks that need it declare ``needs_pages=True`` and are skipped while it is ``None``.
+        page_texts: Raw page markdown keyed by page number (for verbatim-content checks like C2),
+            populated alongside ``pages`` by the pipeline. ``None`` when ``pages`` is ``None``.
     """
 
     version: str
     db: DbFacts
-    pages: Optional[dict[int, PageFacts]] = None
+    pages: dict[int, PageFacts] | None = None
+    page_texts: dict[int, str] | None = None
 
 
 CheckFn = Callable[[CheckContext], Iterator[Finding]]
@@ -101,12 +103,12 @@ def make_finding(
     entity_type: str,
     entity_key: str,
     claim: str,
-    page: Optional[int] = None,
-    entity_id: Optional[str] = None,
-    ancestor_path: Optional[list[str]] = None,
+    page: int | None = None,
+    entity_id: str | None = None,
+    ancestor_path: list[str] | None = None,
     evidence_page: str = "",
-    evidence_db: Optional[str] = None,
-    suggested_fix: Optional[str] = None,
+    evidence_db: str | None = None,
+    suggested_fix: str | None = None,
     auto_fixable: bool = False,
     verdict: str = "CONFIRMED",
     confidence: float = 1.0,
@@ -162,7 +164,7 @@ def _harness_error_finding(ctx: CheckContext, spec: CheckSpec, exc: Exception) -
     )
 
 
-def run(ctx: CheckContext, ids: Optional[Iterable[str]] = None) -> Iterator[Finding]:
+def run(ctx: CheckContext, ids: Iterable[str] | None = None) -> Iterator[Finding]:
     """Run registered checks for one version, yielding findings.
 
     Args:
@@ -180,7 +182,7 @@ def run(ctx: CheckContext, ids: Optional[Iterable[str]] = None) -> Iterator[Find
             continue
         try:
             yield from spec.fn(ctx)
-        except Exception as exc:  # noqa: BLE001 — a check must never take the run down
+        except Exception as exc:
             logger.exception("check %s crashed", spec.id)
             yield _harness_error_finding(ctx, spec, exc)
 
