@@ -9,5 +9,4 @@ Modules by class (see ``DOUBLE_CHECK.md`` §6): ``coverage`` (A), ``fidelity`` (
 ``registry`` provides check registration and the runner.
 """
 
-from . import coverage
-from . import fidelity
+from . import coverage, fidelity  # noqa: F401

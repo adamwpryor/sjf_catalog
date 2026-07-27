@@ -1,5 +1,7 @@
+from typing import Literal
+
 from pydantic import BaseModel, Field
-from typing import List, Literal, Optional
+
 
 class Refuters(BaseModel):
     n: int = 0
@@ -13,37 +15,37 @@ class Finding(BaseModel):
     catalog_version: str
     page: int
     entity_type: str
-    entity_id: Optional[str] = None
+    entity_id: str | None = None
     entity_key: str
-    ancestor_path: Optional[List[str]] = None
+    ancestor_path: list[str] | None = None
     claim: str
     evidence_page: str
-    evidence_db: Optional[str] = None
+    evidence_db: str | None = None
     confidence: float
     verdict: Literal["CONFIRMED", "PLAUSIBLE", "AMBIGUOUS", "REFUTED"]
     refuters: Refuters = Field(default_factory=Refuters)
-    suggested_fix: Optional[str] = None
+    suggested_fix: str | None = None
     auto_fixable: bool
 
 class ExtractedHeading(BaseModel):
     level: int
     line: int
     text: str
-    ancestor_path: List[str] = Field(default_factory=list)
+    ancestor_path: list[str] = Field(default_factory=list)
 
 class ExtractedCourse(BaseModel):
     code: str
     title: str
-    credits: Optional[int] = None
-    credits_raw: Optional[str] = None
+    credits: int | None = None
+    credits_raw: str | None = None
     heading_line: int
-    ancestor_path: List[str] = Field(default_factory=list)
+    ancestor_path: list[str] = Field(default_factory=list)
 
 class PageFacts(BaseModel):
     catalog_version: str
     page: int
     page_role: Literal["content", "toc", "index", "title", "faculty_directory", "requirements_list", "blank", "unknown"]
     leading_orphan_text: bool
-    headings: List[ExtractedHeading] = Field(default_factory=list)
-    courses: List[ExtractedCourse] = Field(default_factory=list)
-    malformed_headings: List[str] = Field(default_factory=list)
+    headings: list[ExtractedHeading] = Field(default_factory=list)
+    courses: list[ExtractedCourse] = Field(default_factory=list)
+    malformed_headings: list[str] = Field(default_factory=list)

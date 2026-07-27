@@ -1,8 +1,9 @@
 import re
-from typing import List
+
 from ..models import ExtractedHeading
 
-def scan_for_malformed_headings(markdown_content: str, strict_headings: List[ExtractedHeading]) -> List[str]:
+
+def scan_for_malformed_headings(markdown_content: str, strict_headings: list[ExtractedHeading]) -> list[str]:
     """
     Perform a permissive line-scan for heading-like lines and diff against the strict AST headings.
     Returns a list of malformed heading lines that marko dropped.

@@ -1,9 +1,11 @@
 import re
+
 import marko
-from typing import List, Optional
-from ..models import PageFacts, ExtractedHeading, ExtractedCourse
+
+from ..models import ExtractedCourse, ExtractedHeading, PageFacts
 from .page_role import classify_page_role
 from .permissive_scan import scan_for_malformed_headings
+
 
 def extract_facts(markdown_content: str, version: str, page_num: int) -> PageFacts:
     doc = marko.parse(markdown_content)
@@ -29,14 +31,14 @@ def extract_facts(markdown_content: str, version: str, page_num: int) -> PageFac
     for child in doc.children:
         if isinstance(child, marko.block.Heading):
             text_parts = []
-            def walk_text(node):
+            def walk_text(node, parts):
                 if hasattr(node, "children"):
                     if isinstance(node.children, list):
                         for c in node.children:
-                            walk_text(c)
+                            walk_text(c, parts)
                     elif isinstance(node.children, str):
-                        text_parts.append(node.children)
-            walk_text(child)
+                        parts.append(node.children)
+            walk_text(child, text_parts)
             heading_text = "".join(text_parts).strip()
             
             line_num = find_heading_line(heading_text, line_index)

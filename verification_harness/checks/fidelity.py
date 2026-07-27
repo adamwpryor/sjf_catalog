@@ -1,6 +1,8 @@
-from typing import Iterator
+from collections.abc import Iterator
+
 from ..models import Finding
-from .registry import CheckContext, register, make_finding
+from .registry import CheckContext, make_finding, register
+
 
 @register("B1", tier=1, needs_pages=True, title="Fidelity: Credits mismatch")
 def check_b1(ctx: CheckContext) -> Iterator[Finding]:

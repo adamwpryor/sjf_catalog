@@ -1,7 +1,10 @@
 import re
-from typing import Iterator
+from collections.abc import Iterator
+
 from ..models import Finding
-from .registry import CheckContext, register, make_finding
+from ..normalize import page_from_url
+from .registry import CheckContext, make_finding, register
+
 
 @register("A1", tier=1, needs_pages=True, title="Coverage: Course on page but missing from DB")
 def check_a1(ctx: CheckContext) -> Iterator[Finding]:
@@ -64,15 +67,18 @@ def check_a2(ctx: CheckContext) -> Iterator[Finding]:
 
 @register("A5", tier=1, needs_pages=True, title="Coverage: Empty content page")
 def check_a5(ctx: CheckContext) -> Iterator[Finding]:
+    def _chunk_page(c):
+        return c.get("page_number") if c.get("page_number") is not None else page_from_url(c.get("markdown_url"))
+    
+    chunk_pages = {_chunk_page(c) for c in ctx.db.chunks if _chunk_page(c) is not None}
     for page_num, page_facts in ctx.pages.items():
-        if page_facts.page_role == "content":
-            if not page_facts.courses:
-                yield make_finding(
-                    ctx,
-                    check="A5",
-                    severity="high",
-                    entity_type="page",
-                    entity_key=str(page_num),
-                    claim=f"Page {page_num} is classified as 'content' but contains no courses",
-                    page=page_num
-                )
+        if page_facts.page_role == "content" and not page_facts.courses and page_num not in chunk_pages:
+            yield make_finding(
+                ctx,
+                check="A5",
+                severity="high",
+                entity_type="page",
+                entity_key=str(page_num),
+                claim=f"Page {page_num} is classified as 'content' but contains no courses or DB rows",
+                page=page_num
+            )

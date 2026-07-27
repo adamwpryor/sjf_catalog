@@ -1,5 +1,5 @@
 import re
-from typing import List, Literal
+from typing import Literal
 
 PageRole = Literal["content", "toc", "index", "title", "faculty_directory", "requirements_list", "blank", "unknown"]
 
@@ -40,11 +40,11 @@ def classify_page_role(markdown_content: str) -> PageRole:
     if course_codes > 10 and heading_ratio < 0.1:
         return "requirements_list"
 
-    # Default to content if there are significant paragraphs
-    if long_lines > 3:
-        return "content"
-
     if len(non_empty_lines) < 5 and num_headings > 0:
         return "title"
+
+    # Default to content if there are significant paragraphs or if it has some text and hasn't been classified as anything else
+    if long_lines >= 1 or len(non_empty_lines) > 0:
+        return "content"
 
     return "unknown"
