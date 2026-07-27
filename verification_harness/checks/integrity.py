@@ -13,6 +13,7 @@ import re
 from collections.abc import Iterator
 
 from ..models import Finding
+from ..normalize import normalize_course_code
 from .registry import CheckContext, make_finding, register
 
 #: A program "name" that is really a person's directory bio — contains a job title AND, usually,
@@ -76,8 +77,73 @@ def e4_non_program_rows(ctx: CheckContext) -> Iterator[Finding]:
         )
 
 
-# --- E1–E3: pending a DbFacts extension (child tables) -------------------------------------------
-# E1  program_requirement_courses.course_code absent from courses (dangling requirement references)
-# E2  courses.subject_id -> subjects.prefix disagrees with the course code's prefix
-# E3  orphaned child rows (program_requirements / requirement_blocks with no live parent)
+@register("E1", title="program requirement references a ghost (non-cataloged) course")
+def e1_ghost_requirement_refs(ctx: CheckContext) -> Iterator[Finding]:
+    """Report requirement entries pointing at a ``is_ghost`` course — one aggregate per catalog.
+
+    A ghost course is referenced but not fully cataloged, so a requirement built on one cannot be
+    satisfied by a real catalog course. This is a soft data-quality signal (``low``), and systemic
+    when present, so it is one per-catalog aggregate with example codes (the C6 pattern), not one
+    finding per requirement row.
+    """
+    ghosts = [rc for rc in ctx.db.requirement_courses if rc.get("course_is_ghost")]
+    if ghosts:
+        codes = sorted({str(rc.get("course_code")) for rc in ghosts if rc.get("course_code")})
+        yield make_finding(
+            ctx,
+            "E1",
+            severity="low",
+            entity_type="program",
+            entity_key=f"{ctx.version}:ghost-requirement-refs",
+            claim=f"{len(ghosts)} program-requirement entries reference a ghost (non-cataloged) course",
+            evidence_db=f"count={len(ghosts)}; courses: {', '.join(codes[:8])}",
+        )
+
+
+@register("E2", title="course subject_id prefix agrees with the course code prefix")
+def e2_subject_prefix_matches_code(ctx: CheckContext) -> Iterator[Finding]:
+    """Flag a course whose linked ``subjects.prefix`` disagrees with its own code prefix.
+
+    ``HIST 301`` linked to a subject whose prefix is ``BIOL`` is a mis-linked subject — a
+    consistency the database does not enforce. Reported ``medium``.
+    """
+    for course in ctx.db.courses:
+        subject_prefix = course.get("subject_prefix")
+        code = course.get("course_code")
+        if not subject_prefix or not code:
+            continue
+        code_prefix = normalize_course_code(code).split(" ")[0]
+        if code_prefix != subject_prefix.upper():
+            yield make_finding(
+                ctx,
+                "E2",
+                severity="medium",
+                entity_type="course",
+                entity_id=str(course["id"]),
+                entity_key=str(code),
+                claim=f"course code prefix {code_prefix!r} != subject prefix {subject_prefix.upper()!r}",
+                evidence_db=f"course_code={code!r}, subject_prefix={subject_prefix!r}",
+            )
+
+
+@register("E3", title="program requirement references a course that does not resolve")
+def e3_dangling_requirement_course(ctx: CheckContext) -> Iterator[Finding]:
+    """Flag a requirement entry whose ``course_id`` resolves to no course row (a broken reference).
+
+    Referential integrity is normally FK-enforced (this should find nothing), but the guard catches
+    a future schema/CASCADE change that would silently orphan requirement rows. Reported ``high`` —
+    a program requirement pointing at a non-existent course is a real structural break.
+    """
+    for rc in ctx.db.requirement_courses:
+        if rc.get("course_id") is not None and rc.get("course_code") is None:
+            yield make_finding(
+                ctx,
+                "E3",
+                severity="high",
+                entity_type="program",
+                entity_id=str(rc.get("program_id")),
+                entity_key=str(rc["id"]),
+                claim="requirement references a course_id with no matching course row",
+                evidence_db=f"requirement_id={rc.get('requirement_id')}, course_id={rc.get('course_id')}",
+            )
 # These are pure-DB but need db.py to surface program_requirement_courses + subjects first.

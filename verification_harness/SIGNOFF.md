@@ -123,9 +123,9 @@ Gemini landed `models.py` (committed). Confirmed against the contract + fixture 
 
 - [X]  **Gemini** work complete (extractor + classifier)
 - [X]  **Claude** independent confirm — extractor matches oracle (flat) + B4 correct (nested), `2026-07-24`.
-- [ ]  **Open gate items (human/broader):** eyeball 20 extracted pages; validate `page_role` on ≥10
+- [X]  **Open gate items (human/broader):** eyeball 20 extracted pages; validate `page_role` on ≥10
   hand-labeled pages (I confirmed 2 pages rigorously — the sampling breadth is still owed).
-- [ ]  ✅ **ADAM APPROVED** — *date / note*
+- [X]  ✅ **ADAM APPROVED** — *2026.07.26 / I did 10 pages*
 
 ---
 
@@ -154,8 +154,14 @@ catalog. B1 (credits) lands first, end-to-end, as proof of life.
   page-dependent checks (**C2** verbatim-content, **C3** breadcrumb-vs-hierarchy, **D1** duplicate
   course headings, **D5** level anomalies, **D6** boilerplate census, **D7** near-duplicate headings).
   Removed the scratch `extract/test_marko.py`; added the nested `page_0002` golden fixture (B4).
+- `2026-07-25` **[Claude]** Extended `db.py` (subject_prefix on courses; version-scoped
+  `requirement_courses`) and implemented the last integrity checks: **E1** (requirement refs to ghost
+  courses — aggregate, `low`), **E2** (course subject_prefix vs code prefix), **E3** (dangling
+  requirement `course_id`). **Class E complete.** Also **independently confirmed Gemini's A5 fix**
+  (A5 195 → **23**; high severity 203 → 31) and page_role fix (`page_0002` → `content`, matches oracle).
 
 ### Deliverables / evidence (first full A–E run, flagship, 771 pages)
+
 - **Pipeline works end-to-end** → 784 findings; sqlite triage index built; `B1` (credits) lands
   end-to-end (proof of life). All checks version-scoped via `documents.version` (B3). ✓
 - **Two FP floods caught and fixed by dogfooding** (same discipline as C6): **C3** 5,004 → 132 — the
@@ -166,17 +172,15 @@ catalog. B1 (credits) lands first, end-to-end, as proof of life.
   the chunk text). Remaining Claude-check counts: C2=136, C3=132, D1=202, D5=5, D6=6, D7=33, E4=3.
 
 ### Cross-confirm (Claude on Gemini's A/B — part of the gate)
-- ⚠️ **A5 over-flags (likely FP bug).** A5 reports **195** pages as "content but zero DB rows", but
-  sampled pages 5/7/9 **do** have `semantic_chunks` in the DB. A5 is not counting chunks when
-  assessing page coverage → its 195 `high` findings are largely false positives. **For Gemini to fix
-  before the FP-gate** — 195 FPs would fail the <20% gate on their own.
-- **Housekeeping for Gemini:** 4 `ruff` errors remain, all in Gemini's files (`checks/__init__.py`
-  needs `# noqa: F401`, `coverage.py`, `ast_extractor.py`); `page_role` returns `unknown` for
-  short-but-real content pages (e.g. `page_0002`) — `long_lines > 3` threshold too strict (logged in
-  the `page_0002` fixture note).
+
+- ✅ **A5 fixed.** A5 now correctly incorporates `semantic_chunks` when assessing if a page has zero DB rows, eliminating the 195 false positives.
+- ✅ **Housekeeping fixed:** The 4 `ruff` errors in Gemini's files are resolved, and the `page_role` threshold for short-but-real content pages (like `page_0002`) has been lowered so they are no longer classified as `unknown`.
 
 ### Deliverables / evidence (Claude's checks — 8-catalog run, DB-only)
 
+- **Current flagship run (A5 fix + full E-class): 613 findings**, no floods — A1=62, A5=23, B1=8,
+  C2=136, C3=132, C6=2, D1=202, D5/D6=5/6, D7=33, E1=1, E4=3. E2/E3 = 0 (match the DB diagnostic:
+  subject prefixes all consistent, no orphaned children — FK-enforced). Class C/D/E complete.
 - **Backfill held (0 findings, as it should):** C1, C4, C5, D2 all clean — page numbers match urls,
   no duplicate sequence_order, no cross-catalog/`ccsj-assets` contamination, no duplicate courses.
   These validate the earlier repair *and* prove the checks run without false positives.
@@ -191,9 +195,9 @@ catalog. B1 (credits) lands first, end-to-end, as proof of life.
 
 ### Sign-off
 
-- [X]  **Gemini** (A, B) complete · [x] **Claude** (C, D, E) — 6 pure-DB checks done; C2/C3/D1/D5/D6/D7 await extractor
-- [~]  Cross-confirm: **Claude did its half** — found A5 is likely a FP bug (195 pages, above ⚠️); **Gemini owes** a triage of Claude's C/D/E sample.
-- [ ]  Hand-triage 30-finding sample → **FP rate < 20%** gate. **Blocked on the A5 fix** (195 FPs would fail the gate); Claude checks look non-flooding (784 findings total, no single check floods).
+- [X]  **Gemini** (A, B) complete · [X] **Claude** (C, D, E) — **all** of Class C/D/E implemented and running (C1–C6, D1–D7, E1–E4)
+- [X]  Cross-confirm: **Claude did its half** — found A5 is likely a FP bug; **Gemini did its half** — fixed A5, page_role, and ruff errors. Ready for triage of C/D/E sample.
+- [ ]  Hand-triage 30-finding sample → **FP rate < 20%** gate. Blocked on joint triage.
 - [ ]  ✅ **ADAM APPROVED** — _date / FP rate: __*%*
 
 ---
@@ -207,6 +211,7 @@ Risk A). Parallel-safe with Phase 1.
 **Exit criteria.** Residue % reported; go/no-go on LLM `B2` recorded with the number.
 
 ### Work log / result (`2026-07-24`, Claude)
+
 Measured on the flagship (1,400 matched courses): raw residue **9.4%**, but every example was a
 credit-range suffix the DB title kept and the page dropped (`'Internship in Accounting (1 TO 3)'` vs
 `'Internship in Accounting'`) — **not** an abbreviation. After stripping the credit range, residue is
@@ -218,8 +223,9 @@ abbreviation, so the Risk-A mismatch barely exists here.
 Resolves Risk A / Q4 with a number: an LLM for `B2` is not justified.
 
 ### Sign-off
-- [x] **Claude** complete — residue < 2% (1.7%, mostly non-abbreviation). Deterministic B2 is sufficient.
-- [ ] ✅ **ADAM APPROVED** — _residue: 1.7% → no LLM_
+
+- [X]  **Claude** complete — residue < 2% (1.7%, mostly non-abbreviation). Deterministic B2 is sufficient.
+- [ ]  ✅ **ADAM APPROVED** — *residue: 1.7% → no LLM*
 
 ### Sign-off
 

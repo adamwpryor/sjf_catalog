@@ -40,15 +40,19 @@ class DbFacts:
 
     Attributes:
         version: The catalog key these facts belong to, e.g. ``"2025-2026-undergraduate"``.
-        courses: ``courses`` rows (dicts) for this version.
+        courses: ``courses`` rows (dicts) for this version; each carries a joined ``subject_prefix``.
         programs: ``programs`` rows (dicts) for this version.
         chunks: ``semantic_chunks`` rows (dicts) for this version.
+        requirement_courses: ``program_requirement_courses`` rows for this version's programs,
+            joined to their course (``course_code``, ``course_is_ghost``) and parent
+            (``program_id``) — for the referential-integrity checks (E1/E3).
     """
 
     version: str
     courses: list[dict[str, Any]] = field(default_factory=list)
     programs: list[dict[str, Any]] = field(default_factory=list)
     chunks: list[dict[str, Any]] = field(default_factory=list)
+    requirement_courses: list[dict[str, Any]] = field(default_factory=list)
 
 
 def _dsn() -> str:
@@ -124,9 +128,11 @@ def db_facts_for_version(version: str) -> DbFacts:
         cur.execute(
             """
             SELECT c.id, c.document_id, c.course_code, c.title, c.credits, c.description,
-                   c.prerequisites, c.markdown_url, c.is_ghost, c.subject_id, c.source_chunk_id
+                   c.prerequisites, c.markdown_url, c.is_ghost, c.subject_id, c.source_chunk_id,
+                   s.prefix AS subject_prefix
             FROM courses c
             JOIN documents d ON d.id = c.document_id
+            LEFT JOIN subjects s ON s.id = c.subject_id
             WHERE d.version = %s
             ORDER BY c.course_code
             """,
@@ -159,4 +165,25 @@ def db_facts_for_version(version: str) -> DbFacts:
         )
         chunks = [dict(row) for row in cur.fetchall()]
 
-    return DbFacts(version=version, courses=courses, programs=programs, chunks=chunks)
+        cur.execute(
+            """
+            SELECT prc.id, prc.requirement_id, pr.program_id, prc.course_id, prc.is_required,
+                   c.course_code, c.is_ghost AS course_is_ghost
+            FROM program_requirement_courses prc
+            JOIN program_requirements pr ON pr.id = prc.requirement_id
+            JOIN programs p ON p.id = pr.program_id
+            JOIN documents d ON d.id = p.document_id
+            LEFT JOIN courses c ON c.id = prc.course_id
+            WHERE d.version = %s
+            """,
+            (version,),
+        )
+        requirement_courses = [dict(row) for row in cur.fetchall()]
+
+    return DbFacts(
+        version=version,
+        courses=courses,
+        programs=programs,
+        chunks=chunks,
+        requirement_courses=requirement_courses,
+    )
