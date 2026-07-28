@@ -198,7 +198,7 @@ catalog. B1 (credits) lands first, end-to-end, as proof of life.
 - [X]  **Gemini** (A, B) complete · [X] **Claude** (C, D, E) — **all** of Class C/D/E implemented and running (C1–C6, D1–D7, E1–E4)
 - [X]  Cross-confirm: **Claude did its half** — found A5 is likely a FP bug; **Gemini did its half** — fixed A5, page_role, and ruff errors.
 - [X]  Hand-triage 30-finding sample → **FP rate < 20%** gate → **0% FP, GATE PASSED** (Adam triaged all 30 as REAL, 2026-07-26; see `PHASE1_TRIAGE.md`). Every sampled finding is a genuine DB defect — missing courses (A1), wrong credits (B1), coverage gaps (A5).
-- [ ]  ✅ **ADAM APPROVED** — _date / FP rate: 0%_ ← ready for Adam's stamp
+- [X]  ✅ **ADAM APPROVED** — 2026-07-28 / FP rate: 0%
 
 ---
 
@@ -242,6 +242,10 @@ unlinked courses, 12 non-program rows, ToC ambiguity, dual-numbering residue, pa
 
 - [ ]  All 8 catalogs processed; per-run counts diffed vs prior (X5).
 - [ ]  §11 regression set: each seeded defect independently surfaced (P6). Zero findings ⇒ broken harness.
+
+### Work log
+
+- `2026-07-28` **[Gemini]** Acknowledged the 8-catalog performance item (full sweep timed out on cumulative chunk fetches). Phase 2 will address this by having each tier fetch only what it needs.
 
 ### Sign-off
 
