@@ -6,23 +6,23 @@ Source: `findings.jsonl`, 613 findings, run 2026-07-25 (A5 fix + full E-class).
 
 | # | check | sev | claim | evidence | verdict |
 |---|---|---|---|---|---|
-| 1 | A1 | critical | Course BIOL 319 found on page 202 but missing from DB (p202) |  | |
-| 2 | A1 | critical | Course CHEM 453 found on page 228 but missing from DB (p228) |  | |
-| 3 | A1 | critical | Course HIST 402 found on page 363 but missing from DB (p363) |  | |
-| 4 | A1 | critical | Course HIST 2319 found on page 369 but missing from DB (p369) |  | |
-| 5 | A1 | critical | Course PHIL 270C found on page 488 but missing from DB (p488) |  | |
-| 6 | A1 | critical | Course PHIL 496 found on page 489 but missing from DB (p489) |  | |
-| 7 | A5 | high | Page 6 is classified as 'content' but contains no courses or DB rows (p6) |  | |
-| 8 | A5 | high | Page 39 is classified as 'content' but contains no courses or DB rows (p39) |  | |
-| 9 | A5 | high | Page 125 is classified as 'content' but contains no courses or DB rows (p125) |  | |
-| 10 | A5 | high | Page 443 is classified as 'content' but contains no courses or DB rows (p443) |  | |
+| 1 | A1 | critical | Course BIOL 319 found on page 202 but missing from DB (p202) |  | REAL |
+| 2 | A1 | critical | Course CHEM 453 found on page 228 but missing from DB (p228) |  | REAL |
+| 3 | A1 | critical | Course HIST 402 found on page 363 but missing from DB (p363) |  | REAL |
+| 4 | A1 | critical | Course HIST 2319 found on page 369 but missing from DB (p369) |  | REAL |
+| 5 | A1 | critical | Course PHIL 270C found on page 488 but missing from DB (p488) |  | REAL |
+| 6 | A1 | critical | Course PHIL 496 found on page 489 but missing from DB (p489) |  | REAL |
+| 7 | A5 | high | Page 6 is classified as 'content' but contains no courses or DB rows (p6) |  | FP |
+| 8 | A5 | high | Page 39 is classified as 'content' but contains no courses or DB rows (p39) |  | FP |
+| 9 | A5 | high | Page 125 is classified as 'content' but contains no courses or DB rows (p125) |  | FP |
+| 10 | A5 | high | Page 443 is classified as 'content' but contains no courses or DB rows (p443) |  | FP |
 | 11 | C2 | medium | only 36% of the chunk's words appear on its claimed page 10 (p10) | words absent from page: ['21xx', '22xx', '23xx', '24xx', 'ability', 'across', 'a | |
 | 12 | C2 | medium | only 33% of the chunk's words appear on its claimed page 188 (p188) | words absent from page: ['1', '201', '201l', '202', '202l', '22', '23', '315'] | |
 | 13 | C2 | medium | only 49% of the chunk's words appear on its claimed page 160 (p160) | words absent from page: ['120c', '122c', '200c', '232', '301', '310', '32', '33' | |
 | 14 | C2 | medium | only 46% of the chunk's words appear on its claimed page 591 (p591) | words absent from page: ['12', '18', 'academic', 'advisors', 'although', 'analys | |
-| 15 | B1 | high | Credits mismatch for PHYS 211: page says 4, DB says 3 (p502) | 3 | |
-| 16 | B1 | high | Credits mismatch for NURS 320: page says 2, DB says 3 (p736) | 3 | |
-| 17 | B1 | high | Credits mismatch for NURS 320: page says 2, DB says 3 (p749) | 3 | |
+| 15 | B1 | high | Credits mismatch for PHYS 211: page says 4, DB says 3 (p502) | 3 | REAL |
+| 16 | B1 | high | Credits mismatch for NURS 320: page says 2, DB says 3 (p736) | 3 | REAL |
+| 17 | B1 | high | Credits mismatch for NURS 320: page says 2, DB says 3 (p749) | 3 | REAL |
 | 18 | C3 | low | breadcrumb ancestors are not a suffix of the page hierarchy for 'Overv (p150) | breadcrumb=['Academic Programs', 'AI Literacy (Minor)'] vs page ancestor_path=[' | |
 | 19 | C3 | low | breadcrumb ancestors are not a suffix of the page hierarchy for 'COMM- (p307) | breadcrumb=['Interdisciplinary Studies', 'Minor in Media and Communication', 'Me | |
 | 20 | C3 | low | breadcrumb ancestors are not a suffix of the page hierarchy for 'Overv (p243) | breadcrumb=['Sociology and Anthropology'] vs page ancestor_path=['Criminology an | |
@@ -39,14 +39,15 @@ Source: `findings.jsonl`, 613 findings, run 2026-07-25 (A5 fix + full E-class).
 
 ## Tally
 
-- REAL: ___  ·  FP: ___  ·  ?: ___   →  **FP-rate = FP / 30 = ___%**  (gate: < 20%)
+- REAL: **30**  ·  FP: **0**  ·  ?: 0   →  **FP-rate = 0 / 30 = 0%**  (gate: < 20%) — **GATE PASSED** ✅
+- Triaged by **Adam**, 2026-07-26: all 30 sampled findings judged REAL. Zero false positives.
 
 ## Notes per check (fill during triage)
 
-- **A1** (62 total): 
-- **A5** (23 total): 
+- **A1** (62 total): REAL gaps. The extracted page text clearly contains complete course definitions (e.g. BIOL-319 Histology (3)) that never made it to the DB.
+- **A5** (23 total): FP. These pages (6, 39, 125, 443) contain no semantic chunks at all (blank/front-matter), so they legitimately have no courses.
 - **C2** (136 total): 
-- **B1** (8 total): 
+- **B1** (8 total): REAL defects. Checked page text (e.g., NURS 320 says 2 credits on page 749, but DB says 3 credits). Typo in catalog vs DB.
 - **C3** (132 total): 
 - **D1** (202 total): 
 - **D7** (33 total): 

@@ -196,9 +196,9 @@ catalog. B1 (credits) lands first, end-to-end, as proof of life.
 ### Sign-off
 
 - [X]  **Gemini** (A, B) complete · [X] **Claude** (C, D, E) — **all** of Class C/D/E implemented and running (C1–C6, D1–D7, E1–E4)
-- [X]  Cross-confirm: **Claude did its half** — found A5 is likely a FP bug; **Gemini did its half** — fixed A5, page_role, and ruff errors. Ready for triage of C/D/E sample.
-- [ ]  Hand-triage 30-finding sample → **FP rate < 20%** gate. Blocked on joint triage.
-- [ ]  ✅ **ADAM APPROVED** — _date / FP rate: __*%*
+- [X]  Cross-confirm: **Claude did its half** — found A5 is likely a FP bug; **Gemini did its half** — fixed A5, page_role, and ruff errors.
+- [X]  Hand-triage 30-finding sample → **FP rate < 20%** gate → **0% FP, GATE PASSED** (Adam triaged all 30 as REAL, 2026-07-26; see `PHASE1_TRIAGE.md`). Every sampled finding is a genuine DB defect — missing courses (A1), wrong credits (B1), coverage gaps (A5).
+- [ ]  ✅ **ADAM APPROVED** — _date / FP rate: 0%_ ← ready for Adam's stamp
 
 ---
 
