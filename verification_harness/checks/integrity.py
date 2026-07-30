@@ -34,8 +34,11 @@ _SECTION_HEADER = re.compile(
 )
 
 
-def _classify_non_program(name: str) -> str | None:
+def classify_non_program(name: str) -> str | None:
     """Return why a ``programs.name`` is not a program, or ``None`` if it looks legitimate.
+
+    Shared with ``A4``, which must distinguish an unlinked *real* program from an unlinked row that
+    was never a program to begin with — the same classification, so it lives in one place.
 
     Args:
         name: The ``programs.name`` value.
@@ -61,7 +64,7 @@ def e4_non_program_rows(ctx: CheckContext) -> Iterator[Finding]:
     """
     for program in ctx.db.programs:
         name = program.get("name") or ""
-        kind = _classify_non_program(name)
+        kind = classify_non_program(name)
         if kind is None:
             continue
         yield make_finding(

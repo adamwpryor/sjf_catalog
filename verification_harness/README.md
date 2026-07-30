@@ -47,6 +47,7 @@ verification_harness/
 ├── config.py              paths, catalog-version reference data, run gates (NO secrets)
 ├── models.py              [Gemini]  Pydantic contracts: Finding, PageFacts, ExtractedHeading
 ├── db.py                  [Claude]  version-scoped read-only DB facts (psycopg2)
+├── fetch.py               [Claude]  GCS → artifacts/page-cache/ sync (incremental, ADC, read-only)
 ├── cli.py                 [shared]  orchestration entry point (fetch → extract → check → load → report)
 │
 ├── extract/               ── Tier 0: source pages → structured facts ──
@@ -65,17 +66,19 @@ verification_harness/
 │
 ├── report/                ── outputs ──
 │   ├── sqlite_loader.py     [Claude]  findings.jsonl → findings.sqlite (triage index)
+│   ├── run_history.py       [Claude]  X5 — snapshot each sweep, diff against the previous run
 │   └── report.py            [Claude]  findings.sqlite → report.md
 │
 ├── tests/
 │   ├── fixtures/            frozen golden JSON — CROSS-AUTHORED (extractor's oracle, per P1)
-│   └── test_*.py
+│   └── test_known_answers.py  §11 known-answer gate (P6) — run after a full sweep
 │
 └── artifacts/             ── all derived outputs; GIT-IGNORED ──
-    ├── page-cache/           gcloud-synced source .md pages
+    ├── page-cache/           source .md pages, synced by fetch.py
     ├── extracted_facts/<version>/page_NNNN.json   one file per page (Tier 0 output)
     ├── findings.jsonl        append-only interchange format (all tiers write here)
     ├── findings.sqlite       derived triage index
+    ├── run_history.jsonl     one snapshot per sweep (corpus counts + findings + git sha)
     └── report.md             human-readable report
 ```
 
@@ -98,21 +101,28 @@ GCS pages ──sync──► artifacts/page-cache/
        report/sqlite_loader.py ──► findings.sqlite ──► report/report.py ──► report.md
 ```
 
-## Running it (once implemented)
+## Running it
 
 ```bash
 conda activate sjfu-catalog                          # deps live in ../environment.yml
-export DATABASE_URL=...                               # read-only creds; from .env.local, never committed
+# DATABASE_URL + GOOGLE_APPLICATION_CREDENTIALS are read from ../.env.local (never committed)
 
-# 1. materialize the source pages locally (avoids per-check GCS auth; local ADC expires ~1h)
-gcloud storage cp -r "gs://sjfu-assets/catalogs/SJFU/*" verification_harness/artifacts/page-cache/
+# full sweep: fetch the source pages, then audit all 8 catalogs (~30s + ~40s on a cold cache)
+python -m verification_harness --all --sync
 
-# 2. run one catalog end to end
+# one catalog, or one class of check while iterating
 python -m verification_harness --version 2025-2026-undergraduate
+python -m verification_harness --all --checks A4,E4
 
-# 3. review
-open verification_harness/artifacts/report.md
+# the known-answer gate: the harness must independently rediscover every §11 seeded defect
+pytest verification_harness/tests/test_known_answers.py -v
 ```
+
+`--sync` populates `artifacts/page-cache/` from GCS through `fetch.py` and is **incremental**, so
+leaving it on costs one listing round-trip per catalog. Without it the cache must already exist —
+the run raises rather than silently auditing nothing. Every run also appends a snapshot to
+`artifacts/run_history.jsonl` and prints the **X5** diff against the previous run; an unexplained
+count change is itself a finding (spec §3).
 
 ## Guardrails (from the spec — do not remove)
 

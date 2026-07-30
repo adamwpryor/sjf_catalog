@@ -47,10 +47,13 @@ _JSON_FIELDS: frozenset[str] = frozenset({"ancestor_path", "refuters"})
 
 
 class MalformedFinding(ValueError):
-    """Raised when a ``findings.jsonl`` line is not valid JSON or lacks a stable ``id``.
+    """Raised when a ``findings.jsonl`` line is not valid JSON, lacks a stable ``id``, or reuses one.
 
     Surfaced rather than skipped: silently dropping a finding would make the harness
-    under-report, which is its worst failure mode (spec P5 / blocking issue B5).
+    under-report, which is its worst failure mode (spec P5 / blocking issue B5). A *duplicate* id is
+    the same failure wearing a different hat — ``INSERT OR REPLACE`` would quietly coalesce two
+    findings into one — so it is reported here, named, instead of surfacing as a bare
+    ``sqlite3.IntegrityError`` from the insert.
     """
 
 
@@ -96,6 +99,7 @@ def load(
         raise FileNotFoundError(f"findings file not found: {jsonl_path}")
 
     rows: list[list[Any]] = []
+    seen: dict[str, int] = {}
     for lineno, raw in enumerate(jsonl_path.read_text(encoding="utf-8").splitlines(), start=1):
         raw = raw.strip()
         if not raw:
@@ -104,8 +108,16 @@ def load(
             finding = json.loads(raw)
         except json.JSONDecodeError as exc:
             raise MalformedFinding(f"{jsonl_path}:{lineno}: invalid JSON ({exc})") from exc
-        if not finding.get("id"):
+        finding_id = finding.get("id")
+        if not finding_id:
             raise MalformedFinding(f"{jsonl_path}:{lineno}: finding has no stable 'id'")
+        if finding_id in seen:
+            raise MalformedFinding(
+                f"{jsonl_path}:{lineno}: duplicate finding id {finding_id!r} "
+                f"(first seen on line {seen[finding_id]}). Finding ids must be unique — a check is "
+                f"emitting the same claim about the same entity twice."
+            )
+        seen[finding_id] = lineno
         rows.append(_row_values(finding))
 
     sqlite_path.parent.mkdir(parents=True, exist_ok=True)

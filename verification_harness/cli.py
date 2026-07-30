@@ -12,13 +12,13 @@ Usage::
 
     conda activate sjfu-catalog
     export DATABASE_URL=...                        # read-only creds; never stored in source
+    python -m verification_harness --all --sync                    # full sweep, pages fetched first
     python -m verification_harness --version 2025-2026-undergraduate
-    python -m verification_harness --all --pages-dir <dir>
+    python -m verification_harness --all --checks A4,E4            # one class, iterating
 
-The page cache is populated out-of-band (local ADC tokens expire mid-run, so streaming per-check is
-avoided)::
-
-    gcloud storage cp -r "gs://sjfu-assets/catalogs/SJFU/*" verification_harness/artifacts/page-cache/
+``--sync`` populates the page cache from GCS through :mod:`verification_harness.fetch` before the
+run. It is incremental (already-cached pages are skipped), so it is cheap to leave on. Without it,
+the cache must already exist or the run raises rather than auditing nothing.
 """
 
 from __future__ import annotations
@@ -26,10 +26,12 @@ from __future__ import annotations
 import argparse
 import logging
 import sys
+import time
+from dataclasses import dataclass
 from pathlib import Path
 
 # Importing the check modules registers their checks as a side effect.
-from . import config, db
+from . import config, db, fetch
 from .checks import (  # noqa: F401
     coverage,
     fidelity,
@@ -39,8 +41,8 @@ from .checks import (  # noqa: F401
     registry,
 )
 from .extract.ast_extractor import extract_facts
-from .models import PageFacts
-from .report import sqlite_loader
+from .models import Finding, PageFacts
+from .report import run_history, sqlite_loader
 
 logger = logging.getLogger(__name__)
 
@@ -101,26 +103,75 @@ def load_pages(version: str, pages_dir: Path) -> tuple[dict[int, PageFacts], dic
     return pages, page_texts
 
 
-def run_version(version: str, pages_dir: Path) -> list:
-    """Run all registered checks for one catalog version and return its findings.
+@dataclass(frozen=True)
+class VersionRun:
+    """One catalog version's sweep result.
+
+    Attributes:
+        version: The catalog key that was run.
+        findings: Every finding the selected checks produced.
+        corpus: Input counts (``pages``/``courses``/``programs``/``chunks``) for the ``X5``
+            run-over-run diff — an unexplained change in these is itself a finding (§3).
+    """
+
+    version: str
+    findings: list[Finding]
+    corpus: dict[str, int]
+
+
+def run_version(
+    version: str,
+    pages_dir: Path,
+    checks: list[str] | None = None,
+) -> VersionRun:
+    """Run the selected checks for one catalog version.
+
+    Each stage is timed and logged, so "the sweep is slow" is always answerable with a number
+    rather than a guess.
 
     Args:
         version: Full catalog key.
         pages_dir: Root of the page cache.
+        checks: Restrict to these check ids; ``None`` runs every registered check.
 
     Returns:
-        The findings produced for this version.
+        The version's findings alongside the corpus counts they were derived from.
     """
+    started = time.time()
     pages, page_texts = load_pages(version, pages_dir)
+    t_extract = time.time() - started
+
+    mark = time.time()
+    db_facts = db.db_facts_for_version(version)
+    t_db = time.time() - mark
+
+    mark = time.time()
     ctx = registry.CheckContext(
-        version=version,
-        db=db.db_facts_for_version(version),
-        pages=pages,
-        page_texts=page_texts,
+        version=version, db=db_facts, pages=pages, page_texts=page_texts
     )
-    findings = list(registry.run(ctx))
-    logger.info("%s: %d pages, %d findings", version, len(pages), len(findings))
-    return findings
+    findings = list(registry.run(ctx, checks))
+    t_checks = time.time() - mark
+
+    logger.info(
+        "%s: %d pages, %d chunks, %d findings (extract %.1fs, db %.1fs, checks %.1fs)",
+        version,
+        len(pages),
+        len(db_facts.chunks),
+        len(findings),
+        t_extract,
+        t_db,
+        t_checks,
+    )
+    return VersionRun(
+        version=version,
+        findings=findings,
+        corpus={
+            "pages": len(pages),
+            "courses": len(db_facts.courses),
+            "programs": len(db_facts.programs),
+            "chunks": len(db_facts.chunks),
+        },
+    )
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -136,6 +187,15 @@ def main(argv: list[str] | None = None) -> int:
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--version", action="append", help="catalog version (repeatable)")
     group.add_argument("--all", action="store_true", help="run every version in the database")
+    parser.add_argument(
+        "--sync",
+        action="store_true",
+        help="fetch the source pages from GCS into the page cache first (incremental)",
+    )
+    parser.add_argument(
+        "--checks",
+        help="comma-separated check ids to run (default: all), e.g. --checks A4,E4",
+    )
     parser.add_argument("--pages-dir", type=Path, default=config.PAGE_CACHE_DIR)
     parser.add_argument("--out", type=Path, default=config.FINDINGS_JSONL)
     args = parser.parse_args(argv)
@@ -143,19 +203,70 @@ def main(argv: list[str] | None = None) -> int:
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
     _load_env_local()
 
+    checks: list[str] | None = None
+    if args.checks:
+        checks = [c.strip() for c in args.checks.split(",") if c.strip()]
+        unknown = [c for c in checks if c not in registry.REGISTRY]
+        if unknown:
+            parser.error(
+                f"unknown check id(s): {', '.join(unknown)}. "
+                f"Registered: {', '.join(sorted(registry.REGISTRY))}"
+            )
+
     versions = db.list_versions() if args.all else args.version
-    all_findings: list = []
-    for version in versions:
-        all_findings.extend(run_version(version, args.pages_dir))
+    if args.sync:
+        fetch.sync_versions(versions, args.pages_dir)
+
+    started = time.time()
+    runs = [run_version(version, args.pages_dir, checks) for version in versions]
+    all_findings: list[Finding] = [f for run in runs for f in run.findings]
 
     written = registry.write_findings(all_findings, args.out)
     loaded = sqlite_loader.load(args.out, config.FINDINGS_SQLITE)
     summary = sqlite_loader.summarize(config.FINDINGS_SQLITE)
+
+    print(f"\nran {len(versions)} catalog(s) in {time.time() - started:.1f}s")
+    for run in runs:
+        print(f"  {run.version:28} {len(run.findings):>6} findings")
     print(f"\nwrote {written} findings -> {args.out}")
     print(f"loaded {loaded} into {config.FINDINGS_SQLITE.name}")
     print("by severity:", summary["by_severity"])
     print("by check:", summary["by_check"])
+
+    _report_x5(runs, summary, partial=bool(checks) or not args.all)
     return 0
+
+
+def _report_x5(
+    runs: list[VersionRun],
+    summary: dict[str, dict[str, int]],
+    *,
+    partial: bool,
+) -> None:
+    """Record this sweep and print the ``X5`` diff against the previous comparable one.
+
+    Args:
+        runs: This sweep's per-version results.
+        summary: The triage-index summary.
+        partial: True when the run was restricted (``--checks`` or a version subset), in which case
+            it is *not* recorded — diffing a partial run against a full sweep would manufacture a
+            spurious X5 on every check that simply did not run.
+    """
+    if partial:
+        print("\nX5: partial run (subset of versions or checks) — not recorded in run history")
+        return
+
+    _, changes = run_history.record_and_diff(
+        corpus={run.version: run.corpus for run in runs},
+        findings_by_version={run.version: len(run.findings) for run in runs},
+        summary=summary,
+    )
+    if not changes:
+        print("\nX5: no change vs the previous run (or this is the first recorded run)")
+        return
+    print(f"\nX5: {len(changes)} count(s) changed vs the previous run — explain each or treat as a finding:")
+    for line in changes:
+        print(line)
 
 
 if __name__ == "__main__":
