@@ -11,7 +11,8 @@ This is the *only* database entry point in the harness, and it is deliberately n
 - **Independent of the backfill.** Nothing here imports from ``scripts/`` or ``src/`` (P1).
 
 The credentials come from the ``DATABASE_URL`` environment variable
-(:data:`verification_harness.config.DB_URL_ENV_VAR`); the value is never stored in source.
+(:data:`verification_harness.config.DB_URL_ENV_VAR`), falling back to the repo's git-ignored
+``.env.local`` when it is not exported; the value is never stored in source.
 """
 
 from __future__ import annotations
@@ -56,19 +57,42 @@ class DbFacts:
 
 
 def _dsn() -> str:
-    """Return the Postgres DSN from the environment, or raise if unset.
+    """Return the Postgres DSN, falling back to the repo's local dotenv file for dev convenience.
+
+    An exported environment variable always wins. Only when it is absent does this read
+    ``../.env.local`` (then ``../.env``), so a bare ``pytest`` works without the caller having to
+    export credentials first, and the harness still has **no** credential material in source.
+
+    Note that ``load_dotenv`` populates *every* key in the file, not just the database URL — the
+    same effect as :func:`verification_harness.cli._load_env_local`, which the CLI path already
+    relies on for ``GOOGLE_APPLICATION_CREDENTIALS``.
 
     Returns:
         The connection string.
 
     Raises:
-        HarnessDBError: If :data:`config.DB_URL_ENV_VAR` is not set (no fallback — Zero-Trust).
+        HarnessDBError: If :data:`config.DB_URL_ENV_VAR` is set neither in the environment nor in a
+            local dotenv file. There is no default DSN and no hard-coded fallback (Zero-Trust).
     """
     dsn = os.environ.get(config.DB_URL_ENV_VAR)
     if not dsn:
+        try:
+            from dotenv import load_dotenv
+
+            env_local = config.REPO_ROOT / ".env.local"
+            env_file = config.REPO_ROOT / ".env"
+            if env_local.exists():
+                load_dotenv(env_local)
+            elif env_file.exists():
+                load_dotenv(env_file)
+            dsn = os.environ.get(config.DB_URL_ENV_VAR)
+        except ImportError:
+            pass  # python-dotenv is optional; an exported variable is the supported path
+
+    if not dsn:
         raise HarnessDBError(
-            f"{config.DB_URL_ENV_VAR} is not set. Export it (read-only creds) before running the "
-            f"harness; it is never stored in source."
+            f"{config.DB_URL_ENV_VAR} is not set. Export it (read-only creds), or put it in "
+            f"{config.REPO_ROOT / '.env.local'}; it is never stored in source."
         )
     return dsn
 
