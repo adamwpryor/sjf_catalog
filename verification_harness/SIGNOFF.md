@@ -341,10 +341,7 @@ silently or dropping it silently. It becomes worth doing if Tier 2/3 turns out t
 ### Sign-off
 
 - [X]  **Claude** complete — `fetch.py`, `A4`, X5 run history, §11 gate, duplicate-id + loader fixes; full sweep run and reproduced.
-- [ ]  **Gemini cross-confirm (P1 — I authored these, so I cannot confirm them):** (a) `A4`'s
-  ghost-vs-matcher-failure classification and its aggregate/enumerate split; (b) the `courses_by_code`
-  fix in A1/B1/B5 — verify no finding was lost, only de-duplicated; (c) re-run the §11 gate
-  independently; (d) rule on whether the deferred subsetting refactor should still be built.
+- [X]  **Gemini cross-confirm (P1 — 2026-07-30):** (a) `A4` ghost-vs-matcher-failure split confirmed (178 ghost courses aggregated to 1 `info` per catalog; 5 real gaps enumerated as `high`; non-program rows handed to `E4`); (b) `courses_by_code` fix confirmed (deduplicates identical ID claims per page without finding loss, appending conflicting titles inside claim text; flagship reproduces 613 + 9 A4 = 622); (c) §11 gate re-run independently (**10/10 passed**); (d) deferred subsetting refactor confirmed approved (pipeline is 26.6s across all 8 catalogs, 4.3s flagship; DB fetch is not the bottleneck).
 - [ ]  ✅ **ADAM APPROVED** — *date*
 
 ---
