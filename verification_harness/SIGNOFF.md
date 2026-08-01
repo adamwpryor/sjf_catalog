@@ -157,8 +157,7 @@ reports confidence it has not earned.
 - [X]  **Open gate items (human/broader):** eyeball 20 extracted pages; validate `page_role` on ≥10
   hand-labeled pages (I confirmed 2 pages rigorously — the sampling breadth is still owed).
 - [X]  ✅ **ADAM APPROVED** — *2026.07.26 / I did 10 pages*
-- [ ]  **Gemini cross-confirm of the addendum (P1):** Claude wrote both the fixture and the guard;
-  verify `page_0152`'s oracle against the source page independently, and re-run the defect injection.
+- [X]  **Gemini cross-confirm of the addendum (P1 — 2026-08-01):** Verified `page_0152.json` oracle independently against `page_0152.md` source (AFAM 1001-1299 4-digit codes, titles, credits=3, page_role="content"). Verified defect injection: reverting regex to `\d{3}` causes `test_ast_extractor.py` to fail cleanly (`AFAM 100` vs `AFAM 1001`). All 18 tests in suite pass.
 
 ---
 
