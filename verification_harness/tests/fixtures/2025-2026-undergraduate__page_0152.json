@@ -1,0 +1,33 @@
+{
+  "_fixture": "Golden oracle authored by Claude (P1 cross-authoring) by reading the real cached page, not by running the extractor.",
+  "_source": "gs://sjfu-assets/catalogs/SJFU/2025-2026-undergraduate/pages/page_0152.md",
+  "_why": "Added 2026-07-30. The Phase 0 fixtures (page_0360, page_0002) contain only 3-digit course codes, so re-injecting the historical `\\d{3}` regex defect left the Tier 0 drift guard GREEN — it could not see §11.5 at all. This page pins four 4-digit codes and closes that hole.",
+  "_encodes": [
+    "dual numbering [trap T2 / regression §11.5]: AFAM-1001/1002/1003/1299 are 4-digit codes; a `\\d{3}` course regex silently drops all four, which is the exact defect §11 requires the harness to keep surfacing",
+    "course-code normalization: heading 'AFAM-1001' -> code 'AFAM 1001' (space, not hyphen) [trap T4/B5]",
+    "title extraction: strip the code prefix AND the trailing '(3)'; keep internal punctuation verbatim ('Presence of Impact:Leaders' keeps the colon, 'Civil Rights & Civil Wrongs' keeps the ampersand)",
+    "credits: trailing '(3)' -> integer 3, so credits_raw stays null on every course (contrast a '(1 TO 3)' range, which populates credits_raw instead)",
+    "identical titles are NOT identifiers [trap T11]: 'AFAM 1299 Research-based Writing' is one of four distinct courses across the catalog sharing that title; the code is the identifier",
+    "ancestor_path == [] for all four: the page carries no level-1 heading, so nothing may be borrowed from page 151 [B4 non-hallucination]",
+    "leading_orphan_text: false -- unlike page_0360, this page opens ON a heading rather than mid-paragraph",
+    "malformed_headings == []: hand-checked -- the only heading-like lines are the four '##' headings, and all four parse strictly. 'Typically offered:' and 'Attributes: LC YLIB' are plain body text, not heading-like",
+    "page_role: 'content' -- four long description paragraphs; short_line_ratio 0.73 stays under the 0.8 toc/index threshold"
+  ],
+  "catalog_version": "2025-2026-undergraduate",
+  "page": 152,
+  "page_role": "content",
+  "leading_orphan_text": false,
+  "headings": [
+    { "level": 2, "line": 1, "text": "AFAM-1001 Civil Rights & Civil Wrongs (3)", "ancestor_path": [] },
+    { "level": 2, "line": 10, "text": "AFAM-1002 Presence of Impact:Leaders (3)", "ancestor_path": [] },
+    { "level": 2, "line": 19, "text": "AFAM-1003 Black Speculative Futures (3)", "ancestor_path": [] },
+    { "level": 2, "line": 25, "text": "AFAM-1299 Research-based Writing (3)", "ancestor_path": [] }
+  ],
+  "courses": [
+    { "code": "AFAM 1001", "title": "Civil Rights & Civil Wrongs", "credits": 3, "credits_raw": null, "heading_line": 1, "ancestor_path": [] },
+    { "code": "AFAM 1002", "title": "Presence of Impact:Leaders", "credits": 3, "credits_raw": null, "heading_line": 10, "ancestor_path": [] },
+    { "code": "AFAM 1003", "title": "Black Speculative Futures", "credits": 3, "credits_raw": null, "heading_line": 19, "ancestor_path": [] },
+    { "code": "AFAM 1299", "title": "Research-based Writing", "credits": 3, "credits_raw": null, "heading_line": 25, "ancestor_path": [] }
+  ],
+  "malformed_headings": []
+}

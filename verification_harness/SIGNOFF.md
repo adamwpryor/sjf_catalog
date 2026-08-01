@@ -26,9 +26,9 @@ A phase is not "done" until Adam's box is checked. Agents do not check Adam's bo
 | **4** | Tier 3 adversarial verification → triage index → `report.md` | Claude | ⬜ | ⬜ |
 | **5** | Remediation (separate, reviewed, backed-up, `--dry-run`/`--apply`/`--restore`) | Both | ⬜ | ⬜ |
 
-<sub>†Phase 2: both gates pass (8 catalogs swept, §11 gate 10/10). Awaiting **Gemini's cross-confirm**
-— Claude authored `A4` and the A1/B1/B5 duplicate-id fix and cannot confirm its own work (P1). The
-scoped per-tier fetch refactor was **deferred with measurements**, not done — see Phase 2 "Deferred".</sub>
+<sub>†Phase 2: both gates pass (8 catalogs swept, §11 gate 10/10) and **Gemini's P1 cross-confirm is
+recorded** (`2026-07-30`, all four items). Only Adam's stamp is outstanding. Note the scoped per-tier
+fetch refactor was **deferred with measurements**, not done — see Phase 2 "Deferred".</sub>
 
 Rule: no phase starts before the prior phase is Adam-approved, **except** where explicitly marked
 "parallel-safe" (work that has no dependency on the unapproved phase).
@@ -123,6 +123,33 @@ Gemini landed `models.py` (committed). Confirmed against the contract + fixture 
   L2→`[L1]`, L3→`[L1, L2]`; **self-inclusion count = 0**. The pop→capture→push order I flagged in
   review is implemented correctly.
 
+### Addendum — automated drift guard (`2026-07-30`, Claude; both agents flagged the gap)
+
+The Phase 0 confirm was done **by hand and never re-run**, so an edit to `extract/` could drift from
+the oracle and surface only as changed findings three tiers down. `tests/test_ast_extractor.py` now
+replays every fixture on each `pytest` run. It needs no database and no sweep. Per P1 the extractor
+is Gemini's, so Claude authored both the fixtures and this test.
+
+**The first version of the guard was worthless, and saying so is the point.** Re-injecting the
+historical §11.5 defect (`\d{3,4}` → `\d{3}`, the regex that silently dropped every 4-digit course
+code) left the suite **green** — both Phase 0 fixtures contain only 3-digit codes, so the guard
+could not see that defect class at all. A test that cannot fail is worse than no test, because it
+reports confidence it has not earned.
+
+- **Fixed by pinning the gap, not by loosening the test:** new hand-authored fixture
+  `2025-2026-undergraduate__page_0152.json` (AFAM-1001/1002/1003/1299 — four 4-digit codes, plus
+  trap T11 title collision). Authored by *reading the page*, never by running the extractor; it
+  matched on the first run. Re-injecting the same defect now **fails**: `AFAM 1001` → `AFAM 100`.
+- **Comparison is subset-recursive, deliberately.** The Phase 0 fixtures predate `credits_raw` and
+  `malformed_headings`; whole-dict equality would fail on those and tempt the obvious "fix" —
+  regenerating fixtures from the extractor — which makes the oracle a mirror of the thing it audits
+  and voids P1. A field the oracle omits is not asserted; a pinned field that *vanishes* is an error.
+- **The resulting blind spot is itself guarded.** `test_oracle_pins_every_model_field` fails when a
+  model field exists that no fixture anywhere pins. `_KNOWN_UNPINNED` is currently **empty** —
+  `page_0152` pins the full shape — so coverage cannot erode silently.
+- Also asserts the **B4 invariant live** (no heading is its own ancestor; `len(ancestor_path) <
+  level`, so no parent is borrowed across a page boundary) on every fixture page.
+
 ### Sign-off
 
 - [X]  **Gemini** work complete (extractor + classifier)
@@ -130,6 +157,8 @@ Gemini landed `models.py` (committed). Confirmed against the contract + fixture 
 - [X]  **Open gate items (human/broader):** eyeball 20 extracted pages; validate `page_role` on ≥10
   hand-labeled pages (I confirmed 2 pages rigorously — the sampling breadth is still owed).
 - [X]  ✅ **ADAM APPROVED** — *2026.07.26 / I did 10 pages*
+- [ ]  **Gemini cross-confirm of the addendum (P1):** Claude wrote both the fixture and the guard;
+  verify `page_0152`'s oracle against the source page independently, and re-run the defect injection.
 
 ---
 
@@ -392,3 +421,8 @@ promotion rule). Gemini fan-out, batched, structured output.
 - `2026-07-29` Phase 2 agent-complete (Claude): full 8-catalog sweep + §11 known-answer gate passing;
   `fetch.py`, `A4`, X5 run history added; duplicate-id defect fixed. Performance refactor deferred
   with measurements. Awaiting Gemini cross-confirm, then Adam.
+- `2026-07-30` Phase 2 Gemini P1 cross-confirm recorded (all four items). `db._dsn()` gains a
+  `.env.local` fallback so a bare `pytest` works (Gemini; docstring corrected + verified by Claude).
+  Phase 0 addendum (Claude): Tier 0 drift guard + a fourth fixture pinning 4-digit codes, after the
+  first version of the guard was found to pass with the §11.5 defect injected. **Suite: 18 passing.**
+  Phase 2 now awaits only Adam.
