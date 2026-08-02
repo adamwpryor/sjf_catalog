@@ -56,13 +56,20 @@ verification_harness/
 │   └── page_role.py         [Gemini]  structural page-role classifier (content/toc/index/…)
 │
 ├── checks/                ── Tier 1: deterministic diff ──
-│   ├── registry.py          [shared]  check registration + runner
-│   ├── coverage.py          [Gemini]  A1–A6
-│   ├── fidelity.py          [Gemini]  B1–B7
-│   ├── provenance.py        [Claude]  C1–C7
-│   ├── headings.py          [Claude]  D1–D7
+│   ├── registry.py          [shared]  check registration + runner (needs_pages / needs_llm skips)
+│   ├── coverage.py          [Gemini]  A1, A2, A4, A5 · [Claude] A6 (is_ghost validation)
+│   ├── fidelity.py          [Gemini]  B1, B5
+│   ├── titles.py            [Claude]  B2 — layered abbreviation resolution (§5 Risk A)
+│   ├── provenance.py        [Claude]  C1–C6
+│   ├── headings.py          [Claude]  D1, D2, D5–D7
 │   ├── integrity.py         [Claude]  E1–E4
-│   └── semantic.py          [later]   F1–F4 (Tier 2, LLM-adjudicated)
+│   └── semantic.py          [Claude]  ── Tier 2: LLM adjudication ──
+│                                      B2 residue, B3+B4+F1 (fused), B7+F2 (fused), F3, F4
+│
+├── llm/                   ── the only path to a model; nothing else calls Vertex ──
+│   ├── client.py            [Claude]  Vertex via ADC; live / replay / estimate / fake modes
+│   ├── cache.py             [Claude]  content-addressed response cache — this is what buys P3
+│   └── budget.py            [Claude]  token accounting + the hard $10 ceiling (Q5)
 │
 ├── report/                ── outputs ──
 │   ├── sqlite_loader.py     [Claude]  findings.jsonl → findings.sqlite (triage index)
@@ -118,6 +125,35 @@ python -m verification_harness --all --checks A4,E4
 pytest verification_harness/tests/test_known_answers.py -v
 ```
 
+### Tier 2 (LLM adjudication)
+
+Tier 2 is **off by default** — it costs money, so it never runs because you forgot a flag.
+
+```bash
+# what would this cost? builds every prompt, counts tokens, makes no call, spends nothing
+python -m verification_harness --all --tier2 estimate
+
+# run it (needs working ADC; the ceiling stops the run rather than overrunning)
+python -m verification_harness --all --tier2 live --budget 10
+
+# re-run offline and free, replaying the recorded responses; a cache miss is reported, not filled
+python -m verification_harness --all --tier2 replay
+```
+
+**Authentication is ADC only** — Adam's org disallows API keys, so there is no key path. When the
+refresh token expires, *every* Tier 2 call fails at `RefreshError: Reauthentication is needed`, and
+the fix needs a browser:
+
+```bash
+gcloud auth application-default login
+```
+
+**The response cache is load-bearing, not an optimization.** `artifacts/tier2-cache/` keys every
+response by a hash of (model, system, prompt, schema, params). A re-run replays byte-identical
+answers for free — which is the only reason Tier 2 findings are diffable across runs (P3). Deleting
+it forfeits comparability with the previous run; changing the model or temperature invalidates it
+correctly, because those answers would not have been the same.
+
 `--sync` populates `artifacts/page-cache/` from GCS through `fetch.py` and is **incremental**, so
 leaving it on costs one listing round-trip per catalog. Without it the cache must already exist —
 the run raises rather than silently auditing nothing. Every run also appends a snapshot to
@@ -136,6 +172,12 @@ count change is itself a finding (spec §3).
   Under-reporting is the worst failure mode.
 - **Known-answer validation.** The harness is untrusted until it independently rediscovers the seeded
   defects in `DOUBLE_CHECK.md` §11. A run reporting zero findings means a broken harness.
+- **Tier 2 evidence is verified, not trusted.** A model can produce a fluent page excerpt that is not
+  on the page, and downstream that is indistinguishable from a real finding. Every returned excerpt
+  is matched back against the source; one that is not there demotes the verdict to `AMBIGUOUS` and
+  says so. The finding is kept — a model inventing evidence is something the run must show.
+- **Discovery cannot promote itself.** `F4`'s `info` severity is forced in code, not requested in the
+  prompt. A hypothesis becomes a defect only when a human encodes it as a deterministic check.
 
 ## Standards
 

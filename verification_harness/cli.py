@@ -39,8 +39,12 @@ from .checks import (  # noqa: F401
     integrity,
     provenance,
     registry,
+    semantic,
+    titles,
 )
 from .extract.ast_extractor import extract_facts
+from .llm import Adjudicator, Budget, LlmUnavailable, ResponseCache
+from .llm.budget import DEFAULT_CEILING_USD
 from .models import Finding, PageFacts
 from .report import run_history, sqlite_loader
 
@@ -103,6 +107,36 @@ def load_pages(version: str, pages_dir: Path) -> tuple[dict[int, PageFacts], dic
     return pages, page_texts
 
 
+def _merge_tiers(tier1: list[Finding], tier2: list[Finding]) -> list[Finding]:
+    """Combine the two tiers, letting a Tier 2 adjudication supersede the Tier 1 finding it judged.
+
+    Finding ids are deterministic (``{version}:{page}:{check}:{entity_key}``), so a ``B2`` residue
+    item adjudicated by Tier 2 produces the *same* id as the Tier 1 ``AMBIGUOUS`` finding it came
+    from. That is the intent — the queue entry is resolved, not duplicated — but the loader rejects
+    duplicate ids (P3/P5), so the supersede has to be explicit here rather than left to whichever
+    line happens to be written second.
+
+    Args:
+        tier1: Deterministic findings, in registration order.
+        tier2: Adjudicated findings.
+
+    Returns:
+        The merged list, Tier 1 order preserved, with superseded entries replaced in place and new
+        Tier 2 findings appended.
+    """
+    merged = list(tier1)
+    positions = {f.id: i for i, f in enumerate(merged)}
+    for finding in tier2:
+        existing = positions.get(finding.id)
+        if existing is None:
+            positions[finding.id] = len(merged)
+            merged.append(finding)
+        else:
+            logger.info("tier 2 superseded %s: AMBIGUOUS -> %s", finding.id, finding.verdict)
+            merged[existing] = finding
+    return merged
+
+
 @dataclass(frozen=True)
 class VersionRun:
     """One catalog version's sweep result.
@@ -123,8 +157,13 @@ def run_version(
     version: str,
     pages_dir: Path,
     checks: list[str] | None = None,
+    adjudicator: Adjudicator | None = None,
 ) -> VersionRun:
     """Run the selected checks for one catalog version.
+
+    Tier 1 runs to completion first, then Tier 2 — not for tidiness, but because Tier 2's ``B2``
+    residue check adjudicates the ``AMBIGUOUS`` findings Tier 1 produced, so the deterministic queue
+    must exist before the semantic pass reads it.
 
     Each stage is timed and logged, so "the sweep is slow" is always answerable with a number
     rather than a guess.
@@ -133,6 +172,7 @@ def run_version(
         version: Full catalog key.
         pages_dir: Root of the page cache.
         checks: Restrict to these check ids; ``None`` runs every registered check.
+        adjudicator: Tier 2 LLM client. ``None`` skips every ``needs_llm`` check (logged).
 
     Returns:
         The version's findings alongside the corpus counts they were derived from.
@@ -149,11 +189,27 @@ def run_version(
     ctx = registry.CheckContext(
         version=version, db=db_facts, pages=pages, page_texts=page_texts
     )
-    findings = list(registry.run(ctx, checks))
+    findings = list(registry.run(ctx, registry.ids_for_tier(1, checks)))
     t_checks = time.time() - mark
 
+    t_tier2 = 0.0
+    if adjudicator is not None:
+        mark = time.time()
+        tier2_ctx = registry.CheckContext(
+            version=version,
+            db=db_facts,
+            pages=pages,
+            page_texts=page_texts,
+            adjudicator=adjudicator,
+            tier1_findings=findings,
+        )
+        tier2 = list(registry.run(tier2_ctx, registry.ids_for_tier(2, checks)))
+        findings = _merge_tiers(findings, tier2)
+        t_tier2 = time.time() - mark
+
     logger.info(
-        "%s: %d pages, %d chunks, %d findings (extract %.1fs, db %.1fs, checks %.1fs)",
+        "%s: %d pages, %d chunks, %d findings "
+        "(extract %.1fs, db %.1fs, tier1 %.1fs, tier2 %.1fs)",
         version,
         len(pages),
         len(db_facts.chunks),
@@ -161,6 +217,7 @@ def run_version(
         t_extract,
         t_db,
         t_checks,
+        t_tier2,
     )
     return VersionRun(
         version=version,
@@ -198,6 +255,31 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--pages-dir", type=Path, default=config.PAGE_CACHE_DIR)
     parser.add_argument("--out", type=Path, default=config.FINDINGS_JSONL)
+
+    tier2 = parser.add_argument_group("Tier 2 (LLM adjudication)")
+    tier2.add_argument(
+        "--tier2",
+        choices=["off", "live", "replay", "estimate"],
+        default="off",
+        help=(
+            "off: deterministic checks only (default). live: call Vertex and record every "
+            "response. replay: answer only from the recorded cache, never call (free, offline; a "
+            "miss is reported, not silently filled). estimate: build every prompt, spend nothing, "
+            "and print the projected cost."
+        ),
+    )
+    tier2.add_argument(
+        "--budget",
+        type=float,
+        default=None,
+        help=f"hard USD ceiling for the run (default ${DEFAULT_CEILING_USD:.2f}, from Q5)",
+    )
+    tier2.add_argument(
+        "--model", default=None, help="Tier 2 model id (default: gemini-2.5-flash, per Q5)"
+    )
+    tier2.add_argument(
+        "--concurrency", type=int, default=8, help="max in-flight LLM calls (spec §8: 8-16)"
+    )
     args = parser.parse_args(argv)
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
@@ -217,9 +299,19 @@ def main(argv: list[str] | None = None) -> int:
     if args.sync:
         fetch.sync_versions(versions, args.pages_dir)
 
+    adjudicator = _build_adjudicator(args)
+
     started = time.time()
-    runs = [run_version(version, args.pages_dir, checks) for version in versions]
+    try:
+        runs = [run_version(v, args.pages_dir, checks, adjudicator) for v in versions]
+    except LlmUnavailable as exc:
+        print(f"\nTier 2 could not run: {exc}", file=sys.stderr)
+        return 2
     all_findings: list[Finding] = [f for run in runs for f in run.findings]
+
+    if adjudicator is not None and adjudicator.mode == "estimate":
+        _report_estimate(adjudicator)
+        return 0
 
     written = registry.write_findings(all_findings, args.out)
     loaded = sqlite_loader.load(args.out, config.FINDINGS_SQLITE)
@@ -233,8 +325,63 @@ def main(argv: list[str] | None = None) -> int:
     print("by severity:", summary["by_severity"])
     print("by check:", summary["by_check"])
 
-    _report_x5(runs, summary, partial=bool(checks) or not args.all)
+    if adjudicator is not None:
+        print("\nTier 2:", adjudicator.stats())
+        if adjudicator.budget_stopped:
+            print(
+                "  WARNING: the budget ceiling stopped adjudication early — the Tier 2 findings "
+                "above are PARTIAL. Re-run with a higher --budget to complete them.",
+                file=sys.stderr,
+            )
+
+    _report_x5(runs, summary, partial=bool(checks) or not args.all or adjudicator is not None)
     return 0
+
+
+def _build_adjudicator(args: argparse.Namespace) -> Adjudicator | None:
+    """Construct the Tier 2 client for the selected mode, or ``None`` when Tier 2 is off.
+
+    Args:
+        args: Parsed CLI arguments.
+
+    Returns:
+        A configured :class:`Adjudicator`, or ``None``.
+    """
+    if args.tier2 == "off":
+        return None
+    from .llm.client import DEFAULT_TIER2_MODEL
+
+    cache = ResponseCache(config.TIER2_CACHE_DIR, read_only=(args.tier2 == "replay"))
+    budget = Budget(ceiling_usd=args.budget if args.budget is not None else DEFAULT_CEILING_USD)
+    return Adjudicator(
+        mode=args.tier2,
+        cache=cache,
+        budget=budget,
+        concurrency=args.concurrency,
+        model=args.model or DEFAULT_TIER2_MODEL,
+    )
+
+
+def _report_estimate(adjudicator: Adjudicator) -> None:
+    """Print the projected Tier 2 cost without having spent anything.
+
+    Token counts come from a characters-per-token approximation (``estimate_tokens``) because an
+    exact count needs the very API call the estimate exists to avoid. Treat the total as a bound to
+    decide with, not a quote.
+    """
+    ledger = adjudicator.estimates
+    print("\nTier 2 cost estimate (no calls made, no spend):")
+    print(f"  {'check':16} {'calls':>7} {'in-tok':>12} {'out-tok':>10} {'USD':>9}")
+    for check, bucket in sorted(ledger.by_check.items()):
+        print(
+            f"  {check:16} {int(bucket['calls']):>7} {int(bucket['input_tokens']):>12,} "
+            f"{int(bucket['output_tokens']):>10,} {bucket['cost_usd']:>9.3f}"
+        )
+    total = ledger.total_usd()
+    ceiling = adjudicator.budget.ceiling_usd
+    print(f"  {'TOTAL':16} {'':>7} {'':>12} {'':>10} {total:>9.3f}")
+    verdict = "within" if total <= ceiling else "OVER"
+    print(f"\n  {verdict} the ${ceiling:.2f} ceiling (Q5). Token counts are a ~4-chars/token approximation.")
 
 
 def _report_x5(

@@ -22,13 +22,18 @@ A phase is not "done" until Adam's box is checked. Agents do not check Adam's bo
 <sub>*Phase 0: extractor confirmed correct on the oracle + B4 nesting; the broader "eyeball 20 pages / page_role on 10 labeled" human gate is still open — see Phase 0 sign-off.</sub>
 | **1b** | `B2` abbreviation residue measurement → decide LLM-or-not | Claude | ☑️ | ⬜ |
 | **2** | Tier 1 across all 8 catalogs + §11 regression set independently rediscovered | Both | ☑️† | ⬜ |
-| **3** | Tier 2 LLM adjudication (B2 residue, B3/B4/B7, F1–F4) | Gemini | ⬜ | ⬜ |
+| **3** | Tier 2 LLM adjudication (B2 residue, B3/B4/B7, F1–F4) | Claude (built) · Gemini (confirm) | ☑️‡ | ⬜ |
 | **4** | Tier 3 adversarial verification → triage index → `report.md` | Claude | ⬜ | ⬜ |
 | **5** | Remediation (separate, reviewed, backed-up, `--dry-run`/`--apply`/`--restore`) | Both | ⬜ | ⬜ |
 
 <sub>†Phase 2: both gates pass (8 catalogs swept, §11 gate 10/10) and **Gemini's P1 cross-confirm is
 recorded** (`2026-07-30`, all four items). Only Adam's stamp is outstanding. Note the scoped per-tier
 fetch refactor was **deferred with measurements**, not done — see Phase 2 "Deferred".</sub>
+
+<sub>‡Phase 3 is **built and tested but has never run against a model** — ADC expired, so Tier 2 is
+unexecuted. Two governance notes recorded rather than resolved: Phase 2's Adam box was still open
+when Phase 3 started (Adam directed the start verbally on `2026-08-01`; agents do not check his
+box), and the ledger assigned Phase 3 to Gemini. Claude built it. See "Ownership deviation".</sub>
 
 Rule: no phase starts before the prior phase is Adam-approved, **except** where explicitly marked
 "parallel-safe" (work that has no dependency on the unapproved phase).
@@ -254,6 +259,18 @@ abbreviation, so the Risk-A mismatch barely exists here.
 **GO/NO-GO: NO LLM.** Deterministic token-prefix + credit-range strip resolves > 99% of titles.
 Resolves Risk A / Q4 with a number: an LLM for `B2` is not justified.
 
+### Addendum — the measurement was flagship-only; corpus-wide it reverses (`2026-08-01`, Claude)
+
+Shipping `B2` in Phase 3 made it measurable on all eight catalogs for the first time. The flagship
+figure holds exactly — **1.7%** — but it is tied for the *lowest* in the corpus, and the corpus rate
+is **7.3%**, over §5 Risk A's 2% threshold. The graduate catalogs run to **20.5%**, because the
+flagship's defining property (DB and page share the same banner abbreviation) is not shared: there,
+the DB holds the long title and the page holds the short form.
+
+**Layer 3 is therefore justified, not optional** — by §5's own rule, applied to a representative
+sample. This does not make Phase 1b wrong about what it measured; it makes the generalization from
+one catalog to eight unsafe. Full table in Phase 3's evidence. Cost of adjudicating all 720: $0.045.
+
 ### Sign-off
 
 - [X]  **Claude** complete — residue < 2% (1.7%, mostly non-abbreviation). Deterministic B2 is sufficient.
@@ -379,11 +396,198 @@ silently or dropping it silently. It becomes worth doing if Tier 2/3 turns out t
 **Scope.** `checks/semantic.py`: B2 residue, B3/B4/B7, F1–F4 (F4 = sampled discovery, `info` only,
 promotion rule). Gemini fan-out, batched, structured output.
 
-**Exit criteria.** Adjudicated findings carry evidence + confidence; F4 stays `info`; cost within Q5 ceiling.
+**Exit criteria (gate).**
+
+- [X]  Adjudicated findings carry evidence + confidence.
+- [X]  F4 stays `info` — enforced in code, not requested in the prompt.
+- [X]  Cost within the Q5 ceiling — **$7.96 projected** against $10, measured without spending.
+- [ ]  **A live Tier 2 run has actually happened.** Blocked: see "Blocker" below.
+- [ ]  FP triage of a Tier 2 finding sample, mirroring the Phase 1 gate.
+
+### Blocker — Tier 2 has never been executed (`2026-08-01`)
+
+Application Default Credentials are expired. Every candidate model, region, and scope fails
+identically:
+
+```text
+RefreshError: Reauthentication is needed.
+Please run `gcloud auth application-default login` to reauthenticate.
+```
+
+Probed on `2026-08-01`: `gemini-2.5-flash` and `gemini-2.5-pro` × `us-east5` / `us-central1` /
+`global`, plus a bare `google.auth.default()` under both `devstorage.read_only` and
+`cloud-platform`. **All six model probes and both scopes fail at the token refresh**, before any
+request is formed — so this is not a Vertex, quota, region, or model-availability problem. The
+refresh token itself is dead, and renewing it needs a human at a browser:
+
+```bash
+gcloud auth application-default login        # Adam, interactively — an agent cannot do this
+python -m verification_harness --all --tier2 estimate     # confirm the projection
+python -m verification_harness --all --tier2 live --budget 10
+```
+
+This also disables `--sync`; the run above therefore uses the already-complete local page cache
+(3,954 pages). Everything below was built and verified against that cache without a model.
+
+### Work log
+
+- `2026-08-01` **[Claude]** Built the **`llm/` layer** — `client.py` (Vertex via ADC, structured
+  output, temperature 0, retry with backoff, refusal detection, concurrency cap), `cache.py`
+  (content-addressed response cache), `budget.py` (token accounting + hard dollar ceiling). Four run
+  modes: `live`, `replay`, `estimate`, `fake`.
+- `2026-08-01` **[Claude]** Built **`checks/semantic.py`** — B3/B4/F1 fused per page, B7/F2 fused per
+  program page, F3 over chunks, F4 sampled discovery, B2 residue over Tier 1's `AMBIGUOUS` queue.
+- `2026-08-01` **[Claude]** Shipped **`B2` deterministically** (`checks/titles.py`) — Phase 1b
+  decided this with a number and it was never built. Adding **`A6`** followed from what B2 exposed.
+- `2026-08-01` **[Claude]** `--tier2 {off,live,replay,estimate}`, `--budget`, `--model`,
+  `--concurrency`; `needs_llm` skip semantics in the registry; `_merge_tiers` supersede rule.
+
+### Deliverables / evidence
+
+**Cost, measured before spending (Q5).** `--tier2 estimate` builds every prompt exactly as `live`
+would, counts tokens, and makes no call:
+
+| check | calls | in-tok | out-tok | USD |
+| --- | ---: | ---: | ---: | ---: |
+| B3+B4+F1 | 2,422 | 5,327,456 | 847,700 | 3.717 |
+| F3 | 1,981 | 5,646,822 | 693,350 | 3.427 |
+| B7+F2 | 501 | 645,179 | 175,350 | 0.632 |
+| F4 | 104 | 156,617 | 36,400 | 0.138 |
+| B2 residue | 34 | 52,059 | 11,900 | 0.045 |
+| **TOTAL** | **5,042** | | | **7.960** |
+
+Within the $10 ceiling, but the margin is thin — **20%** — and the token count is a ~4-chars/token
+approximation, so treat it as a bound, not a quote. Two things push the real figure *down*: output
+tokens are charged at a flat generous 350/call when most responses will be an empty `issues` array,
+and every re-run replays from cache for free. If it does overrun, `Budget` stops the run and the CLI
+prints a `PARTIAL` warning rather than truncating silently.
+
+**Deterministic `B2` — Phase 1b's decision, finally shipped.** Layer 1 (token-prefix) + Layer 2
+(nine-entry non-prefix map) + credit-range strip. On the flagship the residue is **29 of 1,704
+matched page-occurrences = 1.7%** — the same figure Phase 1b reported, from an independent
+implementation on a slightly different denominator (Phase 1b counted 1,400 matched *courses*).
+Several of the 29 are plainly real defects: `FINA 310`'s DB title is `'may be substituted for dual
+ACCT'` (body prose captured as a title), `REST 496` is `'Senior Project'` against a page saying
+`'Independent Study'`, `LSPN 312` is `'Spanish Conversation'` against `'Advanced Spanish II'`.
+
+**…and that flagship number does not generalize. Phase 1b's go/no-go needs revisiting.**
+
+| catalog | matched | residue | % |
+| --- | ---: | ---: | ---: |
+| 2024-2025-undergraduate | 1,441 | 8 | **0.6%** |
+| 2025-2026-undergraduate (flagship) | 1,704 | 29 | **1.7%** |
+| 2022-2023-undergraduate | 1,588 | 63 | 4.0% |
+| 2022-2023-graduate | 564 | 33 | 5.9% |
+| 2023-2024-undergraduate | 2,556 | 234 | 9.2% |
+| 2024-2025-graduate | 710 | 91 | 12.8% |
+| 2025-2026-graduate | 778 | 152 | 19.5% |
+| 2023-2024-graduate | 537 | 110 | **20.5%** |
+| **CORPUS** | **9,878** | **720** | **7.3%** |
+
+Phase 1b measured the flagship and concluded **NO LLM** because residue was under §5 Risk A's 2%
+threshold. The flagship is tied for the *lowest* residue in the corpus, and Phase 1b said why
+without drawing the conclusion: "this catalog's DB and page titles share the **same** banner
+abbreviation." The other seven do not. In the graduate catalogs the DB holds the long title and the
+page holds the banner short form, so the mismatch Risk A was about is real there — up to **20.5%**.
+
+Corpus-wide residue is **7.3%**, over threshold, so §5's own rule makes **Layer 3 justified rather
+than optional**. The conclusion was not wrong for the catalog it was measured on; it was generalized
+from the least representative one. The residue also is not uniform noise — it mixes contraction
+forms Layers 1–2 cannot see (`Lrng`, `Dx`, `Mgmt`, `SocialHis`, `US` for `United States`) with
+genuine defects that look almost identical to them (`GSED 555` DB `'Field Exp I: Child SPED'` vs page
+`'Field Exp III'`; `HIST 244` `'Woman and War'` vs `'Women and War'`; `AMST 123`'s DB title carrying
+an `OR`-alternative off a requirement line). Separating those two is exactly the judgment Tier 2
+exists for, and at **$0.045** for all 720 it is the cheapest check in the tier.
+
+I did **not** extend the Layer 2 map to cover the contractions. That is the "university-wide
+dictionary" §5 Risk A explicitly rejected, and each entry added would be a chance to mask a real
+mismatch like `I` vs `III`.
+
+**`A6` implemented — the ghost flag is not trustworthy.** B2 surfaced two rows whose DB title is the
+synthesized placeholder `"BIOL 322 (referenced; not in catalog)"` while the page *defines* the course
+under a heading. A6 now validates `is_ghost` against the pages in the one direction that indicates a
+defect: on the flagship, **BIOL 322 (p202) and MATH 333 (p437)** are placeholders standing in for real
+catalog content that was never ingested; **30 across the corpus**. A6 was in §6 and unimplemented;
+the correct direction (ghost with no heading anywhere) yields nothing, as it should.
+
+**Full sweep re-run, X5 accounts for every delta.** All 8 catalogs, **5,195 findings** (was 4,445).
+The entire increase is the two new checks: **+720 B2, +30 A6 = +750**, and 4,445 + 750 = 5,195
+exactly. Every per-version delta decomposes the same way (flagship 622 → 653 = 29 B2 + 2 A6). No
+existing check moved, so the Phase 1 FP triage and the Phase 2 counts still describe the same
+findings. By check: A1=536, A4=42, A5=81, A6=30, B1=75, **B2=720**, C2=514, C3=609, C6=16, D1=1911,
+D5=54, D6=36, D7=548, E1=4, E4=19.
+
+**Every Tier 2 guard was defect-injected.** The Phase 0 lesson — a suite that stays green with the
+defect present reports confidence it has not earned — was applied *before* claiming coverage. Ten
+injections, each removing exactly the mechanism one guard enforces: **10/10 caught.**
+
+| injected defect | caught by |
+| --- | --- |
+| Trust the model's excerpt instead of verifying it (P4) | `test_hallucinated_evidence_demotes_the_verdict` |
+| Never check the budget before dispatching (Q5) | `test_budget_ceiling_halts_further_calls` |
+| Skip the cache lookup, so every run re-rolls the model (P3) | `test_repeated_call_replays_from_cache…` |
+| Replay mode falls through to a live call | `test_replay_mode_never_calls_the_model` |
+| Let the model set its own F4 severity | `test_discovery_findings_are_capped_at_info` |
+| Key a failed batch on the page, not the request (duplicate ids) | `test_failed_calls_become_findings_with_distinct_ids` |
+| Price an unknown model at zero, bypassing the ceiling | `test_unknown_model_is_priced_at_the_most_expensive_rate` |
+| Accept a 2-char prefix, reopening the sibling collision (§5 Risk A) | `test_two_letter_prefix_is_not_an_abbreviation` |
+| Strip any trailing parenthetical, not just credit ranges | `test_credit_range_strip_leaves_real_parentheticals_alone` |
+| Ignore token order, so a reordered title reads as a match | `test_real_mismatches_become_residue` |
+
+**Suite: 55 passing, 8 skipped** (the §11 gate skips until a full sweep exists), `ruff` clean. The
+45 new tests need **no database, no credentials, and no model** — a guard that only runs when
+someone has fresh ADC is a guard that will not run.
+
+### Design decisions worth disagreeing with
+
+- **P3 is bought with a response cache, not with `temperature=0`.** Temperature 0 is necessary and
+  nowhere near sufficient: the same prompt can still yield differently-worded findings, so two runs
+  over an unchanged corpus would not be diffable and regression tracking would quietly stop meaning
+  anything. Every response is therefore keyed by a hash of (model, system, prompt, schema, params)
+  and replayed. Deleting `artifacts/tier2-cache/` is not a cleanup — it forfeits comparability with
+  the previous run.
+- **The model's evidence is verified against the page.** P4 requires a literal excerpt, and a model
+  will happily produce a fluent one that is not there — a failure indistinguishable from a real
+  finding downstream. Excerpts are matched back by normalized 5-token shingles (tolerating trap T9
+  typography); an unverifiable excerpt demotes the verdict to `AMBIGUOUS` and says so in the claim.
+  The finding is kept, not dropped: a model inventing evidence is itself something the run must show.
+- **F4's `info` cap is enforced in code.** The prompt asks for hypotheses; the code forces
+  `severity="info"` and downgrades `CONFIRMED`. A prompt instruction is not an enforcement mechanism,
+  and §5 Risk B's promotion rule is the only thing standing between discovery and the 5,000
+  unactionable errors it was nearly cut for.
+- **Fused calls, because context is the cost.** B3/B4/F1 ask about the same page and the same rows.
+  Three separate passes would triple the bill to re-send identical context. 2,422 fused calls at
+  $3.72 instead of ~7,300 at ~$11 — on its own, that is the difference between fitting under Q5 and
+  not.
+- **Ghost rows are excluded from Tier 2.** Their title and description are ingest placeholders, so
+  adjudicating them spends money to rediscover that a placeholder does not match a page. A6 reports
+  the real defect instead.
+
+### Ownership deviation (P1) — needs your call
+
+The ledger assigned Phase 3 to **Gemini** and Phase 4 to **Claude**. That split is not cosmetic: it
+puts Tier 3's adversarial refuters in different hands than the Tier 2 adjudications they exist to
+attack. Claude built Phase 3, so if Claude also builds Phase 4, the refuters will be authored by
+whoever wrote what they are refuting — the P1 argument for parser independence, applied one tier up.
+
+Note this is about *authorship*, not about which model runs: Q5 puts Tier 2 and Tier 3 both on
+Vertex Gemini regardless. Three options, in the order I would rank them:
+
+1. **Gemini writes Phase 4's refuters** — restores the split exactly, costs nothing but sequencing.
+2. **Gemini cross-confirms Phase 3 hard**, and Claude proceeds to Phase 4 with the coupling recorded.
+3. Accept the coupling. I would not; it removes the only structural check on Tier 2's judgment.
 
 ### Sign-off
 
-- [ ]  **Gemini** complete · [ ] **Claude** confirm · [ ] ✅ **ADAM APPROVED** — *date*
+- [X]  **Claude** built Tier 2 end to end: `llm/` layer, `checks/semantic.py`, deterministic `B2`,
+  `A6`, CLI wiring, 45 offline tests, 10/10 defect injection, $7.96 cost projection.
+- [ ]  **Live run** — blocked on `gcloud auth application-default login` (Adam, interactively).
+- [ ]  **Gemini cross-confirm (P1):** Claude wrote both Tier 2 and its tests. Specifically: (a) that
+  the excerpt-verification guard cannot be satisfied by a paraphrase; (b) that the B2 residue of 29
+  is neither over- nor under-firing, by hand-checking a sample against the source pages; (c) that the
+  Tier 2 prompts do not leak the §11 known answers (P6 — the harness must rediscover, not be told);
+  (d) re-run the defect injection independently.
+- [ ]  ✅ **ADAM APPROVED** — *date*
 
 ---
 
@@ -425,3 +629,9 @@ promotion rule). Gemini fan-out, batched, structured output.
   Phase 0 addendum (Claude): Tier 0 drift guard + a fourth fixture pinning 4-digit codes, after the
   first version of the guard was found to pass with the §11.5 defect injected. **Suite: 18 passing.**
   Phase 2 now awaits only Adam.
+- `2026-08-01` Phase 3 agent-complete (Claude): `llm/` layer (Vertex + response cache + budget
+  ceiling), `checks/semantic.py` (B2 residue, B3/B4/B7, F1–F4), deterministic `B2` and new `A6`,
+  `--tier2` CLI. **Cost projected at $7.96 against Q5's $10, measured without spending.** 10/10
+  injected defects caught. **Suite: 55 passing, 8 skipped.** Tier 2 has **not been run** — ADC is
+  expired and only Adam can renew it. Two governance items recorded, not resolved: Phase 2's Adam
+  stamp was still open, and Phase 3 was Gemini's to build.

@@ -70,6 +70,31 @@ EXPECTED_VERSIONS: tuple[str, ...] = (
 #: this before the deterministic sweep is scaled to all eight catalogs.
 FALSE_POSITIVE_GATE: float = 0.20
 
+# --- Tier 2 (LLM adjudication) ----------------------------------------------------
+
+#: Recorded model responses, keyed by prompt hash. This is what makes Tier 2 reproducible (P3):
+#: a re-run replays instead of re-rolling. Git-ignored with the rest of ``artifacts/``.
+TIER2_CACHE_DIR: Path = ARTIFACTS_DIR / "tier2-cache"
+
+#: Courses adjudicated per call. Batching is by *page*, so this is a ceiling that splits the few
+#: course-description pages dense enough to blow the context window, not the usual case.
+TIER2_COURSES_PER_CALL: int = 12
+
+#: Chunks adjudicated per ``F3`` call. §8 suggests 10–25 items per agent.
+TIER2_CHUNKS_PER_CALL: int = 20
+
+#: ``B2`` residue items per adjudication call. Each is two short titles, so they pack densely.
+TIER2_TITLES_PER_CALL: int = 25
+
+#: ``F4`` sampled-discovery pages **per catalog version**. §5 Risk B bounds discovery to ~100 pages
+#: corpus-wide rather than all 3,954; 13 × 8 versions ≈ 104. The sample is seeded by version, so
+#: it is the same set on every run (P3) — discovery that wandered each run could not be regressed.
+F4_SAMPLE_PAGES_PER_VERSION: int = 13
+
+#: ``F3`` chunks per version, or ``None`` for every chunk. Sampling here is a *cost* decision, not a
+#: design one; whatever is skipped is logged and counted (P5).
+F3_SAMPLE_CHUNKS_PER_VERSION: int | None = None
+
 
 def version_pages_dir(version: str) -> Path:
     """Return the local page-cache directory for a catalog version.

@@ -16,8 +16,9 @@ from __future__ import annotations
 import json
 import logging
 from collections.abc import Callable, Iterable, Iterator
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 from ..db import DbFacts
 from ..models import Finding, PageFacts
@@ -38,12 +39,20 @@ class CheckContext:
             Checks that need it declare ``needs_pages=True`` and are skipped while it is ``None``.
         page_texts: Raw page markdown keyed by page number (for verbatim-content checks like C2),
             populated alongside ``pages`` by the pipeline. ``None`` when ``pages`` is ``None``.
+        adjudicator: The Tier 2 LLM client, or ``None`` on a deterministic-only run. Checks that
+            need it declare ``needs_llm=True`` and are skipped while it is ``None`` — the same
+            "skip loudly, never fail silently" rule ``needs_pages`` follows.
+        tier1_findings: Findings the deterministic tier already produced for this version, so a
+            Tier 2 check can adjudicate an existing ``AMBIGUOUS`` queue (``B2`` residue) rather
+            than rediscovering it. Empty on a Tier-1-only run.
     """
 
     version: str
     db: DbFacts
     pages: dict[int, PageFacts] | None = None
     page_texts: dict[int, str] | None = None
+    adjudicator: Any = None
+    tier1_findings: list[Finding] = field(default_factory=list)
 
 
 CheckFn = Callable[[CheckContext], Iterator[Finding]]
@@ -58,6 +67,7 @@ class CheckSpec:
     tier: int
     needs_pages: bool
     title: str
+    needs_llm: bool = False
 
 
 REGISTRY: dict[str, CheckSpec] = {}
@@ -68,6 +78,7 @@ def register(
     *,
     tier: int = 1,
     needs_pages: bool = False,
+    needs_llm: bool = False,
     title: str = "",
 ) -> Callable[[CheckFn], CheckFn]:
     """Register a check under a stable id (e.g. ``"C1"``).
@@ -76,6 +87,7 @@ def register(
         check_id: Stable check id from ``DOUBLE_CHECK.md`` §6.
         tier: 1 (deterministic), 2 (LLM), or 3 (adversarial).
         needs_pages: True if the check reads Tier 0 ``PageFacts`` (skipped until the extractor lands).
+        needs_llm: True if the check calls the adjudicator (skipped on a deterministic-only run).
         title: One-line human description; defaults to the function's first docstring line.
 
     Returns:
@@ -89,7 +101,7 @@ def register(
         if check_id in REGISTRY:
             raise ValueError(f"check {check_id!r} is already registered")
         doc = title or (fn.__doc__ or "").strip().splitlines()[0] if (title or fn.__doc__) else ""
-        REGISTRY[check_id] = CheckSpec(check_id, fn, tier, needs_pages, doc)
+        REGISTRY[check_id] = CheckSpec(check_id, fn, tier, needs_pages, doc, needs_llm)
         return fn
 
     return decorator
@@ -180,11 +192,32 @@ def run(ctx: CheckContext, ids: Iterable[str] | None = None) -> Iterator[Finding
         if spec.needs_pages and ctx.pages is None:
             logger.info("skip %s: needs Tier 0 pages (extractor not yet available)", spec.id)
             continue
+        if spec.needs_llm and ctx.adjudicator is None:
+            logger.info("skip %s: needs the Tier 2 adjudicator (run with --tier2)", spec.id)
+            continue
         try:
             yield from spec.fn(ctx)
         except Exception as exc:
             logger.exception("check %s crashed", spec.id)
             yield _harness_error_finding(ctx, spec, exc)
+
+
+def ids_for_tier(tier: int, ids: Iterable[str] | None = None) -> list[str]:
+    """Return the registered check ids belonging to one tier, in registration order.
+
+    Args:
+        tier: 1 (deterministic), 2 (LLM), or 3 (adversarial).
+        ids: Optional restriction; only these ids are considered.
+
+    Returns:
+        Matching check ids.
+    """
+    wanted = set(ids) if ids is not None else None
+    return [
+        spec.id
+        for spec in REGISTRY.values()
+        if spec.tier == tier and (wanted is None or spec.id in wanted)
+    ]
 
 
 def write_findings(findings: Iterable[Finding], path: Path) -> int:

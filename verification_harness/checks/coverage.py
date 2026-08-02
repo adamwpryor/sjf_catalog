@@ -173,6 +173,55 @@ def check_a4(ctx: CheckContext) -> Iterator[Finding]:
         )
 
 
+@register("A6", tier=1, needs_pages=True, title="Coverage: is_ghost row that a page heading defines")
+def check_a6(ctx: CheckContext) -> Iterator[Finding]:
+    """Validate the ``is_ghost`` flag against the pages (``DOUBLE_CHECK.md`` §6 A6).
+
+    A ghost is a course code the ingest saw *mentioned* in a requirement list but never found a
+    definition for, so it carries a synthesized title (``"BIOL 322 (referenced; not in catalog)"``)
+    and no description. That is correct handling of trap T4 — right up until the course turns out to
+    have a heading after all, at which point the row is a placeholder standing in for real catalog
+    content that was silently not ingested.
+
+    Only the wrong direction is reported. A ghost with no heading anywhere in the catalog is the
+    flag working as designed and yields nothing; A4 already inventories the ghost population.
+    """
+    defined_on: dict[str, list[int]] = {}
+    for page_num, page_facts in sorted(ctx.pages.items()):
+        # Definitions only — a code inside a requirement bullet is a mention (T4) and is exactly
+        # what a ghost row is supposed to represent.
+        for code in courses_by_code(page_facts):
+            defined_on.setdefault(code, []).append(page_num)
+
+    for course in ctx.db.courses:
+        if not course.get("is_ghost"):
+            continue
+        code = (course.get("course_code") or "").strip()
+        pages = defined_on.get(code)
+        if not pages:
+            continue
+        yield make_finding(
+            ctx,
+            check="A6",
+            severity="high",
+            entity_type="course",
+            entity_key=code,
+            entity_id=str(course["id"]),
+            claim=(
+                f"{code} is flagged is_ghost (never defined in the catalog) but page "
+                f"{pages[0]} defines it with a heading"
+                + (f" (also on {pages[1:]})" if len(pages) > 1 else "")
+                + " — the row is a placeholder for content that was not ingested"
+            ),
+            page=pages[0],
+            evidence_db=f"is_ghost=true, title={course.get('title')!r}",
+            suggested_fix=(
+                f"Ingest the definition on page {pages[0]}: set title, description, credits, "
+                "markdown_url, and clear is_ghost."
+            ),
+        )
+
+
 @register("A5", tier=1, needs_pages=True, title="Coverage: Empty content page")
 def check_a5(ctx: CheckContext) -> Iterator[Finding]:
     def _chunk_page(c):
