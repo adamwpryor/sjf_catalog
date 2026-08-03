@@ -81,6 +81,10 @@ Known-good patterns in this corpus. NONE of these is a defect — do not report 
 - A trailing 'Program' on a program name is a known-good equivalence ('… Certificate' ==
   '… Certificate Program').
 - Accreditation statements, navigation, page furniture, and marketing copy are not curriculum data.
+- A `Label:` metadata line under a course — `Attributes:`, `Typically offered:`, `Formerly titled:`,
+  `PLACEMENT:` — is NOT part of the description. The database has no column for these at all, which
+  is a known and already-decided schema gap owned by check B6. Do not report a description as
+  incomplete because it omits them; on this corpus that alone would be 1,118 findings.
 """
 
 _SEVERITY_GUIDE = """\

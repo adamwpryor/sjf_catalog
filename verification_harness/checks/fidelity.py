@@ -254,6 +254,83 @@ def _b4_aggregates(
         )
 
 
+#: A ``Label: value`` metadata line in a course body.
+_METADATA_LINE = re.compile(r"^\s*\**\s*([A-Z][A-Za-z /]{2,30})\s*:\s*\**\s*(.+?)\s*\**\s*$")
+
+#: Labels another check already owns, so B6 does not double-report them.
+_METADATA_OWNED_ELSEWHERE = frozenset(
+    {"prerequisite", "prerequisites", "prereq", "pre-requisite", "corequisite", "corequisites"}
+)
+
+#: Columns ``courses`` actually has. A label is only a schema gap if nothing stores it.
+_COURSE_COLUMNS = frozenset(
+    {"course_code", "credits", "description", "prerequisites", "title", "markdown_url"}
+)
+
+
+@register("B6", tier=1, needs_pages=True, title="Fidelity: page metadata with no column to store it")
+def check_b6(ctx: CheckContext) -> Iterator[Finding]:
+    """Inventory ``Label:`` metadata the pages carry and the schema cannot hold (Q3).
+
+    Q3 settled what this is: *"track as a low severity schema gap — not a data error, but an
+    architectural oversight we need to log."* So this is a **census**, one finding per label per
+    catalog, never one per course. On the flagship, ``Attributes:`` alone appears on **1,118**
+    courses; reported per-row it would outweigh every real defect in the report.
+
+    It is also the cheapest kind of check to get wrong by omission. Before this existed, Tier 2's
+    ``B3`` was rediscovering the same gap at LLM rates — ~27% of its findings were ``Attributes:``
+    and ``Typically offered:`` — which is money spent to re-derive a decision already recorded.
+
+    Note ``Formerly titled:`` (20 on the flagship) is worth reading alongside ``D8``: it is the
+    catalog explicitly documenting a rename, which is very likely the same phenomenon behind the
+    same-page conflicting titles.
+    """
+    assert ctx.pages is not None
+    labels: dict[str, list[tuple[str, str]]] = {}
+
+    for row in ctx.db.courses:
+        code = (row.get("course_code") or "").strip()
+        if not code or row.get("is_ghost"):
+            continue
+        page = page_from_url(row.get("markdown_url"))
+        if page is None or page not in ctx.pages:
+            continue
+        occurrences = courses_by_code(ctx.pages[page]).get(code)
+        if not occurrences:
+            continue
+        for line in _course_body(ctx, page, occurrences[0].heading_line).splitlines():
+            match = _METADATA_LINE.match(line)
+            if not match:
+                continue
+            label = match.group(1).strip()
+            key = label.lower().replace(" ", "_")
+            if key in _METADATA_OWNED_ELSEWHERE or key in _COURSE_COLUMNS:
+                continue
+            labels.setdefault(label, []).append((code, match.group(2)[:60]))
+
+    for label, rows in sorted(labels.items(), key=lambda kv: -len(kv[1])):
+        examples = "; ".join(f"{code} ({value})" for code, value in rows[:3])
+        yield make_finding(
+            ctx,
+            check="B6",
+            severity="low",
+            entity_type="course",
+            entity_key=f"metadata:{label}",
+            claim=(
+                f"{len(rows)} course page(s) in {ctx.version} carry '{label}:' and the courses "
+                f"table has no column for it — a schema gap, not a data error (Q3). "
+                f"Examples — {examples}"
+            ),
+            evidence_page=examples[:500],
+            evidence_db=f"courses columns: {', '.join(sorted(_COURSE_COLUMNS))}",
+            verdict="CONFIRMED",
+            suggested_fix=(
+                "Schema change, not a row fix: add a column (or a key/value side table) before "
+                "re-ingesting, or record the decision to discard this field."
+            ),
+        )
+
+
 @register("B5", tier=1, needs_pages=True, title="Fidelity: Course suffix/prefix anomaly")
 def check_b5(ctx: CheckContext) -> Iterator[Finding]:
     db_codes = {c["course_code"].strip() for c in ctx.db.courses if c.get("course_code")}
