@@ -51,7 +51,34 @@ DEFAULT_CONCURRENCY: int = 8
 
 #: Deterministic decoding. Temperature 0 is necessary for P3 but not sufficient — the response
 #: cache is what actually makes a re-run byte-identical.
-DEFAULT_PARAMS: dict[str, Any] = {"temperature": 0.0, "max_output_tokens": 8192}
+#:
+#: ``thinking_budget: 0`` disables Gemini 2.5's extended thinking, and it is the single largest cost
+#: lever in the tier. Measured on the first live flagship run *with* thinking on: 3,194 output tokens
+#: per call against the ~350 the response JSON actually needs — thinking billed as output at
+#: $2.50/M, which put the real cost **5.4× over the projection**. These prompts ask for structured
+#: comparison of two supplied texts, not multi-step reasoning, so the thinking budget buys little.
+#: Note 2.5 **pro** rejects a 0 budget (128 minimum); :func:`_thinking_budget` handles that, which
+#: matters because Q5 escalates Tier 3's critical refuters to pro.
+DEFAULT_PARAMS: dict[str, Any] = {
+    "temperature": 0.0,
+    "max_output_tokens": 8192,
+    "thinking_budget": 0,
+}
+
+
+def _thinking_budget(model: str, requested: int) -> int:
+    """Return a thinking budget the model will accept.
+
+    Args:
+        model: Target model id.
+        requested: Desired budget; 0 disables thinking.
+
+    Returns:
+        ``requested``, raised to 128 for ``pro`` models, which reject a zero budget.
+    """
+    if "pro" in model and requested < 128:
+        return 128
+    return requested
 
 #: Gemini finish reasons meaning the model declined. Treated as an outcome, never as "no findings".
 _REFUSAL_FINISH_REASONS = {"SAFETY", "BLOCKLIST", "PROHIBITED_CONTENT", "RECITATION", "SPII"}
@@ -284,6 +311,11 @@ class Adjudicator:
             max_output_tokens=self.params["max_output_tokens"],
             response_mime_type="application/json",
             response_schema=strip_unsupported_schema(request.schema),
+            thinking_config=types.ThinkingConfig(
+                thinking_budget=_thinking_budget(
+                    request.model, int(self.params.get("thinking_budget", 0))
+                )
+            ),
         )
 
         last_exc: Exception | None = None

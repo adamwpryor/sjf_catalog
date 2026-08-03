@@ -23,8 +23,17 @@ MODEL_PRICES_USD_PER_MTOK: dict[str, tuple[float, float]] = {
     "gemini-2.5-pro": (1.25, 10.00),
 }
 
-#: Q5's ceiling. A run that would exceed this stops and reports what it completed.
-DEFAULT_CEILING_USD: float = 10.00
+#: Ceiling for the **one-time audit** (Adam, ``2026-08-02``). A run that would exceed this stops and
+#: reports what it completed.
+#:
+#: Q5 set $10. That figure was a guard against runaway *recurring* cost in the CI role Q7 says this
+#: grows into — but Q7 also says the current pass is a one-time audit, and Tier 2 ($7.96) plus
+#: Tier 3 (~$6–8) does not fit in $10 end-to-end. Raised to $25 for the audit; the response cache
+#: makes it a one-off rather than a rate. **Restore $10 before this ever runs as a CI gate.**
+DEFAULT_CEILING_USD: float = 25.00
+
+#: Q5's original figure, kept so the CI ceiling is not lost to a config edit.
+CI_CEILING_USD: float = 10.00
 
 
 class BudgetExceeded(RuntimeError):
