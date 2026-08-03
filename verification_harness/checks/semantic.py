@@ -1,15 +1,22 @@
 """Tier 2 — LLM adjudication of the checks no string comparison can decide.
 
-Covers ``B2`` residue, ``B3``, ``B4``, ``B7``, and ``F1``–``F4`` (``DOUBLE_CHECK.md`` §6/§8). Every
-check here exists because the question is genuinely semantic: *does this description describe this
+Covers ``B2`` residue, ``B3``, ``B7``, and ``F1``–``F4`` (``DOUBLE_CHECK.md`` §6/§8). Every check
+here exists because the question is genuinely semantic: *does this description describe this
 course?* is not decidable by comparing strings, and P2 says only such questions get a model.
 
-Three structural decisions shape the whole module:
+``B4`` was here and is not any more. The first live run reported ~300 prerequisite defects on a
+partial flagship pass, and they were one systemic ingest behaviour restated per course — a model
+was being paid to rediscover a parser bug 217 times. It is now deterministic in ``fidelity.py``,
+which reports the classes as aggregates and escalates only what it cannot decide. That is the same
+correction ``C6`` needed in Phase 1 and ``B2`` was designed with from the start; if a Tier 2 check
+starts producing findings in the hundreds, suspect this shape before scaling it.
 
-**Fused, page-batched calls.** ``B3``/``B4``/``F1`` all ask about the same two things — one page and
-the DB rows for the courses on it. Asking separately would triple the cost to re-send identical
-context, so they are one call returning a per-course verdict per dimension. ``B7``/``F2`` fuse the
-same way over programs.
+Three structural decisions shape the module:
+
+**Fused, page-batched calls.** ``B3`` and ``F1`` ask about the same two things — one page and the DB
+rows for the courses on it. Asking separately would double the cost to re-send identical context, so
+they are one call returning a per-course verdict per dimension. ``B7``/``F2`` fuse the same way over
+programs.
 
 **The model's evidence is verified, not trusted.** P4 requires a literal page excerpt on every
 finding. A model can produce a fluent excerpt that is not on the page, and that failure is invisible
@@ -316,7 +323,7 @@ def _seeded_sample(items: Sequence[Any], size: int, seed_key: str) -> tuple[list
     return sample, len(items) - size
 
 
-# --- B3 / B4 / F1 — fused per-page course adjudication ----------------------------
+# --- B3 / F1 — fused per-page course adjudication ---------------------------------
 
 _COURSE_SYSTEM = f"""\
 You audit a university catalog database against the catalog pages it was parsed from. The PAGE is
@@ -325,7 +332,6 @@ ground truth: where the page and the database disagree, the page is right.
 For each course, judge three things:
 - B3: does `description` match the page's prose for THIS course? Report truncation (the page says
   more than the database stored) and bleed (the database's text belongs to an adjacent course).
-- B4: do `prerequisites` match what the page states? Report missing, extra, or altered requirements.
 - F1: does `description` actually describe the course named in the heading, or a different course?
 
 {_TRAPS}
@@ -336,7 +342,7 @@ Return one entry per course code given, with an empty `issues` array when the ro
 
 
 def _course_prompt(version: str, page: int, page_text: str, rows: list[dict[str, Any]]) -> str:
-    """Build the fused B3/B4/F1 prompt for one page."""
+    """Build the fused B3/F1 prompt for one page."""
     lines = [
         f"CATALOG: {version}    PAGE: {page}",
         "",
@@ -382,14 +388,14 @@ def _pages_with_courses(ctx: CheckContext) -> list[tuple[int, PageFacts, list[di
 
 @register(
     "B3", tier=2, needs_pages=True, needs_llm=True,
-    title="Semantic: course description/prerequisites/identity vs the page (B3+B4+F1)",
+    title="Semantic: course description and course identity vs the page (B3+F1)",
 )
 def check_b3_b4_f1(ctx: CheckContext) -> Iterator[Finding]:
-    """Adjudicate description fidelity, prerequisites, and course identity in one pass.
+    """Adjudicate description fidelity and course identity in one pass.
 
     Registered under ``B3`` because the registry keys runs by id, but every emitted finding carries
-    its own ``B3``/``B4``/``F1`` id — the fusion is a batching decision about how many times the
-    page gets sent, not a merging of three distinct claims into one.
+    its own ``B3``/``F1`` id — the fusion is a batching decision about how many times the page gets
+    sent, not a merging of two distinct claims into one.
     """
     assert ctx.page_texts is not None
     targets = _pages_with_courses(ctx)
@@ -407,13 +413,13 @@ def check_b3_b4_f1(ctx: CheckContext) -> Iterator[Finding]:
                     key=f"{ctx.version}:{page_num}:{start}",
                     system=_COURSE_SYSTEM,
                     prompt=_course_prompt(ctx.version, page_num, page_text, batch),
-                    schema=_entity_schema("course_code", ("B3", "B4", "F1")),
+                    schema=_entity_schema("course_code", ("B3", "F1")),
                 )
             )
             index.append((page_num, batch, facts))
 
-    logger.info("B3/B4/F1: %d call(s) over %d page(s)", len(requests), len(targets))
-    responses = ctx.adjudicator.map(requests, check="B3+B4+F1")
+    logger.info("B3/F1: %d call(s) over %d page(s)", len(requests), len(targets))
+    responses = ctx.adjudicator.map(requests, check="B3+F1")
 
     for response, (page_num, batch, facts) in zip(responses, index, strict=True):
         page_text = ctx.page_texts.get(page_num, "")
@@ -432,7 +438,7 @@ def check_b3_b4_f1(ctx: CheckContext) -> Iterator[Finding]:
                 finding = _issue_to_finding(
                     ctx,
                     issue,
-                    allowed=("B3", "B4", "F1"),
+                    allowed=("B3", "F1"),
                     entity_type="course",
                     entity_key=code,
                     entity_id=str(row["id"]),
