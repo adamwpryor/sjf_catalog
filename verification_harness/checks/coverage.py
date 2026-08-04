@@ -2,7 +2,7 @@ import re
 from collections.abc import Iterator
 
 from ..models import ExtractedCourse, Finding, PageFacts
-from ..normalize import page_from_url
+from ..normalize import normalize_text, page_from_url
 from .integrity import classify_non_program
 from .registry import CheckContext, make_finding, register
 
@@ -171,6 +171,103 @@ def check_a4(ctx: CheckContext) -> Iterator[Finding]:
                 None if kind else "Locate the program's page heading and backfill markdown_url."
             ),
         )
+
+
+#: How this catalog *names* a program in a heading: the credential in parenthetical or trailing
+#: position (``Ethics (Minor)``, ``Biology B.A.``), or an explicit ``B.A. in X``. A credential token
+#: appearing anywhere in the line is far too loose — ``B.A. Degrees with HEGIS Codes`` and
+#: ``Earning an Additional Major after Graduation`` both contain one and neither is a program.
+_PROGRAM_HEADING = re.compile(
+    r"(?:\((?:Minor|Major|Certificate|Concentration|Advanced Certificate)\)\s*$)"
+    r"|(?:\b(?:B\.?A\.?|B\.?S\.?|B\.?F\.?A\.?|M\.?A\.?|M\.?S\.?|M\.?B\.?A\.?|M\.?F\.?A\.?|"
+    r"Ph\.?D\.?|Ed\.?D\.?|D\.?N\.?P\.?)\s*$)"
+    r"|(?:\b(?:B\.?A\.?|B\.?S\.?|M\.?A\.?|M\.?S\.?|Ph\.?D\.?|Ed\.?D\.?)\s+in\s+\S)",
+    re.IGNORECASE,
+)
+
+#: A heading that merely *discusses* programs. These carry credential tokens and are not programs.
+_PROGRAM_POLICY = re.compile(
+    r"\b(criteria|standards?|policy|policies|pursuit|satisfactory|eligibility|offerings?"
+    r"|hegis|academic programs|after graduation|honors in)\b",
+    re.IGNORECASE,
+)
+
+
+@register("A3", tier=1, needs_pages=True, title="Coverage: program heading on a page with no programs row")
+def check_a3(ctx: CheckContext) -> Iterator[Finding]:
+    """Report program headings the ``programs`` table does not represent (``§6`` A3).
+
+    Split by how confident the classification is, because "is this heading a program?" is the whole
+    difficulty and getting it wrong manufactures a flood. Measured on the flagship: 238 headings
+    carry a credential token, but only some are programs — ``Ethics (Minor)`` is, while ``B.A.
+    Degrees with HEGIS Codes``, ``Honors in Major``, and ``Earning an Additional Major after
+    Graduation`` are a ToC entry and two policy sections. Reporting all 172 unmatched ones as
+    missing programs would be roughly half false, well outside the §12 gate.
+
+    So:
+
+    - A heading matching how this catalog actually *names* programs — credential in parenthetical or
+      trailing position — and having no row is reported **per heading** at ``high``.
+    - Everything else credential-bearing goes into one ``low`` **inventory** finding per catalog: a
+      candidate list for a human, not an assertion that each is a missing program.
+
+    Both carry ``ancestor_path`` (Risk C), which is what distinguishes a real program heading from
+    the identical text in a table of contents.
+    """
+    assert ctx.pages is not None
+    program_names = {normalize_text(p["name"]) for p in ctx.db.programs if p.get("name")}
+    weak: list[tuple[int, str]] = []
+
+    for page_num, facts in sorted(ctx.pages.items()):
+        for heading in facts.headings:
+            text = heading.text.strip()
+            if not text or normalize_text(text) in program_names:
+                continue
+            if _PROGRAM_POLICY.search(text):
+                continue
+            if _PROGRAM_HEADING.search(text):
+                yield make_finding(
+                    ctx,
+                    check="A3",
+                    severity="high",
+                    entity_type="program",
+                    entity_key=text[:60],
+                    claim=(
+                        f"Page {page_num} has the program heading {text!r} but no programs row "
+                        f"matches it"
+                    ),
+                    page=page_num,
+                    evidence_page=text,
+                    ancestor_path=heading.ancestor_path,
+                    suggested_fix="Ingest the program, or confirm the heading is not a program.",
+                )
+            elif _CREDENTIAL_TOKEN.search(text):
+                weak.append((page_num, text))
+
+    if weak:
+        examples = "; ".join(f"p{page} {text!r}" for page, text in weak[:4])
+        yield make_finding(
+            ctx,
+            check="A3",
+            severity="low",
+            entity_type="program",
+            entity_key="unmatched-credential-headings",
+            claim=(
+                f"{len(weak)} heading(s) in {ctx.version} mention a credential and match no "
+                f"programs row. These are CANDIDATES, not confirmed gaps — the class mixes real "
+                f"programs with ToC entries and policy sections. Examples — {examples}"
+            ),
+            evidence_page=examples[:500],
+            verdict="AMBIGUOUS",
+            confidence=0.4,
+        )
+
+
+#: Any credential token anywhere in a heading — the loose signal, used only for the inventory.
+_CREDENTIAL_TOKEN = re.compile(
+    r"\b(B\.?A\.?|B\.?S\.?|B\.?F\.?A\.?|M\.?A\.?|M\.?S\.?|M\.?B\.?A\.?|Ph\.?D\.?|Ed\.?D\.?"
+    r"|Certificate|Minor|Major|Concentration)\b"
+)
 
 
 @register("A6", tier=1, needs_pages=True, title="Coverage: is_ghost row that a page heading defines")

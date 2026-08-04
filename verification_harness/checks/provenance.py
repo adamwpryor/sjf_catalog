@@ -23,6 +23,68 @@ from ..normalize import (
 from .registry import CheckContext, make_finding, register
 
 
+@register("C7", title="chunk content_hash actually matches its content")
+def check_c7(ctx: CheckContext) -> Iterator[Finding]:
+    """Recompute every chunk's ``content_hash`` and report the ones that do not match (``§6`` C7).
+
+    The algorithm was derived from the data, not assumed: ``sha256(content)`` over the raw stored
+    string reproduces the checked-in hashes exactly, including the synthetic breadcrumb (trap T8) —
+    the hash covers what is stored, not what the page said.
+
+    A mismatch means ``content`` was edited after the hash was written, so any downstream consumer
+    trusting the hash for change detection is working from a stale key. That is a provenance defect
+    with the content itself intact, hence ``medium`` per §10.
+
+    A missing hash is reported separately and as an aggregate: a NULL is a schema/backfill gap
+    affecting whole batches at once, not a per-row corruption, and enumerating thousands of them
+    would bury the mismatches that actually indicate tampering.
+    """
+    import hashlib
+
+    missing: list[str] = []
+    for chunk in ctx.db.chunks:
+        stored = chunk.get("content_hash")
+        content = chunk.get("content")
+        if content is None:
+            continue
+        if not stored:
+            missing.append(str(chunk["id"]))
+            continue
+        actual = hashlib.sha256(str(content).encode("utf-8")).hexdigest()
+        if actual != str(stored).strip():
+            yield make_finding(
+                ctx,
+                check="C7",
+                severity="medium",
+                entity_type="chunk",
+                entity_key=str(chunk["id"]),
+                entity_id=str(chunk["id"]),
+                claim=(
+                    f"content_hash does not match content: stored {str(stored)[:16]}…, "
+                    f"sha256(content) is {actual[:16]}… — content changed after the hash was written"
+                ),
+                page=chunk.get("page_number") or page_from_url(chunk.get("markdown_url")) or 0,
+                evidence_page=str(content)[:200],
+                evidence_db=str(stored),
+                suggested_fix="Recompute content_hash, or restore the content the hash describes.",
+            )
+
+    if missing:
+        yield make_finding(
+            ctx,
+            check="C7",
+            severity="low",
+            entity_type="chunk",
+            entity_key="content_hash:missing",
+            claim=(
+                f"{len(missing)} chunk(s) in {ctx.version} have content but no content_hash — a "
+                f"backfill gap, not per-row corruption"
+            ),
+            evidence_page="",
+            evidence_db=",".join(missing[:50]),
+        )
+
+
 @register("C1", title="chunk.page_number agrees with the page number in its own markdown_url")
 def c1_page_number_matches_url(ctx: CheckContext) -> Iterator[Finding]:
     """Flag chunks whose ``page_number`` disagrees with ``page_NNNN`` in their own url.

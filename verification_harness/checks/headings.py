@@ -13,8 +13,9 @@ from collections import Counter, defaultdict
 from collections.abc import Iterator
 
 from ..models import ExtractedCourse, Finding
-from ..normalize import normalize_course_code, normalize_text
+from ..normalize import normalize_course_code, normalize_text, page_from_url
 from .coverage import courses_by_code
+from .integrity import classify_non_program
 from .registry import CheckContext, make_finding, register
 from .titles import align_titles
 
@@ -37,6 +38,171 @@ _TRAILING_PROGRAM = re.compile(r"\s+programs?$")
 #: entity duplication rather than the structural headings (``Faculty Listing``, section names) that
 #: legitimately recur on many pages.
 _CODE_IN_HEADING = re.compile(r"\b[A-Z]{2,6}[- ]\d{3,4}[A-Z]?\b")
+
+
+#: Credential designations that name the same degree in either naming family.
+_DEGREE_TOKEN = re.compile(
+    r"\b(B\.?A\.?|B\.?S\.?|B\.?F\.?A\.?|M\.?A\.?|M\.?S\.?|M\.?B\.?A\.?|M\.?F\.?A\.?|M\.?S\.?N\.?"
+    r"|Ph\.?D\.?|Ed\.?D\.?|D\.?N\.?P\.?|Pharm\.?D\.?|M\.?P\.?A\.?)\b",
+    re.IGNORECASE,
+)
+
+#: ``Bachelor of Arts (B.A.) in Biology`` — the long naming family's connective prose.
+_DEGREE_PHRASE = re.compile(r"\b(bachelor|master|doctor)\s+of\s+[a-z ]+?\s+in\b", re.IGNORECASE)
+
+#: Words that carry no discriminating power between two names for one degree.
+_NAME_NOISE = re.compile(
+    r"\b(program|programs|degree|degrees|major|minor|concentration|track|in|of|the|and|a)\b",
+    re.IGNORECASE,
+)
+
+
+def _program_family(name: str | None) -> tuple[str, tuple[str, ...]]:
+    """Reduce a program name to ``(subject words, credentials)`` so naming families collide.
+
+    ``Biology B.A.`` and ``Bachelor of Arts (B.A.) in Biology`` are the same degree written two
+    ways. Both reduce to ``("biology", ("ba",))``. Subject words are **sorted**, so word order does
+    not split a family — unlike ``B2``, where order is the signal, here it is the noise.
+
+    Args:
+        name: A ``programs.name`` value.
+
+    Returns:
+        A hashable family key.
+    """
+    lowered = (name or "").lower()
+    # Degrees come off the raw string, which still has the dots `B.A.` needs.
+    degrees = tuple(sorted({d.replace(".", "").replace(" ", "") for d in _DEGREE_TOKEN.findall(lowered)}))
+    # Then punctuation is flattened *before* the phrase strip. Removing `(B.A.)` first leaves
+    # `bachelor of arts ( ) in biology`, and the parentheses stop the phrase pattern from spanning
+    # `of … in` — which silently split the two naming families this check exists to join.
+    flattened = normalize_text(_DEGREE_TOKEN.sub(" ", lowered))
+    words = normalize_text(_NAME_NOISE.sub(" ", _DEGREE_PHRASE.sub(" ", flattened))).split()
+    return (" ".join(sorted(words)), degrees)
+
+
+@register("D3", title="duplicate programs across naming families")
+def check_d3(ctx: CheckContext) -> Iterator[Finding]:
+    """Report one degree stored under two names (``§6`` D3).
+
+    The ``programs`` table carries the same degree in two naming families — ``Biology B.A.`` and
+    ``Bachelor of Arts (B.A.) in Biology`` — which means a lookup by either name finds one row and
+    misses the other, and requirement blocks may hang off whichever the ingest happened to create.
+
+    Matching is on ``(sorted subject words, credential set)``: word order is deliberately discarded,
+    because the two families reorder the same words by construction. The credential set is *not*
+    discarded — ``Biology B.A.`` and ``Biology B.S.`` are different degrees, and collapsing them
+    would merge two real programs into one false duplicate.
+    """
+    families: dict[tuple[str, tuple[str, ...]], list[dict]] = {}
+    for program in ctx.db.programs:
+        name = (program.get("name") or "").strip()
+        if not name:
+            continue
+        # E4 already decides what is not a program. Reusing its classifier keeps the two checks
+        # agreeing: without it, the section-header rows `Certificates` and `Degrees and
+        # Certificates` both reduce to "certificates" and read as one degree under two names.
+        if classify_non_program(name):
+            continue
+        families.setdefault(_program_family(name), []).append(program)
+
+    for (subject, degrees), rows in sorted(families.items()):
+        if len(rows) < 2 or not subject:
+            continue
+        names = [str(r.get("name")) for r in rows]
+        urls = {page_from_url(r.get("markdown_url")) for r in rows}
+        yield make_finding(
+            ctx,
+            check="D3",
+            severity="medium",
+            entity_type="program",
+            entity_key=f"{subject[:40]}|{'+'.join(degrees) or 'no-degree'}",
+            claim=(
+                f"{len(rows)} programs rows name the same degree: {names}. A lookup by one name "
+                f"misses the other, and requirement blocks may hang off either. "
+                f"Linked page(s): {sorted(p for p in urls if p) or 'none'}"
+            ),
+            evidence_db="; ".join(f"{r.get('name')} (id={r.get('id')})" for r in rows),
+            evidence_page="",
+            suggested_fix="Merge to one canonical row, repointing requirement blocks; keep the other name as an alias.",
+        )
+
+
+@register("D4", needs_pages=True, title="same course defined on multiple pages")
+def check_d4(ctx: CheckContext) -> Iterator[Finding]:
+    """Report a course defined by headings on several pages, split by whether they agree (``§6`` D4).
+
+    A catalog legitimately repeats a course description in each program section that requires it —
+    177 of the flagship's 202 multi-page courses are byte-identical repetitions, and reporting those
+    as defects would be a 177-finding flood over correct data. They become one ``info`` inventory
+    line instead.
+
+    The other 25 **disagree about what the course is**, and that is the cross-page sibling of ``D8``:
+    ``HIST 1077`` is ``'Rebellion in Rochester'`` on one page and ``'Activism in Rochester'`` on
+    another; ``REST 496`` is ``'Senior Project'`` and ``'Independent Study'``. Exactly one row exists,
+    so the database asserts one of them and silently drops the rest. Those are reported per course.
+
+    Note this is *not* trap T6. Cross-listing is one course under two different **prefixes**; here
+    the code is identical on every page, so a shared code is not evidence of cross-listing.
+    """
+    assert ctx.pages is not None
+    where: dict[str, list[tuple[int, ExtractedCourse]]] = {}
+    for page_num, facts in sorted(ctx.pages.items()):
+        for code, occurrences in courses_by_code(facts).items():
+            where.setdefault(code, []).append((page_num, occurrences[0]))
+
+    db_courses = {c["course_code"].strip(): c for c in ctx.db.courses if c.get("course_code")}
+    agreeing: list[str] = []
+
+    for code, definitions in sorted(where.items()):
+        if len(definitions) < 2:
+            continue
+        titles = [course.title for _, course in definitions]
+        if all(align_titles(titles[0], other).resolved for other in titles[1:]):
+            agreeing.append(f"{code}({len(definitions)})")
+            continue
+
+        row = db_courses.get(code)
+        db_title = (row.get("title") or "").strip() if row else None
+        credits = sorted({c.credits for _, c in definitions if c.credits is not None})
+        pages = [page for page, _ in definitions]
+        yield make_finding(
+            ctx,
+            check="D4",
+            severity="high" if len(credits) > 1 else "medium",
+            entity_type="course",
+            entity_key=code,
+            entity_id=str(row["id"]) if row else None,
+            claim=(
+                f"{code} is defined on {len(definitions)} pages {pages} with disagreeing titles "
+                f"{titles}"
+                + (f", and disagreeing credits {credits}" if len(credits) > 1 else "")
+                + (f". The DB stores {db_title!r}" if db_title else ". No DB row exists")
+            ),
+            page=pages[0],
+            evidence_page=" | ".join(f"p{page}: {course.title}" for page, course in definitions),
+            evidence_db=db_title,
+            ancestor_path=definitions[0][1].ancestor_path,
+            suggested_fix="Determine which page is canonical; the others may be stale or a rename.",
+            auto_fixable=False,
+        )
+
+    if agreeing:
+        yield make_finding(
+            ctx,
+            check="D4",
+            severity="info",
+            entity_type="course",
+            entity_key="multi-page-definitions",
+            claim=(
+                f"{len(agreeing)} course(s) in {ctx.version} are defined on multiple pages with "
+                f"agreeing titles — normal catalog repetition, recorded so the count is visible "
+                f"rather than assumed"
+            ),
+            evidence_page=", ".join(agreeing[:40])[:500],
+            evidence_db=None,
+            verdict="CONFIRMED",
+        )
 
 
 @register("D8", needs_pages=True, title="one page defines the same course code with conflicting titles")
