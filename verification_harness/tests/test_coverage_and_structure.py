@@ -90,6 +90,26 @@ def test_a3_uncertain_headings_become_an_inventory_not_assertions() -> None:
     assert "CANDIDATES" in inventory[0].claim
 
 
+def test_a3_repeated_heading_on_one_page_is_one_finding() -> None:
+    """A heading repeated on a page must not emit the same claim twice.
+
+    Caught by the loader on the first full sweep, not by review: ``2022-2023-undergraduate`` p106
+    carries ``Arts: Interdisciplinary Arts (Minor)`` twice, and two findings collided on the
+    ``{version}:{page}:{check}:{entity_key}`` id. ``sqlite_loader`` **raises** on duplicate ids
+    rather than coalescing them (P3/P5), so this aborted the whole sweep — which is the guard
+    working. Same correction ``courses_by_code`` made for A1/B1/B5 in Phase 2.
+    """
+    ctx = _ctx(
+        pages=_pages([(3, "Arts: Interdisciplinary Arts (Minor)"),
+                      (9, "Arts: Interdisciplinary Arts (Minor)")]),
+        programs=[],
+    )
+    findings = [f for f in coverage.check_a3(ctx) if f.severity == "high"]
+    assert len(findings) == 1
+    assert len({f.id for f in findings}) == 1
+    assert "appears 2x" in findings[0].claim, "the repetition must stay visible, not be swallowed"
+
+
 def test_a3_is_silent_when_the_program_exists() -> None:
     ctx = _ctx(pages=_pages([(3, "Ethics (Minor)")]),
                programs=[{"id": "p1", "name": "Ethics (Minor)", "markdown_url": None}])

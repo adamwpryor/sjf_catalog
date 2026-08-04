@@ -563,6 +563,57 @@ someone has fresh ADC is a guard that will not run.
   adjudicating them spends money to rediscover that a placeholder does not match a page. A6 reports
   the real defect instead.
 
+### Addendum — Tier 1 completed (`2026-08-04`, Claude)
+
+Phase 3 exposed three ways the deterministic tier was still incomplete, and all three are now
+closed. Every check in §6 is implemented: **35 of 35**.
+
+**The two floods Tier 2's first live run revealed, fixed deterministically.**
+
+- **`B4`** reported ~300 prerequisite defects on a *partial* flagship pass. They were **one** ingest
+  behaviour restated per course. Rebuilt as a deterministic check comparing each row against the
+  page its own `markdown_url` claims: **217** rows drop a minimum-grade qualifier (`MGMT-357 D-` →
+  `MGMT-357`), **64** are NULL where the page states one, **17** drop an `or` — turning *one of
+  these* into *all of these*, which is why it outranks the grade loss — **115** carry a prerequisite
+  the claimed page does not state (`AMBIGUOUS`, no `suggested_fix`; an open question), **8** differ
+  only by a letter suffix (trap T3). Only the **19** rows naming genuinely different courses are
+  per-course, at `critical`. **24 findings instead of ~1,200**, and the aggregates carry the full
+  affected code list, so the *claim* is compressed and the *scope* is not.
+  Comparing against the claimed page rather than every page a code appears on is load-bearing: 201
+  flagship courses are defined on more than one page, and the first measurement manufactured **174
+  phantom findings** before that was corrected.
+- **`B6`** was 27% of `B3`'s output — `Attributes:` and `Typically offered:`, which Q3 had already
+  settled as a low-severity schema gap. Now a census: **15 findings covering 1,190 occurrences**.
+  `Attributes:` alone is on **1,118** courses and no column exists for it anywhere.
+
+**The four checks that were never built.**
+
+- **`A3` — 71 missing minors.** `Ethics (Minor)`, `Gender & Sexuality Studies (Minor)`,
+  `Global Health (Minor)`, `AI Literacy (Minor)` and 67 more are on the pages with no `programs`
+  row. The ingest captured majors and dropped minors. The naive reading of A3 would have flooded:
+  238 flagship headings carry a credential token and 172 have no row, but roughly half are ToC
+  entries and policy sections (`B.A. Degrees with HEGIS Codes`, `Honors in Major`, `Earning an
+  Additional Major after Graduation`). Reporting all 172 would have been ~50% false — outside the
+  §12 gate on its own. So the check keys on how this catalog *names* programs and puts the other
+  **95** into one `low` `AMBIGUOUS` candidate inventory.
+- **`C7` — 0 findings.** `sha256(content)` over the raw stored string reproduces every checked-in
+  hash. The algorithm was derived from the data, not assumed; note it covers the synthetic
+  breadcrumb (T8), so the hash describes what is *stored*, not what the page said.
+- **`D3` — 1 family.** Matching is on `(sorted subject words, credential set)`: word order is
+  discarded because the two naming families reorder the same words, but the credential is **not**,
+  or `Biology B.A.` and `Biology B.S.` would merge into a false duplicate. Defers to `E4`'s
+  classifier for what counts as a program, which removed its only false positive.
+- **`D4` — 25 conflicts + 1 inventory covering 177.** Repeating a description per program section
+  is correct publishing. The 25 that *disagree* are the cross-page sibling of `D8`: `HIST 1077` is
+  `'Rebellion in Rochester'` on p366 and `'Activism in Rochester'` on p367. Not trap T6 —
+  cross-listing is one course under two *prefixes*, and here the code is identical.
+
+**Testing.** 96 passing, `ruff` clean, and **8/8 injected defects caught** on the new checks —
+including `A3` reverting to the loose credential rule, `D3` merging distinct degrees, and `D4`
+reporting agreeing repetition. Two test failures during the build were real bugs, not test noise:
+`D3`'s phrase-stripper could not span `bachelor of arts ( ) in biology` once the degree token was
+removed, so it split the exact families it exists to join.
+
 ### Ownership deviation (P1) — needs your call
 
 The ledger assigned Phase 3 to **Gemini** and Phase 4 to **Claude**. That split is not cosmetic: it

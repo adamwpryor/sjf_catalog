@@ -1,7 +1,7 @@
 import re
 from collections.abc import Iterator
 
-from ..models import ExtractedCourse, Finding, PageFacts
+from ..models import ExtractedCourse, ExtractedHeading, Finding, PageFacts
 from ..normalize import normalize_text, page_from_url
 from .integrity import classify_non_program
 from .registry import CheckContext, make_finding, register
@@ -219,26 +219,36 @@ def check_a3(ctx: CheckContext) -> Iterator[Finding]:
     weak: list[tuple[int, str]] = []
 
     for page_num, facts in sorted(ctx.pages.items()):
+        # One entry per distinct heading text on the page. A page can repeat a heading — a section
+        # listing and its own subsection — and emitting the same claim about the same entity twice
+        # collides on the `{version}:{page}:{check}:{entity_key}` id, which the loader rejects
+        # outright (P3/P5). Same correction `courses_by_code` made for A1/B1/B5 in Phase 2.
+        seen: dict[str, list[ExtractedHeading]] = {}
         for heading in facts.headings:
             text = heading.text.strip()
             if not text or normalize_text(text) in program_names:
                 continue
             if _PROGRAM_POLICY.search(text):
                 continue
+            seen.setdefault(text[:60], []).append(heading)
+
+        for key, group in seen.items():
+            text = group[0].text.strip()
             if _PROGRAM_HEADING.search(text):
+                repeat = f" (appears {len(group)}x on this page)" if len(group) > 1 else ""
                 yield make_finding(
                     ctx,
                     check="A3",
                     severity="high",
                     entity_type="program",
-                    entity_key=text[:60],
+                    entity_key=key,
                     claim=(
                         f"Page {page_num} has the program heading {text!r} but no programs row "
-                        f"matches it"
+                        f"matches it{repeat}"
                     ),
                     page=page_num,
                     evidence_page=text,
-                    ancestor_path=heading.ancestor_path,
+                    ancestor_path=group[0].ancestor_path,
                     suggested_fix="Ingest the program, or confirm the heading is not a program.",
                 )
             elif _CREDENTIAL_TOKEN.search(text):
