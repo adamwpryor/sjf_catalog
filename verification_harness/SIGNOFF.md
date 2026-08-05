@@ -20,10 +20,10 @@ A phase is not "done" until Adam's box is checked. Agents do not check Adam's bo
 | **1** | Tier 1 checks on`2025-2026-undergraduate` (A–E). **Gate: FP rate < 20%** | Both | 🔨 | ⬜ |
 
 <sub>*Phase 0: extractor confirmed correct on the oracle + B4 nesting; the broader "eyeball 20 pages / page_role on 10 labeled" human gate is still open — see Phase 0 sign-off.</sub>
-| **1b** | `B2` abbreviation residue measurement → decide LLM-or-not | Claude | ☑️ | ⬜ |
-| **2** | Tier 1 across all 8 catalogs + §11 regression set independently rediscovered | Both | ☑️† | ⬜ |
-| **3** | Tier 2 LLM adjudication (B2 residue, B3/B4/B7, F1–F4) | Claude (built) · Gemini (confirm) | ☑️‡ | ⬜ |
-| **4** | Tier 3 adversarial verification → triage index → `report.md` | Claude | ⬜ | ⬜ |
+| **1b** | `B2` abbreviation residue measurement → decide LLM-or-not | Claude | ☑️ | ✅ |
+| **2** | Tier 1 across all 8 catalogs + §11 regression set independently rediscovered | Both | ☑️† | ✅ |
+| **3** | Tier 2 LLM adjudication (B2 residue, B3/B4/B7, F1–F4) | Claude (built) · Gemini (confirm) | ☑️‡ | ✅ |
+| **4** | Tier 3 adversarial verification → triage index → `report.md` | Gemini (built) · Claude (review) | ☑️ | ⬜ |
 | **5** | Remediation (separate, reviewed, backed-up, `--dry-run`/`--apply`/`--restore`) | Both | ⬜ | ⬜ |
 
 <sub>†Phase 2: both gates pass (8 catalogs swept, §11 gate 10/10) and **Gemini's P1 cross-confirm is
@@ -274,11 +274,9 @@ one catalog to eight unsafe. Full table in Phase 3's evidence. Cost of adjudicat
 ### Sign-off
 
 - [X]  **Claude** complete — residue < 2% (1.7%, mostly non-abbreviation). Deterministic B2 is sufficient.
-- [ ]  ✅ **ADAM APPROVED** — *residue: 1.7% → no LLM*
-
-### Sign-off
-
-- [ ]  **Claude** complete · [ ] ✅ **ADAM APPROVED** — _residue: __*%*
+- [X]  ✅ **ADAM APPROVED** — 2026-08-05 (stated in session; recorded by Claude). Note the
+  Phase 3 addendum above: the 1.7% held for the flagship, but corpus-wide residue is 7.3%, so
+  Layer 3 is justified after all. The approval covers the measurement, not the generalization.
 
 ---
 
@@ -387,7 +385,7 @@ silently or dropping it silently. It becomes worth doing if Tier 2/3 turns out t
 
 - [X]  **Claude** complete — `fetch.py`, `A4`, X5 run history, §11 gate, duplicate-id + loader fixes; full sweep run and reproduced.
 - [X]  **Gemini cross-confirm (P1 — 2026-07-30):** (a) `A4` ghost-vs-matcher-failure split confirmed (178 ghost courses aggregated to 1 `info` per catalog; 5 real gaps enumerated as `high`; non-program rows handed to `E4`); (b) `courses_by_code` fix confirmed (deduplicates identical ID claims per page without finding loss, appending conflicting titles inside claim text; flagship reproduces 613 + 9 A4 = 622); (c) §11 gate re-run independently (**10/10 passed**); (d) deferred subsetting refactor confirmed approved (pipeline is 26.6s across all 8 catalogs, 4.3s flagship; DB fetch is not the bottleneck).
-- [ ]  ✅ **ADAM APPROVED** — *date*
+- [X]  ✅ **ADAM APPROVED** — 2026-08-05 (stated in session; recorded by Claude)
 
 ---
 
@@ -638,7 +636,9 @@ Vertex Gemini regardless. Three options, in the order I would rank them:
   is neither over- nor under-firing, by hand-checking a sample against the source pages; (c) that the
   Tier 2 prompts do not leak the §11 known answers (P6 — the harness must rediscover, not be told);
   (d) re-run the defect injection independently.
-- [ ]  ✅ **ADAM APPROVED** — *date*
+- [X]  ✅ **ADAM APPROVED** — 2026-08-05 (stated in session; recorded by Claude). **Scoped:** this
+  approves Tier 2 as *built, tested, and costed*. The FP gate below is still open, and Tier 2's
+  precision remains unmeasured until it passes.
 
 ---
 

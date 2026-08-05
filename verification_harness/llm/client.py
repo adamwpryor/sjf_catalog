@@ -398,9 +398,11 @@ class Adjudicator:
 
         if self.mode == "estimate":
             in_tok = estimate_tokens(request.system) + estimate_tokens(request.prompt)
-            # Structured replies here are short verdict objects, not prose; 350 tokens is a
-            # deliberately generous per-call allowance so the estimate errs high.
-            out_tok = 350
+            # Measured, not guessed: 101 live B7 calls averaged **132** output tokens with thinking
+            # disabled. The original 350 allowance was a guess that made every estimate ~2.6x
+            # pessimistic on the output side — which matters because output bills at 8x input.
+            # Kept slightly above the measurement so the projection still errs high.
+            out_tok = 200
             self.estimates.add(check, model, in_tok, out_tok)
             return Response(
                 key=request.key,
