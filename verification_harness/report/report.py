@@ -81,6 +81,10 @@ def generate_report_markdown(findings: list[dict[str, Any]]) -> str:
     # Filter for human report
     actionable = [f for f in findings if f.get("verdict") in ("CONFIRMED", "PLAUSIBLE")]
 
+    #: Findings omitted by the per-check rendering cap, tallied so the audit section can state the
+    #: real coverage instead of implying the list is complete.
+    truncated: dict[str, int] = {}
+
     # Group by severity then check
     by_severity: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for f in actionable:
@@ -151,22 +155,96 @@ def generate_report_markdown(findings: list[dict[str, Any]]) -> str:
                     lines.append("")
 
                 if len(check_findings) > 50:
-                    lines.append(f"  *... and {len(check_findings) - 50} additional `{check_id}` findings grouped.*")
+                    # "grouped" would be a lie: these are OMITTED from the rendered list, not
+                    # summarized into it. P5 requires that a cap say what it dropped and where the
+                    # full set still lives, or the report reads as complete coverage when it is not.
+                    omitted = len(check_findings) - 50
+                    truncated[check_id] = truncated.get(check_id, 0) + omitted
+                    lines.append(
+                        f"  > **{omitted:,} further `{check_id}` findings are OMITTED from this "
+                        f"list** (cap: 50 per check per severity). They are not grouped or "
+                        f"summarized — query `findings.sqlite` for the full set: "
+                        f"`SELECT * FROM findings WHERE \"check\"='{check_id}'`."
+                    )
                     lines.append("")
 
-    lines.extend([
+    lines.extend(_audit_summary(findings, truncated))
+    return "\n".join(lines)
+
+
+def _audit_summary(findings: list[dict[str, Any]], truncated: dict[str, int]) -> list[str]:
+    """Render the P5 coverage section from the findings themselves.
+
+    This section is the report's own account of what it did and did not verify, so every number in
+    it is **derived from the data**. It previously carried hardcoded prose — including the literal
+    string "N independent skeptical refuters" and a claim that low/medium findings were excluded
+    when they are in fact listed above. A coverage statement that cannot be wrong is a coverage
+    statement that cannot be trusted; if the run changes and these numbers do not, that is a bug.
+    """
+    by_tier: dict[int, int] = defaultdict(int)
+    refuted_by_tier: dict[int, int] = defaultdict(int)
+    unverified = 0
+    refuter_calls = 0
+    for f in findings:
+        tier = int(f.get("tier", 1))
+        by_tier[tier] += 1
+        if f.get("verdict") == "REFUTED":
+            refuted_by_tier[tier] += 1
+        refuters = f.get("refuters")
+        if isinstance(refuters, str):
+            try:
+                refuters = json.loads(refuters)
+            except (json.JSONDecodeError, TypeError, ValueError):
+                refuters = None
+        n = int((refuters or {}).get("n", 0)) if isinstance(refuters, dict) else 0
+        refuter_calls += n
+        if n == 0 and f.get("verdict") in ("CONFIRMED", "PLAUSIBLE"):
+            unverified += 1
+
+    harness_errors = [f for f in findings if "crashed" in str(f.get("claim", ""))]
+    adjudication_failed = [f for f in findings if "adjudication-failed" in str(f.get("entity_key", ""))]
+
+    out = [
         "---",
         "",
         "## Coverage & Audit Summary",
         "",
-        "- **Tier 1 (Deterministic):** Ran all structural and fidelity checks across corpus.",
-        "- **Tier 2 (Adjudication):** Evaluated ambiguous title residue and semantic alignment.",
-        "- **Tier 3 (Refutation):** Applied N independent skeptical refuters per finding.",
-        "- **Coverage Gaps:** Tier 1 low/medium severity checks (e.g. inventory censuses) were passed through as out-of-scope based on 0% FP triage measurement.",
+        "Every figure here is computed from the findings in this run, not asserted.",
         "",
-    ])
-
-    return "\n".join(lines)
+        f"- **Tier 1 (deterministic):** {by_tier.get(1, 0):,} findings.",
+        f"- **Tier 2 (LLM adjudication):** {by_tier.get(2, 0):,} findings.",
+        (
+            f"- **Tier 3 (refutation):** {refuter_calls:,} refuter votes cast; "
+            f"{sum(refuted_by_tier.values()):,} findings killed as false positives."
+        ),
+        (
+            f"- **Not adversarially verified:** {unverified:,} actionable findings carry "
+            "`refuters.n = 0`. These were out of Tier 3's scope, or are pageless by construction "
+            "(e.g. `A4` reports rows that link to no page, so there is no excerpt to refute "
+            "against). They are reported as found, not as verified."
+        ),
+    ]
+    if truncated:
+        total_omitted = sum(truncated.values())
+        detail = ", ".join(f"`{k}` {v:,}" for k, v in sorted(truncated.items(), key=lambda kv: -kv[1]))
+        out.append(
+            f"- **Omitted from the lists above:** {total_omitted:,} findings ({detail}). The "
+            "rendering cap is 50 per check per severity. Nothing is deleted — `findings.jsonl` and "
+            "`findings.sqlite` hold the complete set."
+        )
+    if adjudication_failed:
+        out.append(
+            f"- **Tier 2 calls that did not complete:** {len(adjudication_failed):,}. The pages they "
+            "covered were NOT semantically adjudicated; re-run to fill the gap."
+        )
+    if harness_errors:
+        out.append(
+            f"- **Checks that crashed:** {len(harness_errors)} — "
+            + ", ".join(sorted({str(f.get("check")) for f in harness_errors}))
+            + ". Their coverage is missing from this report entirely."
+        )
+    out.append("")
+    return out
 
 
 def generate_report(
