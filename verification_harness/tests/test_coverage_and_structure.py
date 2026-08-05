@@ -14,6 +14,8 @@ Each of these had a naive reading that floods, and each test file section pins t
 from __future__ import annotations
 
 import hashlib
+import pathlib
+import tempfile
 from typing import Any
 
 import pytest
@@ -227,3 +229,42 @@ def test_d4_credit_disagreement_outranks_title_disagreement() -> None:
 def test_d4_single_page_definition_is_never_reported() -> None:
     ctx = _ctx(pages=_multi({10: "Rebellion in Rochester"}), courses=[])
     assert list(headings.check_d4(ctx)) == []
+
+
+# --- Tier 3 x Tier 1 interaction (Claude's P1 review of Gemini's refuters) ---------
+
+def test_tier3_does_not_refute_findings_it_cannot_supply_evidence_for() -> None:
+    """A pageless finding must be left unrefuted, not refuted for lack of an excerpt.
+
+    Found reviewing Gemini's Tier 3 against Tier 1's output, which is exactly the seam P1 exists to
+    cover: neither side is wrong alone. 42 in-scope findings on the current sweep carry ``page=0``
+    because they are pageless *by construction* — ``A4`` reports rows that link to no source page,
+    so "there is no page" IS the claim, and the ``B4``/``B6`` systemic classes are per-catalog
+    aggregates. Handing a refuter an empty excerpt and then applying §8's "default to refuted when
+    unsure" would kill all 42, including ``DEXL 725`` — one of the five matcher failures the §11
+    known-answer gate exists to catch.
+
+    ``n=0`` says "not verified". A ``REFUTED`` verdict here would be a silent kill wearing a verdict.
+    """
+    from ..checks.adversarial import refute
+    from ..llm import Adjudicator, ResponseCache
+    from ..models import Finding
+
+    pageless = Finding(
+        id="v:----:A4:DEXL 725", check="A4", severity="high", tier=1, catalog_version="v",
+        page=0, entity_type="course", entity_key="DEXL 725",
+        claim="course DEXL 725 is cataloged (not a ghost) but links to no source page",
+        evidence_page="", confidence=1.0, verdict="CONFIRMED", auto_fixable=False,
+    )
+    ctx = CheckContext(version="v", db=DbFacts(version="v"), pages={}, page_texts={})
+    adjudicator = Adjudicator(
+        mode="fake",
+        cache=ResponseCache(pathlib.Path(tempfile.mkdtemp())),
+        fake=lambda r: pytest.fail("a finding with no page text must never reach a refuter"),
+        concurrency=1,
+    )
+
+    result = refute([pageless], ctx, adjudicator)
+    assert len(result) == 1
+    assert result[0].verdict == "CONFIRMED", "an unverifiable finding keeps its prior verdict"
+    assert result[0].refuters.n == 0, "n=0 records that it was not verified, not that it survived"
