@@ -24,7 +24,8 @@ A phase is not "done" until Adam's box is checked. Agents do not check Adam's bo
 | **2** | Tier 1 across all 8 catalogs + §11 regression set independently rediscovered | Both | ☑️† | ✅ |
 | **3** | Tier 2 LLM adjudication (B2 residue, B3/B4/B7, F1–F4) | Claude (built) · Gemini (confirm) | ☑️‡ | ✅ |
 | **4** | Tier 3 adversarial verification → triage index → `report.md` | Gemini (built) · Claude (review) | ☑️ | ✅ |
-| **5** | Remediation (separate, reviewed, backed-up, `--dry-run`/`--apply`/`--restore`) | Both | ⬜ | ⬜ |
+| **5a** | Remediation tool — `B1`/`A6`/`C7` only (dry-run default, backup, `--restore`) | Both | ⬜ | ⬜ |
+| **5b** | Pipeline defect report — `F3`/`B3`/`A1`/`A3`/`B4`/`B6` root causes, hands off | Claude | ⬜ | ⬜ |
 
 <sub>†Phase 2: both gates pass (8 catalogs swept, §11 gate 10/10) and **Gemini's P1 cross-confirm is
 recorded** (`2026-07-30`, all four items). Only Adam's stamp is outstanding. Note the scoped per-tier
@@ -746,17 +747,82 @@ is good work; only the approval claim is withdrawn.</sub>
 
 ---
 
-## Phase 5 — Remediation (separate tool)
+## Phase 5 — Remediation, split into 5a (patch) and 5b (pipeline)
 
-**Scope.** A reviewed, backed-up, idempotent fixer consuming CONFIRMED findings — mirroring
-`scripts/backfill_source_pages.mjs` (`--dry-run` default, `--apply`, `--restore`, full backup table).
-**Never** invoked by the harness itself.
+**Scope change, approved by Adam `2026-08-06`.** The original scope was one fixer mirroring
+`scripts/backfill_source_pages.mjs`. The completed audit says that tool would fix almost nothing.
 
-**Exit criteria.** Dry-run diff reviewed by Adam per finding-class before any `--apply`; backup verified.
+**The measurement that forced this.** Of **13,086 actionable findings**, `auto_fixable` is **0 for
+every check** and only 1,275 carry a `suggested_fix` at all. That is not a defect in the checks —
+it is the checks being honest about what a row-level `UPDATE` can repair:
+
+| class | actionable | what repair actually requires |
+| --- | ---: | --- |
+| `F3` | 5,244 | chunk breadcrumbs are wrong — **re-chunk**; no row patch reaches it |
+| `D1`/`D7`/`C3`/`C2` | 3,582 | structural + provenance inventory |
+| `B3` | 1,841 | descriptions truncated or bled from neighbours — **re-ingest the page** |
+| `A1` | 259 critical | the course is absent — **INSERT**, not UPDATE |
+| `A3` | 297 | 71 missing minors — same, needs ingest |
+| `B1` | 75 | page says N, DB says M — **a genuine one-column UPDATE** |
+
+So the audit's value is mostly *not* a database patch. It is a defect list for the ingest pipeline.
+Re-chunking and re-ingesting resolve findings in the thousands; patching rows resolves dozens.
+Building one tool for both would either overreach into content it cannot safely synthesize, or
+under-deliver by ignoring 90% of what was found.
+
+---
+
+### Phase 5a — Remediation tool (mechanically fixable classes only)
+
+**Scope.** `remediate.py`, consuming `CONFIRMED` findings for classes where the page states the
+correct value outright and applying it is a deterministic single-column write:
+
+- **`B1`** — credits mismatch (75). The page heading carries `(3)`; the fix is `UPDATE courses SET
+  credits = 3`. Verifiable against the evidence already on the finding.
+- **`A6`** — `is_ghost` set on a course a page defines (30). Clearing the flag is mechanical; the
+  accompanying ingest of title/description/credits is **5b's**, so 5a clears the flag only when the
+  row already carries real content.
+- **`C7`** — `content_hash` disagreeing with `content` (0 in the current sweep). Recompute. Kept in
+  scope because it is the safest possible fix and the check will fire eventually.
+
+**Explicitly out of 5a**, because the page does not say which value is right: `D8` (a page defines
+one code twice with conflicting titles — canonical choice is human), `D4` (same, across pages),
+`B4 page_silent` (a stored prerequisite the claimed page never states), `B2` residue, and every
+`AMBIGUOUS` verdict.
+
+**Exit criteria (gate).**
+
+- [ ]  `--dry-run` is the **default**; `--apply` requires an explicit flag; `--restore` reverses it.
+- [ ]  Every write is preceded by a full backup table, mirroring `source_page_backfill_backup`.
+- [ ]  Idempotent: a second `--apply` over the same findings is a no-op.
+- [ ]  **Adam reviews the dry-run diff per finding-class before any `--apply`** (spec §12).
+- [ ]  Refuses to run on findings whose verdict is not `CONFIRMED`, and on any class not in the
+      allow-list above — an unknown check id is an error, never a silent skip.
+- [ ]  Writes through its **own** connection, not `db.py`. `db.py` is read-only by construction and
+      must stay that way; the harness never gains a write path.
+
+### Phase 5b — Pipeline defect report (where the real fix is)
+
+**Scope.** A document for whoever owns the ingest, grouping the systemic classes by root cause with
+counts, examples, and the one upstream change that closes each:
+
+- **Chunker breadcrumbs** (`F3`, 5,244) — `section_header` frequently describes a different section
+  than the content. Consistent with `C6` already finding 57% of `source_chunk_id` refs dangle.
+- **Description capture** (`B3`, 1,841) — truncation and adjacent-course bleed.
+- **Coverage gaps** (`A1` 259 critical, `A3` 297) — courses and minors on the page, absent from the
+  DB. `A3` is a *class* miss: the ingest captured majors and dropped minors.
+- **Prerequisite parser** (`B4`) — drops minimum-grade qualifiers (217/catalog) and `or` operators
+  (17/catalog), the latter turning alternatives into requirements.
+- **Schema gaps** (`B6`) — `Attributes:` on 1,118 flagship courses with no column to hold it (Q3).
+
+**Exit criteria.** Each class carries a count, ≥2 verbatim examples with page references, and a
+named upstream change. No fix is applied by 5b — it hands off.
 
 ### Sign-off
 
-- [ ]  **Both** complete · [ ] ✅ **ADAM APPROVED PER FINDING-CLASS** — *date*
+- [ ]  **5a** built · [ ]  cross-confirmed by the other agent (P1) · [ ]  ✅ **ADAM APPROVED PER
+  FINDING-CLASS** — *date*
+- [ ]  **5b** written · [ ]  ✅ **ADAM APPROVED** — *date*
 
 ---
 
@@ -771,6 +837,11 @@ is good work; only the approval claim is withdrawn.</sub>
   Phase 0 addendum (Claude): Tier 0 drift guard + a fourth fixture pinning 4-digit codes, after the
   first version of the guard was found to pass with the §11.5 defect injected. **Suite: 18 passing.**
   Phase 2 now awaits only Adam.
+- `2026-08-06` Phase 4 ADAM APPROVED. **Phase 5 split into 5a/5b** (Adam): of 13,086 actionable
+  findings, `auto_fixable` is 0 for every check — the audit is mostly a pipeline defect list, not
+  a patch set. 5a fixes only what a deterministic single-column write can reach (`B1`/`A6`/`C7`);
+  5b hands the systemic classes upstream, where re-chunking and re-ingesting resolve findings in
+  the thousands rather than dozens.
 - `2026-08-01` Phase 3 agent-complete (Claude): `llm/` layer (Vertex + response cache + budget
   ceiling), `checks/semantic.py` (B2 residue, B3/B4/B7, F1–F4), deterministic `B2` and new `A6`,
   `--tier2` CLI. **Cost projected at $7.96 against Q5's $10, measured without spending.** 10/10
