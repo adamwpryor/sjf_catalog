@@ -38,10 +38,29 @@ export default function LoginPage() {
 
     try {
       const supabase = createClient();
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const signIn = () => supabase.auth.signInWithPassword({ email, password });
+
+      let { error } = await signIn();
+
+      // Institutional testers: an @sjf.edu email plus the shared access
+      // password provisions an account on first sign-in, then retries the
+      // normal flow. Wrong shared password falls through to the original error.
+      if (error && email.trim().toLowerCase().endsWith(`@${INSTITUTION.emailDomain}`)) {
+        const res = await fetch('/api/auth/tester', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        });
+        if (res.ok) {
+          ({ error } = await signIn());
+          if (error) {
+            setError(
+              'This email already has an account with its own password. Sign in with that password, or use "Forgot password?" to reset it.'
+            );
+            return;
+          }
+        }
+      }
 
       if (error) {
         setError(error.message);
@@ -214,6 +233,11 @@ export default function LoginPage() {
                   If an administrator invited you, use{' '}
                   <button type="button" onClick={() => { setMode('reset'); setError(''); }} className="text-[#FFCC33] hover:text-white underline underline-offset-2 cursor-pointer">Forgot password?</button>{' '}
                   to set your password for the first time, then sign in.
+                </div>
+                <div>
+                  Testing the pilot? Sign in with your{' '}
+                  <span className="text-slate-300 font-semibold">@{INSTITUTION.emailDomain}</span>{' '}
+                  email and the shared access password from the project team — your account is created automatically.
                 </div>
               </>
             ) : (

@@ -465,10 +465,32 @@ export async function retrieveGroundedChunks(
 }
 
 /**
- * Uses a lightweight LLM call to extract structured intent (scope, shape, negations, exact entities).
+ * Builds the Vertex AI generateContent URL for a Gemini model.
+ * Gemini 3.x models are served only from the global endpoint (verified live:
+ * they 404 on us-central1); Gemini 2.5 models use the regional endpoint.
  */
-async function parseQuestionIntent(message: string, geminiKey?: string): Promise<{ keywords: string[], scope: string, answerShape: string, negations: string[] }> {
-  if (!geminiKey) return { keywords: [], scope: '', answerShape: '', negations: [] };
+function vertexGenerateContentUrl(
+  gcp: { projectId: string; location: string },
+  model: string
+): string {
+  const useGlobal = model.startsWith('gemini-3');
+  const host = useGlobal ? 'aiplatform.googleapis.com' : `${gcp.location}-aiplatform.googleapis.com`;
+  const location = useGlobal ? 'global' : gcp.location;
+  return `https://${host}/v1/projects/${gcp.projectId}/locations/${location}/publishers/google/models/${model}:generateContent`;
+}
+
+/**
+ * Uses a lightweight LLM call to extract structured intent (scope, shape, negations, exact entities).
+ * Runs keylessly on Vertex AI when GCP credentials are available, otherwise on a Gemini API key.
+ */
+async function parseQuestionIntent(
+  message: string,
+  geminiKey?: string,
+  gcp?: { projectId: string; location: string; accessToken: string }
+): Promise<{ keywords: string[], scope: string, answerShape: string, negations: string[] }> {
+  const empty = { keywords: [], scope: '', answerShape: '', negations: [] };
+  const hasVertex = Boolean(gcp?.accessToken);
+  if (!hasVertex && !geminiKey) return empty;
   try {
     const prompt = `Extract structured intent from this user question about an academic catalog.
 Return ONLY a valid JSON object with these exact keys:
@@ -478,9 +500,14 @@ Return ONLY a valid JSON object with these exact keys:
 - "negations": what the user specifically excludes (e.g. "not required").
 
 Question: "${message}"`;
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`, {
+    const url = hasVertex
+      ? vertexGenerateContentUrl(gcp!, 'gemini-2.5-flash-lite')
+      : `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`;
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (hasVertex) headers['Authorization'] = `Bearer ${gcp!.accessToken}`;
+    const res = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: { responseMimeType: "application/json" }
@@ -494,7 +521,7 @@ Question: "${message}"`;
   } catch(e) {
     console.warn("[Intent Parser] Failed:", e);
   }
-  return { keywords: [], scope: '', answerShape: '', negations: [] };
+  return empty;
 }
 
 /**
@@ -526,7 +553,7 @@ export async function POST(req: Request) {
     // Resolve pooled GCP credentials (OIDC workload identity, private key, or local ADC)
     const gcp = await getGcpCredentials(req);
 
-    // Map model selection
+    // Map model selection to current, live model IDs
     let provider = 'gemini';
     let apiModel = 'gemini-2.5-flash';
     const normalizedModel = modelId.toLowerCase();
@@ -536,61 +563,58 @@ export async function POST(req: Request) {
       apiModel = normalizedModel.includes('mini') ? 'gpt-4o-mini' : 'gpt-4o';
     } else if (normalizedModel.includes('claude')) {
       provider = 'anthropic';
-      if (normalizedModel.includes('sonnet')) {
-        apiModel = 'claude-3-7-sonnet-20250219';
+      if (normalizedModel.includes('haiku')) {
+        apiModel = 'claude-haiku-4-5';
       } else if (normalizedModel.includes('opus')) {
-        apiModel = 'claude-3-opus-20240229';
+        apiModel = 'claude-opus-5';
       } else {
-        apiModel = 'claude-3-5-haiku-20241022';
+        apiModel = 'claude-sonnet-5';
       }
     } else {
       provider = 'gemini';
-      if (normalizedModel.includes('3.1-pro') || normalizedModel.includes('2.5-pro')) {
+      if (normalizedModel.includes('3.6')) {
+        apiModel = 'gemini-3.6-flash';
+      } else if (normalizedModel.includes('3.5')) {
+        apiModel = 'gemini-3.5-flash';
+      } else if (normalizedModel.includes('3.1')) {
+        apiModel = 'gemini-3.1-pro-preview';
+      } else if (normalizedModel.includes('pro')) {
         apiModel = 'gemini-2.5-pro';
-      } else if (normalizedModel.includes('3.1-flash') || normalizedModel.includes('2.5-flash')) {
+      } else if (normalizedModel.includes('lite')) {
+        apiModel = 'gemini-2.5-flash-lite';
+      } else {
         apiModel = 'gemini-2.5-flash';
-      } else if (normalizedModel.includes('1.5-pro')) {
-        apiModel = 'gemini-1.5-pro';
-      } else if (normalizedModel.includes('1.5-flash')) {
-        apiModel = 'gemini-1.5-flash';
       }
     }
 
-    // Dynamic model ID mapping for Vertex AI partner integrations
-    let isVertex = false;
-    if (gcp.accessToken && (provider === 'gemini' || provider === 'anthropic')) {
-      isVertex = true;
-      if (provider === 'gemini') {
-        if (apiModel.includes('pro')) {
-          apiModel = 'gemini-2.5-pro';
-        } else {
-          apiModel = 'gemini-2.5-flash';
-        }
-      } else if (provider === 'anthropic') {
-        if (apiModel.includes('sonnet')) {
-          apiModel = 'claude-3-5-sonnet-v2@20241022';
-        } else if (apiModel.includes('opus')) {
-          apiModel = 'claude-3-opus@20240229';
-        } else {
-          apiModel = 'claude-3-5-haiku@20241022';
-        }
-      }
+    // GENERAL (tool-calling) mode runs on the Gemini function-calling loop only —
+    // coerce other providers to the equivalent Gemini tier.
+    if (mode.toUpperCase() !== 'RAG' && provider !== 'gemini') {
+      provider = 'gemini';
+      apiModel = normalizedModel.includes('opus') || normalizedModel.includes('pro')
+        ? 'gemini-2.5-pro'
+        : 'gemini-2.5-flash';
     }
+
+    // Vertex AI (keyless WIF/ADC) serves the Gemini models. Claude on Vertex is
+    // NOT enabled for this GCP project (publishers/anthropic returns 404), so
+    // Anthropic models require a direct ANTHROPIC_API_KEY.
+    const isVertex = Boolean(gcp.accessToken) && provider === 'gemini';
 
     // Load keys
     const geminiKey = process.env.GEMINI_API_KEY;
     const openaiKey = process.env.OPENAI_API_KEY;
     const anthropicKey = process.env.ANTHROPIC_API_KEY;
 
-    const isApiKeyConfigured = 
-      (provider === 'openai' && openaiKey) || 
-      (provider === 'gemini' && (geminiKey || isVertex)) || 
-      (provider === 'anthropic' && (anthropicKey || isVertex));
+    const isApiKeyConfigured =
+      (provider === 'openai' && openaiKey) ||
+      (provider === 'gemini' && (geminiKey || isVertex)) ||
+      (provider === 'anthropic' && anthropicKey);
 
-    // P2: Typed Question Parsing Layer
+    // P2: Typed Question Parsing Layer (runs keylessly on Vertex, or on an AI Studio key)
     let intent = { keywords: [] as string[], scope: '', answerShape: '', negations: [] as string[] };
-    if (isApiKeyConfigured && geminiKey) {
-       intent = await parseQuestionIntent(message, geminiKey);
+    if (isApiKeyConfigured && (gcp.accessToken || geminiKey)) {
+       intent = await parseQuestionIntent(message, geminiKey, gcp);
        console.log(`[Typed Intent] Parsed:`, intent);
     }
 
@@ -657,64 +681,33 @@ ${contextText}`;
           throw new Error(`OpenAI API returned status ${res.status}: ${await res.text()}`);
         }
       } else if (isVertex) {
-        // Dynamic Vertex AI Pooled Route (OIDC Workload Identity / Service Account keyless OIDC auth)
-        if (provider === 'gemini') {
-          console.log(`[Vertex AI RAG] Routing ${apiModel} through Google Cloud projects/${gcp.projectId}/locations/${gcp.location}...`);
-          const completionUrl = `https://${gcp.location}-aiplatform.googleapis.com/v1/projects/${gcp.projectId}/locations/${gcp.location}/publishers/google/models/${apiModel}:generateContent`;
-          const contents = [
-            ...history.slice(-10).map((h: any) => ({
-              role: h.role === 'user' ? 'user' : 'model',
-              parts: [{ text: h.content }]
-            })),
-            { role: 'user', parts: [{ text: message }] }
-          ];
-          const res = await fetch(completionUrl, {
-            method: 'POST',
-            headers: { 
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${gcp.accessToken}`
-            },
-            body: JSON.stringify({
-              contents: contents,
-              systemInstruction: { parts: [{ text: systemPrompt }] }
-            })
-          });
-          if (res.ok) {
-            const data = await res.json();
-            responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No response.';
-          } else {
-            throw new Error(`Vertex AI Gemini API returned status ${res.status}: ${await res.text()}`);
-          }
-        } else if (provider === 'anthropic') {
-          console.log(`[Vertex AI RAG] Routing ${apiModel} (Claude) through Google Cloud projects/${gcp.projectId}/locations/${gcp.location}...`);
-          const completionUrl = `https://${gcp.location}-aiplatform.googleapis.com/v1/projects/${gcp.projectId}/locations/${gcp.location}/publishers/anthropic/models/${apiModel}:rawPredict`;
-          const anthropicMessages = [
-            ...history.slice(-10).map((h: any) => ({
-              role: h.role === 'user' ? 'user' : 'assistant',
-              content: h.content
-            })),
-            { role: 'user', content: message }
-          ];
-          const res = await fetch(completionUrl, {
-            method: 'POST',
-            headers: { 
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${gcp.accessToken}`
-            },
-            body: JSON.stringify({
-              anthropic_version: "vertex-2024-03-07",
-              messages: anthropicMessages,
-              system: systemPrompt,
-              max_tokens: 4096,
-              temperature: 0.4
-            })
-          });
-          if (res.ok) {
-            const data = await res.json();
-            responseText = data.content?.[0]?.text || 'No response.';
-          } else {
-            throw new Error(`Vertex AI Claude API returned status ${res.status}: ${await res.text()}`);
-          }
+        // Dynamic Vertex AI Pooled Route (OIDC Workload Identity / Service Account keyless OIDC auth).
+        // isVertex implies provider === 'gemini' — Claude is not enabled on this project's Vertex.
+        console.log(`[Vertex AI RAG] Routing ${apiModel} through Google Cloud project ${gcp.projectId}...`);
+        const completionUrl = vertexGenerateContentUrl(gcp, apiModel);
+        const contents = [
+          ...history.slice(-10).map((h: any) => ({
+            role: h.role === 'user' ? 'user' : 'model',
+            parts: [{ text: h.content }]
+          })),
+          { role: 'user', parts: [{ text: message }] }
+        ];
+        const res = await fetch(completionUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${gcp.accessToken}`
+          },
+          body: JSON.stringify({
+            contents: contents,
+            systemInstruction: { parts: [{ text: systemPrompt }] }
+          })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No response.';
+        } else {
+          throw new Error(`Vertex AI Gemini API returned status ${res.status}: ${await res.text()}`);
         }
       } else if (provider === 'anthropic' && anthropicKey) {
         const chatMessages = [
@@ -924,7 +917,7 @@ IMPORTANT CITATION RULE: Whenever you reference a specific policy code or course
         turn++;
         
         const completionUrl = isVertex
-          ? `https://${gcp.location}-aiplatform.googleapis.com/v1/projects/${gcp.projectId}/locations/${gcp.location}/publishers/google/models/${apiModel}:generateContent`
+          ? vertexGenerateContentUrl(gcp, apiModel)
           : `https://generativelanguage.googleapis.com/v1beta/models/${apiModel}:generateContent?key=${geminiKey}`;
           
         const headers: Record<string, string> = { 'Content-Type': 'application/json' };

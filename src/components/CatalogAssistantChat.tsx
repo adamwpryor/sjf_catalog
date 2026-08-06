@@ -158,22 +158,26 @@ export default function CatalogAssistantChat({ catalogId }: CatalogAssistantChat
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<'RAG' | 'GENERAL'>('RAG');
-  const [selectedModel, setSelectedModel] = useState('gemini-3.1-flash');
+  const [selectedModel, setSelectedModel] = useState('gemini-2.5-flash');
   const [selectedSource, setSelectedSource] = useState<{ title: string; content: string } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Gemini models are served keylessly through Vertex AI (verified live on this
+  // project — 3.x via the global endpoint, 2.5 via us-central1). Anthropic/OpenAI
+  // models require their API key on the server — Claude on Vertex is NOT enabled
+  // for this GCP project.
   const models = [
-    { value: 'gemini-3.1-flash', label: 'Gemini 3.1 Flash (Recommended)', provider: 'Gemini' },
-    { value: 'gemini-3.1-pro', label: 'Gemini 3.1 Pro (Analytical)', provider: 'Gemini' },
-    { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash', provider: 'Gemini' },
+    { value: 'gemini-3.6-flash', label: 'Gemini 3.6 Flash (Newest)', provider: 'Gemini' },
+    { value: 'gemini-3.5-flash', label: 'Gemini 3.5 Flash', provider: 'Gemini' },
+    { value: 'gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro Preview (Analytical)', provider: 'Gemini' },
+    { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash (Recommended)', provider: 'Gemini' },
     { value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro', provider: 'Gemini' },
-    { value: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash', provider: 'Gemini' },
-    { value: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro', provider: 'Gemini' },
-    { value: 'claude-3-7-sonnet-latest', label: 'Claude 3.7 Sonnet', provider: 'Anthropic' },
-    { value: 'claude-3-5-haiku-latest', label: 'Claude 3.5 Haiku', provider: 'Anthropic' },
-    { value: 'claude-3-opus-latest', label: 'Claude 3 Opus', provider: 'Anthropic' },
-    { value: 'gpt-4o', label: 'ChatGPT GPT-4o', provider: 'OpenAI' },
-    { value: 'gpt-4o-mini', label: 'ChatGPT GPT-4o Mini', provider: 'OpenAI' }
+    { value: 'gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash-Lite (Fastest)', provider: 'Gemini' },
+    { value: 'claude-sonnet-5', label: 'Claude Sonnet 5 (needs API key)', provider: 'Anthropic' },
+    { value: 'claude-opus-5', label: 'Claude Opus 5 (needs API key)', provider: 'Anthropic' },
+    { value: 'claude-haiku-4-5', label: 'Claude Haiku 4.5 (needs API key)', provider: 'Anthropic' },
+    { value: 'gpt-4o', label: 'ChatGPT GPT-4o (needs API key)', provider: 'OpenAI' },
+    { value: 'gpt-4o-mini', label: 'ChatGPT GPT-4o Mini (needs API key)', provider: 'OpenAI' }
   ];
 
   const scrollToBottom = () => {
@@ -528,7 +532,11 @@ export default function CatalogAssistantChat({ catalogId }: CatalogAssistantChat
             </button>
             <button
               type="button"
-              onClick={() => setMode('GENERAL')}
+              onClick={() => {
+                setMode('GENERAL');
+                // The General Reasoning agent loop is Gemini function-calling only.
+                if (!selectedModel.startsWith('gemini')) setSelectedModel('gemini-2.5-flash');
+              }}
               className={`px-3 py-1.5 rounded-md text-[9px] font-bold uppercase tracking-wider transition-all cursor-pointer border-none ${
                 mode === 'GENERAL'
                   ? 'bg-[#10b981] text-white shadow-md shadow-emerald-500/10'
@@ -561,7 +569,7 @@ export default function CatalogAssistantChat({ catalogId }: CatalogAssistantChat
             onChange={(e) => setSelectedModel(e.target.value)}
             className="flex-1 md:flex-initial bg-black/45 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white outline-none focus:border-[#993333] transition-all font-semibold cursor-pointer"
           >
-            {models.map((m) => (
+            {(mode === 'GENERAL' ? models.filter((m) => m.provider === 'Gemini') : models).map((m) => (
               <option key={m.value} value={m.value} className="bg-[#521a1a] text-slate-200">
                 [{m.provider}] {m.label}
               </option>

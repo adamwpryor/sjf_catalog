@@ -15,7 +15,7 @@
  * @returns An object containing the GCP projectId, location, and an access token.
  */
 export async function getGcpCredentials(req: Request) {
-  const gcpProjectId = process.env.GCP_PROJECT_ID || 'sjf-catalog-app';
+  const gcpProjectId = process.env.GCP_PROJECT_ID || 'ccsj-catalog-production';
   const gcpLocation = process.env.GCP_LOCATION || 'us-central1';
   let accessToken = process.env.VERTEX_AI_ACCESS_TOKEN || '';
 
@@ -162,7 +162,7 @@ export async function callLLM(opts: CallLLMOptions): Promise<CallLLMResult | nul
           'anthropic-version': '2023-06-01',
         },
         body: JSON.stringify({
-          model: 'claude-opus-4-8',
+          model: 'claude-opus-5',
           max_tokens: maxTokens,
           system: systemForJson,
           messages: [{ role: 'user', content: user }],
@@ -171,7 +171,7 @@ export async function callLLM(opts: CallLLMOptions): Promise<CallLLMResult | nul
       if (res.ok) {
         const data = await res.json();
         const text = data.content?.find((b: any) => b.type === 'text')?.text;
-        if (text) return { text, model: 'Claude Opus 4.8' };
+        if (text) return { text, model: 'Claude Opus 5' };
       } else {
         console.warn(`[callLLM] Anthropic returned ${res.status}: ${await res.text()}`);
       }
