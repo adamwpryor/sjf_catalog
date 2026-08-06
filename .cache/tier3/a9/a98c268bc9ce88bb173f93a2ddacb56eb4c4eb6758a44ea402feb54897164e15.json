@@ -1,0 +1,1 @@
+{"text": "{\n  \"refute\": false,\n  \"confidence\": 1,\n  \"reason\": \"The quoted evidence 'Dr. Katharine Burakowski, Chair' is verbatim present in the source page text and directly supports the claim that the chair is present on the page.\"\n}", "model": "gemini-2.5-flash", "input_tokens": 885, "output_tokens": 60}

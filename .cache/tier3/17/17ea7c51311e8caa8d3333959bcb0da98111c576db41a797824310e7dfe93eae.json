@@ -1,0 +1,1 @@
+{"text": "{\"refute\": false, \"confidence\": 5, \"reason\": \"The quoted evidence 'M.S. in Nursing' is verbatim present in the source page text under the heading '## M.S. in Nursing'. This directly supports the claim that the degree_type should be 'M.S. in Nursing' rather than 'MS'.\"}", "model": "gemini-2.5-flash", "input_tokens": 845, "output_tokens": 73}

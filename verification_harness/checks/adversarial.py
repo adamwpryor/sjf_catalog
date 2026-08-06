@@ -74,15 +74,30 @@ LENSES: list[tuple[str, str]] = [
 ]
 
 
-def is_in_scope(finding: Finding) -> bool:
+def is_in_scope(finding: Finding, *, critical_only: bool = False) -> bool:
     """Return True if a finding is in scope for Tier 3 refutation.
 
-    In scope per Phase 4 spec:
+    Default scope (Phase 4 spec):
     1. Every Tier 2 finding (tier == 2).
     2. Tier 1 findings with critical or high severity.
+    Out of scope: Tier 1 medium/low/info (inventory & provenance; Phase 1 measured 0% FP there).
 
-    Out of scope: Tier 1 medium/low/info (inventory & provenances; FP rate proven 0% in Phase 1).
+    ``critical_only`` narrows to `critical` alone. Adam chose this on `2026-08-06` after the Phase 3
+    FP gate measured Tier 2's false-positive rate at ~3%: Tier 3 exists to suppress false positives,
+    and at that rate the default scope spends ~9 hours refuting findings that are overwhelmingly
+    real. `critical` is where a wrong remediation does the most damage, and it costs about an hour.
+    The narrowing is a cost decision, not a claim that the rest were verified — findings outside the
+    scope keep ``refuters.n = 0``, and ``report.py`` counts them as reported-but-not-verified.
+
+    Args:
+        finding: The finding to test.
+        critical_only: Restrict to `critical` severity regardless of tier.
+
+    Returns:
+        True if Tier 3 should refute this finding.
     """
+    if critical_only:
+        return finding.severity == "critical"
     if finding.tier == 2:
         return True
     return finding.tier == 1 and finding.severity in ("critical", "high")
@@ -141,6 +156,7 @@ def refute(
     *,
     n_normal: int = 3,
     n_critical: int = 5,
+    critical_only: bool = False,
 ) -> list[Finding]:
     """Adversarially verify in-scope findings; return ALL findings, verdicts updated.
 
@@ -153,6 +169,7 @@ def refute(
         adjudicator: LLM adjudicator client.
         n_normal: Number of refuters for normal (high / Tier 2 non-critical) findings.
         n_critical: Number of refuters for critical severity findings.
+        critical_only: Narrow scope to `critical` findings only (see :func:`is_in_scope`).
 
     Returns:
         List of findings, same length and order as input, with updated refuter counts & verdicts.
@@ -166,7 +183,7 @@ def refute(
     unverifiable: list[str] = []
 
     for i, finding in enumerate(findings):
-        if not is_in_scope(finding):
+        if not is_in_scope(finding, critical_only=critical_only):
             continue
 
         n_wanted = n_critical if finding.severity == "critical" else n_normal

@@ -1,0 +1,1 @@
+{"text": "{\"refute\": false, \"confidence\": 1, \"reason\": \"The quoted evidence 'Total: 42 credits' is verbatim present in the source page text and directly supports the claim that total_credits is present on the page.\"}", "model": "gemini-2.5-flash", "input_tokens": 1070, "output_tokens": 51}

@@ -1,0 +1,1 @@
+{"text": "{\n  \"refute\": false,\n  \"confidence\": 1,\n  \"reason\": \"The quoted evidence 'GNUR-568 MAT 16 hour Training (0)' is verbatim present in the source page text and directly supports the claim that the credits for GNUR 568 are listed as 0 on the page.\"\n}", "model": "gemini-2.5-flash", "input_tokens": 890, "output_tokens": 76}

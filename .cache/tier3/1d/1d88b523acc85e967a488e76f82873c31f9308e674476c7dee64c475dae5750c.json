@@ -1,0 +1,1 @@
+{"text": "{\n  \"refute\": true,\n  \"confidence\": 5,\n  \"reason\": \"The quoted evidence_page text '### Program Requirements' is not present in the provided source page text. The actual heading is '### Requirements', which is a different heading.\"\n}", "model": "gemini-2.5-flash", "input_tokens": 1101, "output_tokens": 60}

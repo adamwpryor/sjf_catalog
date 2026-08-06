@@ -1,0 +1,1 @@
+{"text": "{\n  \"refute\": true,\n  \"confidence\": 0.9,\n  \"reason\": \"The quoted evidence '---' is not present verbatim in the provided source page text. The finding's claim is based on evidence that does not exist on the page, making it a false positive.\"\n}", "model": "gemini-2.5-flash", "input_tokens": 725, "output_tokens": 67}

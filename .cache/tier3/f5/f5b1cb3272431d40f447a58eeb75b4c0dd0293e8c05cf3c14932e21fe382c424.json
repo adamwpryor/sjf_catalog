@@ -1,0 +1,1 @@
+{"text": "{\n  \"refute\": false,\n  \"confidence\": 1,\n  \"reason\": \"The quoted evidence from the page is verbatim present in the source text and directly supports the claim of a wording difference. The difference is 'the behavior therapy techniques' vs 'the use behavioral therapy techniques'.\"\n}", "model": "gemini-2.5-flash", "input_tokens": 908, "output_tokens": 65}

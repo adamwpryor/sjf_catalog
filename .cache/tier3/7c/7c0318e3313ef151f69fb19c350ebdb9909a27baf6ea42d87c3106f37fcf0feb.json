@@ -1,0 +1,1 @@
+{"text": "{\n  \"refute\": false,\n  \"confidence\": 1,\n  \"reason\": \"The page explicitly states 'GNUR-564 MAT 8 hour Training (0)', indicating 0 credits. The database reports 8 credits. This is a direct mismatch and not a false positive based on the provided analytical lens.\"\n}", "model": "gemini-2.5-flash", "input_tokens": 905, "output_tokens": 73}

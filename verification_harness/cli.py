@@ -162,6 +162,7 @@ def run_version(
     tier3_adjudicator: Adjudicator | None = None,
     n_tier3_normal: int = 3,
     n_tier3_critical: int = 5,
+    tier3_critical_only: bool = False,
 ) -> VersionRun:
     """Run the selected checks for one catalog version.
 
@@ -218,6 +219,7 @@ def run_version(
             tier3_adjudicator,
             n_normal=n_tier3_normal,
             n_critical=n_tier3_critical,
+            critical_only=tier3_critical_only,
         )
         t_tier3 = time.time() - mark
 
@@ -297,6 +299,15 @@ def main(argv: list[str] | None = None) -> int:
 
     tier3 = parser.add_argument_group("Tier 3 (adversarial verification)")
     tier3.add_argument(
+        "--tier3-critical-only",
+        action="store_true",
+        help=(
+            "refute only `critical` findings. Chosen 2026-08-06 after the FP gate measured Tier 2 "
+            "at ~3% false positives: full scope costs ~9h to refute findings that are mostly real. "
+            "Everything outside the scope keeps refuters.n=0 and reports as not-verified."
+        ),
+    )
+    tier3.add_argument(
         "--tier3",
         choices=["off", "live", "replay", "estimate"],
         default="off",
@@ -354,6 +365,7 @@ def main(argv: list[str] | None = None) -> int:
                 tier3_adjudicator,
                 args.tier3_normal_count,
                 args.tier3_critical_count,
+                args.tier3_critical_only,
             )
             for v in versions
         ]

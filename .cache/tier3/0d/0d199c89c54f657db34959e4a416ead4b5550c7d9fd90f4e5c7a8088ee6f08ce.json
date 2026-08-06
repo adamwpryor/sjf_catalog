@@ -1,0 +1,1 @@
+{"text": "{\n  \"refute\": false,\n  \"confidence\": 5,\n  \"reason\": \"The finding correctly identifies the course PHAR 3142 on page 226 of the 2022-2023-graduate catalog. The course is clearly listed in the provided text excerpt under the 'Doctor of Pharmacy (Pharm.D.)' requirements.\"\n}", "model": "gemini-2.5-flash", "input_tokens": 1020, "output_tokens": 84}

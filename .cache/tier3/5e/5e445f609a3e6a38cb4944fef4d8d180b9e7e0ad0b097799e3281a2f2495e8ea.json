@@ -1,0 +1,1 @@
+{"text": "{\n  \"refute\": false,\n  \"confidence\": 1,\n  \"reason\": \"The quoted evidence 'Six credits of electives' and 'Total: 109 credits' is verbatim present in the source page text and directly supports the finding's claim that these values are specified on the page.\"\n}", "model": "gemini-2.5-flash", "input_tokens": 1055, "output_tokens": 70}

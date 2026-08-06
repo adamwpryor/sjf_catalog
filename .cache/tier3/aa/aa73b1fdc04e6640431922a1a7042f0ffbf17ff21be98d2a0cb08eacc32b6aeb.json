@@ -1,0 +1,1 @@
+{"text": "{\"refute\": true, \"confidence\": 1.0, \"reason\": \"The reported difference is a typographical error (a question mark instead of an apostrophe) in the quoted evidence from the page. This is a false positive due to a typography difference, which is a known catalog false-positive trap (T11).\"}", "model": "gemini-2.5-flash", "input_tokens": 985, "output_tokens": 69}
