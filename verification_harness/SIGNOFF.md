@@ -820,9 +820,24 @@ named upstream change. No fix is applied by 5b — it hands off.
 
 ### Sign-off
 
-- [ ]  **5a** built · [ ]  cross-confirmed by the other agent (P1) · [ ]  ✅ **ADAM APPROVED PER
-  FINDING-CLASS** — *date*
-- [ ]  **5b** written · [ ]  ✅ **ADAM APPROVED** — *date*
+- [X]  **5a** built (`remediate.py`, `2026-08-06`) — dry-run default, backup in the same transaction
+  as the write, `--restore` by run id, own write connection, unknown check ids error. **Nothing has
+  been applied.** The dry run found a defect in the tool itself: a course defined on several pages
+  yields several findings about the *same row*, so the plan now collapses to one write per cell and
+  **refuses any cell two findings disagree about**. 105 findings → **44 writes**, all `B1` credits.
+  All 30 `A6` findings correctly refused — every ghost still carries the ingest placeholder title,
+  and clearing `is_ghost` alone would leave a row asserting a course it does not hold.
+- [ ]  **5a** cross-confirmed by the other agent (P1) — Claude wrote it; Gemini should verify the
+  backup/restore round-trip and the contested-cell refusal before any apply.
+- [ ]  ✅ **ADAM APPROVED PER FINDING-CLASS** — *date*. Adam accepted the `credits = 0` cluster on
+  `2026-08-06` (20 of the 44 writes; spot-checked against `## EDUC-108 Clinical Experience I (0)` —
+  the page says 0 and the stored 50 is the defect). That resolved the concern; it is **not** yet an
+  instruction to apply.
+- [X]  **5b** written — `PIPELINE_DEFECTS.md` (`2026-08-06`). Groups 14,758 actionable findings into
+  **5 root causes**, each with counts, verbatim examples, and one named upstream change. Applies
+  nothing. The ratio it exists to make visible: fixing the chunker closes ~6,300 findings; patching
+  rows closes 44.
+- [ ]  ✅ **ADAM APPROVED** — *date*
 
 ---
 
