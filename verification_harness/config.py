@@ -76,6 +76,11 @@ FALSE_POSITIVE_GATE: float = 0.20
 #: a re-run replays instead of re-rolling. Git-ignored with the rest of ``artifacts/``.
 TIER2_CACHE_DIR: Path = ARTIFACTS_DIR / "tier2-cache"
 
+#: Tier 3 refuter responses. Kept **under ARTIFACTS_DIR** like every other derived output:
+#: a sibling path outside it (``REPO_ROOT/.cache``) escaped ``artifacts/.gitignore`` and put
+#: 4,733 regenerable cache files into git history on 2026-08-06.
+TIER3_CACHE_DIR: Path = ARTIFACTS_DIR / "tier3-cache"
+
 #: Courses adjudicated per call. Batching is by *page*, so this is a ceiling that splits the few
 #: course-description pages dense enough to blow the context window, not the usual case.
 TIER2_COURSES_PER_CALL: int = 12

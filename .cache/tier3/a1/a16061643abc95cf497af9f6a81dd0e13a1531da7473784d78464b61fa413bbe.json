@@ -1,1 +1,0 @@
-{"text": "{\n  \"refute\": true,\n  \"confidence\": 5,\n  \"reason\": \"The quoted evidence 'Monica Hodis' is not present in the provided source page text excerpt. Therefore, the finding's claim is not supported by the evidence.\"\n}", "model": "gemini-2.5-flash", "input_tokens": 740, "output_tokens": 58}

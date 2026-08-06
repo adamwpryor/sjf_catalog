@@ -1,1 +1,0 @@
-{"text": "{\n  \"refute\": false,\n  \"confidence\": 1,\n  \"reason\": \"The quoted evidence from the page is verbatim present in the source page text under PHAR-3240. The quoted evidence from the database is clearly different from the page text, supporting the claim that the descriptions do not match.\"\n}", "model": "gemini-2.5-flash", "input_tokens": 1114, "output_tokens": 72}

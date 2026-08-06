@@ -1,1 +1,0 @@
-{"text": "{\n  \"refute\": false,\n  \"confidence\": 5,\n  \"reason\": \"The quoted evidence from the page directly states 'Master of Business Administration (MBA) degree', which supports the reported claim that the degree_type is 'Master of Business Administration' and not 'Master'.\"\n}", "model": "gemini-2.5-flash", "input_tokens": 844, "output_tokens": 65}

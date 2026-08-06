@@ -1,1 +1,0 @@
-{"text": "{\"refute\": false, \"confidence\": 1.0, \"reason\": \"The quoted evidence from the page is verbatim present in the source text and directly supports the claim that the catalog uses 'practice' while the database uses 'practices'. This is a clear discrepancy.\"}", "model": "gemini-2.5-flash", "input_tokens": 968, "output_tokens": 57}

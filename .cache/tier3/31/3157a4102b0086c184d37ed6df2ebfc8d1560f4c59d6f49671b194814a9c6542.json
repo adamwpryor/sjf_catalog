@@ -1,1 +1,0 @@
-{"text": "{\n  \"refute\": false,\n  \"confidence\": 1,\n  \"reason\": \"The quoted evidence_page text is verbatim present in the source page text and directly supports the finding's claim that the content describes a course (PHAR-3148 Biosystems I).\"\n}", "model": "gemini-2.5-flash", "input_tokens": 963, "output_tokens": 65}

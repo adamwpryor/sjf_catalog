@@ -1,1 +1,0 @@
-{"text": "{\"refute\": false, \"confidence\": 1.0, \"reason\": \"The finding states that course DEXL 706 is found on page 100 but is missing from the DB. The provided text excerpt clearly shows 'DEXL-706 Applied & Action Research (3)' on page 100. The claim is accurate based on the provided evidence.\"}", "model": "gemini-2.5-flash", "input_tokens": 900, "output_tokens": 83}

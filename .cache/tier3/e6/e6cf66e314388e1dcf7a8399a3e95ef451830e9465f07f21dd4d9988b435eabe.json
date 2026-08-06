@@ -1,1 +1,0 @@
-{"text": "{\n  \"refute\": false,\n  \"confidence\": 1,\n  \"reason\": \"The finding accurately reports that prerequisite information is present on the page but missing from the database. There is no false positive pattern identified.\"\n}", "model": "gemini-2.5-flash", "input_tokens": 960, "output_tokens": 51}

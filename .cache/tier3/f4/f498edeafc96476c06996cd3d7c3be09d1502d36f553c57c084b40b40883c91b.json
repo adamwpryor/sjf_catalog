@@ -1,1 +1,0 @@
-{"text": "{\"refute\": true, \"confidence\": 0.9, \"reason\": \"The quoted evidence_page text '---' is not present in the provided source page text excerpt. The finding's claim is based on this missing evidence, making it a false positive.\"}", "model": "gemini-2.5-flash", "input_tokens": 720, "output_tokens": 57}

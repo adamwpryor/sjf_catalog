@@ -1,1 +1,0 @@
-{"text": "{\"refute\": true, \"confidence\": 4, \"reason\": \"The quoted evidence from the page, \\\"The program is designed to be completed online in one calendar year,\\\" does not provide a total credit count. Therefore, it does not support the claim that 'total_credits is present on the page.'\"}", "model": "gemini-2.5-flash", "input_tokens": 815, "output_tokens": 65}

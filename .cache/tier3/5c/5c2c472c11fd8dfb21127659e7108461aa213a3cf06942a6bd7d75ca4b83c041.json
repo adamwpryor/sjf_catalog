@@ -1,1 +1,0 @@
-{"text": "{\n  \"refute\": false,\n  \"confidence\": 1,\n  \"reason\": \"The reported claim is accurate. The database text contains 'it each' while the source page correctly states 'each'. This is a clear typo in the database, not a false positive.\"\n}", "model": "gemini-2.5-flash", "input_tokens": 971, "output_tokens": 62}

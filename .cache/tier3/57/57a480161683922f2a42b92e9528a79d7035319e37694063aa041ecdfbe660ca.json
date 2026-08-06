@@ -1,1 +1,0 @@
-{"text": "{\n  \"refute\": false,\n  \"confidence\": 1,\n  \"reason\": \"The quoted evidence_page text is verbatim present in the source page text. The quoted evidence_db text is a truncated version of the evidence_page text, which supports the claim that the description is truncated.\"\n}", "model": "gemini-2.5-flash", "input_tokens": 1019, "output_tokens": 67}

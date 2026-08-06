@@ -429,7 +429,7 @@ def _build_adjudicator(
         return None
     from .llm.client import DEFAULT_TIER2_MODEL
 
-    cache_dir = config.TIER2_CACHE_DIR if tier == 2 else config.REPO_ROOT / ".cache" / "tier3"
+    cache_dir = config.TIER2_CACHE_DIR if tier == 2 else config.TIER3_CACHE_DIR
     cache = ResponseCache(cache_dir, read_only=(mode == "replay"))
     effective_budget = budget or Budget(
         ceiling_usd=args.budget if args.budget is not None else DEFAULT_CEILING_USD

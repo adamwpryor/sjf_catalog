@@ -1,1 +1,0 @@
-{"text": "{\"refute\": false, \"confidence\": 1, \"reason\": \"The quoted evidence_page text \\\"Total: 18 credits\\\" is verbatim present in the source page text under the 'Certificate of Advanced Study' section, directly supporting the claim that the total_credits for this program is 18.\"}", "model": "gemini-2.5-flash", "input_tokens": 859, "output_tokens": 66}

@@ -1,1 +1,0 @@
-{"text": "{\n  \"refute\": false,\n  \"confidence\": 1,\n  \"reason\": \"The quoted evidence 'Required Courses - 42 credits' is verbatim present in the source page text and directly supports the claim that total_credits is 42. The previous demotion to 'EVIDENCE UNVERIFIED' was incorrect.\"\n}", "model": "gemini-2.5-flash", "input_tokens": 886, "output_tokens": 74}
