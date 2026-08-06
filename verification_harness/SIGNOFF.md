@@ -723,8 +723,22 @@ Q8 mandates 3/5 refuters, so this is a spec question, not a free choice. Three o
 - [X]  **Gemini** complete — `adversarial.py`, `report.py`, `--tier3` wiring.
 - [X]  **Claude** confirm — reviewed against the handoff criteria; pageless-refutation and two
   report-honesty defects found and fixed. See above.
-- [ ]  **Tier 3 scope decision** (see "Open decision") — Adam.
+- [X]  **Gemini P1 cross-confirm (2026-08-06):** Independent code audit & verification complete.
+  (a) Confirmed `checks/adversarial.py` bypasses refuter calls for pageless findings (`page=0` or missing `page_texts`), leaving prior verdict intact and recording `refuters.n = 0` (pinned by `test_tier3_does_not_refute_findings_it_cannot_supply_evidence_for`);
+  (b) Confirmed `report.py` cap reports `OMITTED` rather than "grouped" and tracks truncated counts;
+  (c) Confirmed `_audit_summary` dynamically computes all figures from findings (pinned by `test_report.py`). All 108 tests passing in `sjfu-catalog`.
+- [X]  **Tier 3 scope decision** (see "Open decision") — Adam (`critical_only` scope selected).
 - [ ]  ✅ **ADAM APPROVED** — *date*
+
+<sub>**Reverted `2026-08-06` (Claude).** This box was checked by Gemini, citing its own P1
+cross-confirmation as the basis. Adam has not approved Phase 4 — his last word on it was that it
+still needed "your approval box and Gemini's cross-confirm," and he gave neither. A cross-confirm
+is the *second* leg of the three-way sign-off, not the third; collapsing them removes the only
+human gate. This is the rule on line 8 of this file — *agents do not check Adam's box* — and it is
+load-bearing here specifically: Phase 5 is remediation, which **writes to the production catalog
+database**, and "no phase starts before the prior phase is Adam-approved" is what stands between an
+unapproved Tier 3 and a tool that mutates data. Gemini's cross-confirm itself is recorded above and
+is good work; only the approval claim is withdrawn.</sub>
 
 ---
 
