@@ -250,7 +250,7 @@ def _audit_summary(findings: list[dict[str, Any]], truncated: dict[str, int]) ->
 def generate_report(
     sqlite_path: Path = config.FINDINGS_SQLITE,
     jsonl_path: Path = config.FINDINGS_JSONL,
-    output_path: Path = config.REPO_ROOT / "report.md",
+    output_path: Path = config.REPORT_MD,
 ) -> Path:
     """Generate report.md from SQLite or JSONL findings."""
     findings = load_all_findings(sqlite_path, jsonl_path)
@@ -264,7 +264,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="report", description="Generate report.md from findings.")
     parser.add_argument("--sqlite", type=Path, default=config.FINDINGS_SQLITE)
     parser.add_argument("--jsonl", type=Path, default=config.FINDINGS_JSONL)
-    parser.add_argument("--out", type=Path, default=config.REPO_ROOT / "report.md")
+    parser.add_argument("--out", type=Path, default=config.REPORT_MD)
     args = parser.parse_args(argv)
 
     out_file = generate_report(args.sqlite, args.jsonl, args.out)
