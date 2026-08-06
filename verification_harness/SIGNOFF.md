@@ -400,7 +400,30 @@ promotion rule). Gemini fan-out, batched, structured output.
 - [X]  F4 stays `info` — enforced in code, not requested in the prompt.
 - [X]  Cost within the Q5 ceiling — **$7.96 projected** against $10, measured without spending.
 - [ ]  **A live Tier 2 run has actually happened.** Blocked: see "Blocker" below.
-- [ ]  FP triage of a Tier 2 finding sample, mirroring the Phase 1 gate.
+- [X]  FP triage of a Tier 2 finding sample, mirroring the Phase 1 gate — **PASSED**.
+
+### FP gate — PASSED (`2026-08-06`, Adam)
+
+30 Tier 2 findings from `2022-2023-graduate`, stratified by check, seeded and reproducible
+(`PHASE3_TIER2_TRIAGE.md`). **Adam judged all 30 REAL, with one he would quibble as a judgment
+call.** FP rate is at worst 1 in 30 — **3.3%**, well inside §12's 20% ceiling, and consistent with
+Phase 1's 0% on Tier 1.
+
+Two things follow that are worth stating, because the gate was run to decide them:
+
+- **`F3` stays per-chunk and is not aggregated.** It is 76% of Tier 2's output (1,062 of 1,404 on
+  the smallest catalog) and I proposed giving it the `B4`/`C6` treatment. The triage says no: `B4`
+  aggregated because 217 rows shared *one* defect, so the claim compressed without losing anything.
+  `F3`'s findings are each a *different* chunk with a *different* wrong breadcrumb — `PHAR-3226
+  State Pharmacy Law` filed under `Grading Scale for Nursing Programs` — so aggregating would
+  destroy exactly the per-row detail remediation needs. The volume is real defect volume, and §1 is
+  explicit that a false negative costs more than a false positive. Grouping belongs in `report.md`,
+  which now caps at 50 per check and says plainly what it omitted; the findings stream keeps
+  everything (P5).
+- **The gate result changes Tier 3's cost/benefit, and that needs a decision.** Tier 3 exists to
+  suppress false positives. At a measured ~3% FP rate there is very little to suppress, and it cost
+  **57 minutes for one catalog** (~9 hours corpus-wide) refuting findings that are almost all real.
+  Recorded in Phase 4 rather than resolved here.
 
 ### Blocker — Tier 2 has never been executed (`2026-08-01`)
 
@@ -649,9 +672,59 @@ Vertex Gemini regardless. Three options, in the order I would rank them:
 
 **Exit criteria.** Only CONFIRMED/PLAUSIBLE reach the report; REFUTED retained for audit; report renders.
 
+### Work log
+
+- `2026-08-05` **[Gemini]** Built `checks/adversarial.py` (5 distinct refuter lenses, majority kill,
+  default-to-refute on error/refusal) and `report/report.py`; wired `--tier3` into `cli.py`.
+- `2026-08-06` **[Claude]** P1 review. Two defects found, both about what a component could
+  legitimately *claim* rather than what it computed — see below.
+
+### Claude's P1 review of Gemini's Tier 3 (`2026-08-06`)
+
+**What holds up.** The cache-key trap is handled: three refuters get three distinct lenses, so their
+prompts differ and the cache cannot collapse "three independent skeptics" into one counted three
+times. Errors and refusals vote to refute rather than silently reducing `n`. Majority kill is
+correct at 3 and 5, ties do not resolve to `CONFIRMED`, ids and counts are preserved, and the tests
+run with no DB, credentials, or model. Gemini wrote its own injections for both traps I flagged.
+
+**The defect — and it belongs to neither side alone.** Refuters were handed the page text for the
+finding's page, but **42 in-scope findings carry `page=0` because they are pageless by
+construction**: `A4` reports rows that link to no source page, so *"there is no page" is the claim*,
+and the `B4`/`B6` classes are per-catalog aggregates. Those refuters would have received an empty
+excerpt and then applied §8's "default to refuted when unsure" — killing all 42, including
+**`DEXL 725`**, one of the five matcher failures the §11 known-answer gate exists to catch. The
+harness would have refuted its own regression fixture. Fixed by not evaluating what cannot be
+evidenced: prior verdict kept, `refuters.n = 0` recorded. *Not verified* is honest; `REFUTED` would
+be a silent kill wearing a verdict (P5).
+
+**`report.py` had the same shape of defect, twice.** The per-check cap said omitted findings were
+*"grouped"* — with `D1` at 1,911 that is 1,861 dropped under a word claiming otherwise. And the
+Coverage & Audit Summary, the section whose entire job is stating what was *not* covered, was
+hardcoded prose: it contained the literal string "N independent skeptical refuters" and asserted
+that low/medium findings were excluded when they are listed directly above it. It would have printed
+the same claims after a run that crashed. Both now computed from the findings.
+
+### Open decision — is Tier 3 worth its cost at a 3% FP rate?
+
+Tier 3 exists to suppress false positives (§1: tune for recall, then suppress here). The Phase 3 FP
+gate then measured Tier 2's false-positive rate at **~3%**. Meanwhile Tier 3 took **57 minutes for
+one catalog** — ~9 hours corpus-wide — to refute findings that are overwhelmingly real.
+
+Q8 mandates 3/5 refuters, so this is a spec question, not a free choice. Three options, ranked:
+
+1. **Run Tier 3 on `critical` findings only** (600 corpus-wide). That is where a wrong remediation
+   does the most damage, and it costs roughly an hour instead of nine.
+2. Run it in full as specified, and accept the runtime as the price of the guarantee.
+3. Skip it, recording that the FP gate substitutes for it. I would not — it discards the only
+   independent check on Tier 2's judgment, and the gate sampled 30 findings, not 11,000.
+
 ### Sign-off
 
-- [ ]  **Claude** complete · [ ] **Gemini** confirm · [ ] ✅ **ADAM APPROVED** — *date*
+- [X]  **Gemini** complete — `adversarial.py`, `report.py`, `--tier3` wiring.
+- [X]  **Claude** confirm — reviewed against the handoff criteria; pageless-refutation and two
+  report-honesty defects found and fixed. See above.
+- [ ]  **Tier 3 scope decision** (see "Open decision") — Adam.
+- [ ]  ✅ **ADAM APPROVED** — *date*
 
 ---
 
