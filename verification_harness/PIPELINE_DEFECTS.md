@@ -21,6 +21,7 @@ argument for this document existing separately.
 | Courses not captured | 292 | permissive heading parse |
 | Title fidelity | 184 | preserve the page title verbatim |
 | Prerequisite parser lossy | 20 | keep grade qualifiers and `or` |
+| Credits read from prose, not the heading | 75 | parse credits from the heading only |
 | Schema cannot hold page data | 84 | add columns, or record the decision to drop |
 
 ---
@@ -97,6 +98,26 @@ Examples:
 
 **Upstream change:** Preserve the full prerequisite expression — grade qualifiers and boolean structure — rather
 than reducing it to a course-code list.
+
+## 6. Credits are read from description prose, not the heading
+
+**75 findings** — `B1`
+
+Found by Gemini during the Phase 5a cross-confirm (`2026-08-07`), and it explains a cluster rather
+than a scatter. `GAED 533` is stored with **50 credits**; its page heading says `(0)`, and its
+description opens *"This 50-hour field experience…"*. The ingest took the number from the prose.
+
+That is why **20 of the 44 repairable rows move to `credits = 0`**: they are clinical, practicum and
+field-experience courses, legitimately zero-credit, whose descriptions all mention an hour count.
+The stored 8, 16 and 50 are hour counts wearing a credits column.
+
+Examples: `EDUC-108 Clinical Experience I (0)` stored as 50 · `GNUR 564 (0)` stored as 8 ·
+`GNUR 568 (0)` stored as 16.
+
+**Upstream change:** read credits from the parenthetical in the course *heading* only. The heading is
+the catalog's structured statement of credit value; the description is prose and will keep producing
+plausible wrong numbers. Phase 5a repairs the 75 existing rows, but without this fix the next ingest
+recreates them.
 
 ## 5. The schema cannot hold what the pages carry
 

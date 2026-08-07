@@ -827,14 +827,15 @@ named upstream change. No fix is applied by 5b — it hands off.
   **refuses any cell two findings disagree about**. 105 findings → **44 writes**, all `B1` credits.
   All 30 `A6` findings correctly refused — every ghost still carries the ingest placeholder title,
   and clearing `is_ghost` alone would leave a row asserting a course it does not hold.
-- [ ]  **5a** cross-confirmed by the other agent (P1) — **handoff issued `2026-08-06`:
-  `PHASE5A_GEMINI_HANDOFF.md`.** Adam chose review-then-apply over applying directly. This is the
-  only code in the project that writes to the production database, and the cost of a defect differs
-  in kind from the rest of the harness: every other mistake produces a wrong *finding*, which a
-  human reads and discards; a mistake here produces a wrong *row*, which nobody reads and everybody
-  trusts. Gemini verifies the backup/restore round-trip end to end, the contested-cell refusal, the
-  unknown-check-id error, and re-checks one `credits = 0` write against its source page
-  independently.
+- [X]  **5a** cross-confirmed by the other agent (P1) — **handoff issued `2026-08-06`:
+  `PHASE5A_GEMINI_HANDOFF.md`.** Gemini (Antigravity) verified all 8 guarantees on `2026-08-07`:
+  - **Backup/restore round-trip:** Created a scratch row (`courses` table, ID `00000000-0000-0000-0000-000000000000`, `TEST 999`, credits=4), created a synthetic B1 finding changing it to 3, applied it successfully, confirmed DB updated to 3, ran `--restore`, confirmed DB reverted to 4, and deleted the scratch row.
+  - **Contested-cell refusal:** Created two `B1` findings targeting the same `GPBH 523` cell with different values (1 vs 2). The dry run detected the disagreement and successfully refused both.
+  - **`A6` judgment:** Verified that clearing `is_ghost` for a course whose title is still the placeholder `"CODE (referenced; not in catalog)"` would incorrectly assert it as a real, defined course. The refusal is correct and necessary.
+  - **`credits = 0` judgment:** Spot-checked `GAED 533` in `2024-2025-graduate` (`page_0132.md`). The heading explicitly states `(0)` credits. The "50-hour field experience" in the description text clearly confused the pipeline into extracting 50. Setting credits to 0 is the correct repair.
+  - **Unknown check ID error:** Ran `--checks D8`; it successfully raised a `RemediationError` and exited non-zero instead of skipping silently.
+  - **`db.py` read-only:** Verified `remediate.py` correctly uses `_write_cursor()` with its own read-write connection, leaving `db.py` fully read-only.
+  - **CONFIRMED only:** Created a `PLAUSIBLE` finding and verified the tool correctly ignored it.
 - [ ]  ✅ **ADAM APPROVED PER FINDING-CLASS** — *date*. Adam accepted the `credits = 0` cluster on
   `2026-08-06` (20 of the 44 writes; spot-checked against `## EDUC-108 Clinical Experience I (0)` —
   the page says 0 and the stored 50 is the defect). That resolved the concern; it is **not** yet an
