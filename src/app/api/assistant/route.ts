@@ -900,9 +900,9 @@ IMPORTANT CITATION RULE: Whenever you reference a specific policy code or course
         }
       ];
 
-      // Execute Agent Loop (up to 8 turns)
+      // Execute Agent Loop (up to 16 tool-calling turns)
       let turn = 0;
-      const maxTurns = 8;
+      const maxTurns = 16;
       const agentConversation: any[] = [
         ...history.slice(-10).map((h: any) => ({
           role: h.role === 'user' ? 'user' : 'model',
@@ -994,8 +994,44 @@ IMPORTANT CITATION RULE: Whenever you reference a specific policy code or course
         }
       }
 
+      // Turn budget exhausted mid-investigation: force one final no-tools
+      // synthesis pass so the user gets the findings gathered so far instead
+      // of an error message.
       if (turn >= maxTurns && !finalResponseText) {
-        finalResponseText = "The General Reasoning Assistant reached the maximum turn limit while processing your multi-hop query. Try asking a slightly simpler sub-question.";
+        console.warn(`[Oracle Agent] Hit the ${maxTurns}-turn limit; forcing a final synthesis pass.`);
+        try {
+          const completionUrl = isVertex
+            ? vertexGenerateContentUrl(gcp, apiModel)
+            : `https://generativelanguage.googleapis.com/v1beta/models/${apiModel}:generateContent?key=${geminiKey}`;
+          const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+          if (isVertex) headers['Authorization'] = `Bearer ${gcp.accessToken}`;
+          const res = await fetch(completionUrl, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+              contents: [
+                ...agentConversation,
+                {
+                  role: 'user',
+                  parts: [{ text: 'You have reached the tool-call limit for this request. Do not call any more tools. Using only the tool results gathered above, give your best final answer now, and note explicitly anything you were unable to verify.' }]
+                }
+              ],
+              systemInstruction: { parts: [{ text: systemPrompt }] }
+              // `tools` deliberately omitted — the model cannot call functions on this pass.
+            })
+          });
+          if (res.ok) {
+            const data = await res.json();
+            finalResponseText = data.candidates?.[0]?.content?.parts?.find((p: any) => p.text)?.text || '';
+          } else {
+            console.warn(`[Oracle Agent] Synthesis pass returned ${res.status}: ${await res.text()}`);
+          }
+        } catch (err: any) {
+          console.warn(`[Oracle Agent] Final synthesis pass failed: ${err.message}`);
+        }
+        if (!finalResponseText) {
+          finalResponseText = `The General Reasoning Assistant hit its ${maxTurns}-step tool limit before finishing. The tool log below shows what it found so far — try narrowing the question to continue from there.`;
+        }
       }
 
       return NextResponse.json({
