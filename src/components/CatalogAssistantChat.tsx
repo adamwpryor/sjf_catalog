@@ -13,6 +13,13 @@ interface Message {
   terminalLogs?: { query: string; result: string; timestamp: string }[];
 }
 
+const WELCOME_MESSAGES: Message[] = [
+  {
+    sender: 'assistant',
+    text: "Hello! I am your AI Catalog Assistant. I am here to help you search, explore, and audit academic catalog information.\n\nYou can switch between two modes depending on your questions:\n\n* **Strict RAG Mode**: Best for looking up official course descriptions, catalog sections, and academic policies (e.g., *\"What is the probation policy?\"*).\n* **General Reasoning Mode**: Best for analyzing connections, course prerequisite paths, and running database queries (e.g., *\"What courses require ACCT 110?\"*).\n\nFeel free to ask a question in either mode, or switch between them as needed. How can I help you today?"
+  }
+];
+
 interface CatalogAssistantChatProps {
   catalogId: string;
 }
@@ -149,12 +156,7 @@ function TerminalLogsDrawer({ logs }: { logs: { query: string; result: string; t
  * @returns {JSX.Element} The chat interface component.
  */
 export default function CatalogAssistantChat({ catalogId }: CatalogAssistantChatProps) {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      sender: 'assistant',
-      text: "Hello! I am your AI Catalog Assistant. I am here to help you search, explore, and audit academic catalog information.\n\nYou can switch between two modes depending on your questions:\n\n* **Strict RAG Mode**: Best for looking up official course descriptions, catalog sections, and academic policies (e.g., *\"What is the probation policy?\"*).\n* **General Reasoning Mode**: Best for analyzing connections, course prerequisite paths, and running database queries (e.g., *\"What courses require ACCT 110?\"*).\n\nFeel free to ask a question in either mode, or switch between them as needed. How can I help you today?"
-    }
-  ]);
+  const [messages, setMessages] = useState<Message[]>([...WELCOME_MESSAGES]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<'RAG' | 'GENERAL'>('RAG');
@@ -187,6 +189,15 @@ export default function CatalogAssistantChat({ catalogId }: CatalogAssistantChat
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  const handleNewChat = () => {
+    // Don't reset mid-request: the in-flight reply would land in the fresh chat.
+    if (loading) return;
+    if (messages.length > 1 && !window.confirm('Start a new chat? The current conversation will be cleared.')) return;
+    setMessages([...WELCOME_MESSAGES]);
+    setInput('');
+    setSelectedSource(null);
+  };
 
   const handleExportChat = (format: 'txt' | 'md') => {
     try {
@@ -461,9 +472,24 @@ export default function CatalogAssistantChat({ catalogId }: CatalogAssistantChat
           <p className="text-xs text-slate-400 font-medium">Verify you have selected the correct Catalog Version above before running audits.</p>
         </div>
 
-        {/* Exporter Dropdown */}
-        <div className="relative group self-stretch md:self-auto flex">
-          <button 
+        {/* Chat Actions: New Chat + Exporter */}
+        <div className="flex gap-2 self-stretch md:self-auto">
+          <button
+            type="button"
+            onClick={handleNewChat}
+            disabled={loading}
+            title="Start a new chat"
+            className="text-xs bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 px-3.5 py-2 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+            <span>New Chat</span>
+          </button>
+
+          {/* Exporter Dropdown */}
+          <div className="relative group flex flex-1 md:flex-initial">
+          <button
             type="button"
             className="w-full md:w-auto text-xs bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 px-3.5 py-2 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer font-semibold"
             title="Export chat history"
@@ -498,12 +524,13 @@ export default function CatalogAssistantChat({ catalogId }: CatalogAssistantChat
               </button>
               <button 
                 type="button" 
-                onClick={handleExportPDF} 
+                onClick={handleExportPDF}
                 className="w-full text-left px-4 py-2.5 text-xs text-slate-300 hover:bg-[#993333] hover:text-white cursor-pointer transition-colors border-none bg-transparent"
               >
                 PDF (.pdf)
               </button>
             </div>
+          </div>
           </div>
         </div>
       </div>
