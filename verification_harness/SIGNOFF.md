@@ -24,8 +24,8 @@ A phase is not "done" until Adam's box is checked. Agents do not check Adam's bo
 | **2** | Tier 1 across all 8 catalogs + §11 regression set independently rediscovered | Both | ☑️† | ✅ |
 | **3** | Tier 2 LLM adjudication (B2 residue, B3/B4/B7, F1–F4) | Claude (built) · Gemini (confirm) | ☑️‡ | ✅ |
 | **4** | Tier 3 adversarial verification → triage index → `report.md` | Gemini (built) · Claude (review) | ☑️ | ✅ |
-| **5a** | Remediation tool — `B1`/`A6`/`C7` only (dry-run default, backup, `--restore`) | Both | ⬜ | ⬜ |
-| **5b** | Pipeline defect report — `F3`/`B3`/`A1`/`A3`/`B4`/`B6` root causes, hands off | Claude | ⬜ | ⬜ |
+| **5a** | Remediation tool — `B1`/`A6`/`C7` only (dry-run default, backup, `--restore`) | Both | ☑️ | ⬜ |
+| **5b** | Pipeline defect report — `F3`/`B3`/`A1`/`A3`/`B4`/`B6` root causes, hands off | Claude | ☑️ | ✅ |
 
 <sub>†Phase 2: both gates pass (8 catalogs swept, §11 gate 10/10) and **Gemini's P1 cross-confirm is
 recorded** (`2026-07-30`, all four items). Only Adam's stamp is outstanding. Note the scoped per-tier
@@ -837,7 +837,8 @@ named upstream change. No fix is applied by 5b — it hands off.
   **5 root causes**, each with counts, verbatim examples, and one named upstream change. Applies
   nothing. The ratio it exists to make visible: fixing the chunker closes ~6,300 findings; patching
   rows closes 44.
-- [ ]  ✅ **ADAM APPROVED** — *date*
+- [X]  ✅ **ADAM APPROVED** — 2026-08-06 (stated in session; recorded by Claude). 5b is closed. The
+  remaining work it describes is the ingest owner's, not the harness's.
 
 ---
 
