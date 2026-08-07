@@ -24,7 +24,7 @@ A phase is not "done" until Adam's box is checked. Agents do not check Adam's bo
 | **2** | Tier 1 across all 8 catalogs + §11 regression set independently rediscovered | Both | ☑️† | ✅ |
 | **3** | Tier 2 LLM adjudication (B2 residue, B3/B4/B7, F1–F4) | Claude (built) · Gemini (confirm) | ☑️‡ | ✅ |
 | **4** | Tier 3 adversarial verification → triage index → `report.md` | Gemini (built) · Claude (review) | ☑️ | ✅ |
-| **5a** | Remediation tool — `B1`/`A6`/`C7` only (dry-run default, backup, `--restore`) | Both | ☑️ | ⬜ |
+| **5a** | Remediation tool — `B1` applied (44 rows), `A6`/`C7` refused by design | Both | ☑️ | ✅ |
 | **5b** | Pipeline defect report — `F3`/`B3`/`A1`/`A3`/`B4`/`B6` root causes, hands off | Claude | ☑️ | ✅ |
 
 <sub>†Phase 2: both gates pass (8 catalogs swept, §11 gate 10/10) and **Gemini's P1 cross-confirm is
@@ -836,10 +836,22 @@ named upstream change. No fix is applied by 5b — it hands off.
   - **Unknown check ID error:** Ran `--checks D8`; it successfully raised a `RemediationError` and exited non-zero instead of skipping silently.
   - **`db.py` read-only:** Verified `remediate.py` correctly uses `_write_cursor()` with its own read-write connection, leaving `db.py` fully read-only.
   - **CONFIRMED only:** Created a `PLAUSIBLE` finding and verified the tool correctly ignored it.
-- [ ]  ✅ **ADAM APPROVED PER FINDING-CLASS** — *date*. Adam accepted the `credits = 0` cluster on
+- [X]  ✅ **ADAM APPROVED PER FINDING-CLASS** — 2026-08-07. Approved `B1` after Gemini's P1
+  cross-confirm, then **applied**: `run_id=9122f681-9c96-4844-9980-aac80770eccb`, **44 rows**
+  written to `courses.credits`, 44 backup rows recorded. Verified independently through the
+  read-only connection rather than from the tool's own report: `EDUC 108` → 0, `FINA 310` → 1,
+  `NURS 423` → 6. **Idempotence proven after the fact** — re-planning the same 75 findings now
+  yields **0 writes**, because every target already matches. Reversible with
+  `--restore --run-id 9122f681-9c96-4844-9980-aac80770eccb`.
+
+  `A6` and `C7` remain unapplied: all 30 `A6` findings are refused by design (placeholder titles —
+  Phase 5b), and `C7` has no findings. **This is the only write this project has made to the
+  catalog database.**
+
+  <sub>Earlier note: Adam accepted the `credits = 0` cluster on
   `2026-08-06` (20 of the 44 writes; spot-checked against `## EDUC-108 Clinical Experience I (0)` —
-  the page says 0 and the stored 50 is the defect). That resolved the concern; it is **not** yet an
-  instruction to apply.
+  the page says 0 and the stored 50 is the defect). Gemini later found the cause: the ingest read
+  the number out of the description prose — see `PIPELINE_DEFECTS.md` root cause 6.</sub>
 - [X]  **5b** written — `PIPELINE_DEFECTS.md` (`2026-08-06`). Groups 14,758 actionable findings into
   **5 root causes**, each with counts, verbatim examples, and one named upstream change. Applies
   nothing. The ratio it exists to make visible: fixing the chunker closes ~6,300 findings; patching
@@ -860,6 +872,10 @@ named upstream change. No fix is applied by 5b — it hands off.
   Phase 0 addendum (Claude): Tier 0 drift guard + a fourth fixture pinning 4-digit codes, after the
   first version of the guard was found to pass with the §11.5 defect injected. **Suite: 18 passing.**
   Phase 2 now awaits only Adam.
+- `2026-08-07` **Phase 5a applied** — 44 `B1` credit corrections written (`run_id 9122f681`), the
+  project's only write to the catalog. Gemini's P1 cross-confirm found zero defects and surfaced
+  root cause 6: credits were parsed from description prose, not the heading. **All phases are now
+  Adam-approved.**
 - `2026-08-06` Phase 4 ADAM APPROVED. **Phase 5 split into 5a/5b** (Adam): of 13,086 actionable
   findings, `auto_fixable` is 0 for every check — the audit is mostly a pipeline defect list, not
   a patch set. 5a fixes only what a deterministic single-column write can reach (`B1`/`A6`/`C7`);
