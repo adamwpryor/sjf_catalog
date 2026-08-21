@@ -90,8 +90,9 @@ argument.** It inventories every prompt and model call in the software and marks
 commissioned, arguable, or platform. Its findings: five prompts implementing the catalog correction
 pipeline are unambiguously the commissioned bot work; two verification-harness prompts are the
 genuine seam and should be named explicitly either way; twelve implement features no enumerated
-deliverable describes. Separately, **six of the enumerated bots appear nowhere in this repository**,
-so this codebase represents only part of the commissioned scope.
+deliverable describes. Separately, six of the enumerated bots were built as **separate applications
+handed over through their own routes**, so this codebase carries only part of the commissioned bot
+work — relevant when scoping what this repository's transfer does and does not settle.
 
 One lesser point remains open and does not affect `LICENSE`: the charter's client signature and date
 lines are blank as filed.

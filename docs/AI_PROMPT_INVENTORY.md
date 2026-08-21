@@ -105,9 +105,9 @@ bot's description. Either is defensible. Leaving it unstated is the only option 
 
 ---
 
-## 6. Enumerated deliverables with no implementation in this repository
+## 6. Enumerated deliverables delivered outside this repository
 
-Verified by search: **six of the enumerated bots appear nowhere in this codebase.** No source file
+Verified by search: six of the enumerated bots appear nowhere in this codebase. No source file
 references scheduling, faculty load, course rotation, sustainability, accountability, or RFP review.
 
 - Scheduling Bot
@@ -117,9 +117,14 @@ references scheduling, faculty load, course rotation, sustainability, accountabi
 - RFP Review Bot
 - AI Strategic Planning Support
 
-Whether these were delivered separately, deferred, or superseded is outside what this repository can
-show. It is recorded because a boundary discussion that only inventories what *is* here would
-overstate how much of the commissioned scope this repository represents.
+**These were built as separate applications and are being handed over through their own routes.**
+Their absence here is a delivery boundary, not a gap.
+
+The consequence for this document is that **the catalog platform is not the whole engagement, and
+this inventory is not the whole bot work product.** Anyone reasoning about what was delivered under
+the agreement needs the other applications alongside this one; anyone reasoning about *this
+repository* should read the inventory above as covering only the portion of the commissioned work
+that happens to live here.
 
 ---
 
@@ -138,4 +143,5 @@ named in the finalized Statement of Work. The remaining twelve implement feature
 deliverable describes.
 
 Separately, and independent of any of the above: the application, harness, ingestion pipeline, spoke
-generator, and schema are platform, and six enumerated bots are not present here at all.
+generator, and schema are platform. Six enumerated bots live in other applications handed over
+separately, so this repository carries only part of the commissioned bot work — see §6.
