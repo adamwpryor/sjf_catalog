@@ -237,7 +237,7 @@ def test_s11_5_dual_numbering_residue_is_surfaced(findings: list[dict[str, Any]]
 
 
 def test_s11_6_page_number_and_bucket_repairs_held(findings: list[dict[str, Any]]) -> None:
-    """§11.6 — every chunk was once on page 1 and pointed at ``ccsj-assets``. C1/C5 guard that."""
+    """§11.6 — every chunk was once on page 1 and pointed at a ``legacy-bucket``. C1/C5 guard that."""
     c1 = _by_check(findings, "C1")
     c5 = _by_check(findings, "C5")
     assert not c1, (
@@ -246,7 +246,7 @@ def test_s11_6_page_number_and_bucket_repairs_held(findings: list[dict[str, Any]
     )
     assert not c5, (
         f"{len(c5)} rows point at a foreign bucket or the wrong catalog version — the "
-        f"ccsj-assets/cross-catalog regression is back: {[f['id'] for f in c5[:5]]}"
+        f"legacy-bucket/cross-catalog regression is back: {[f['id'] for f in c5[:5]]}"
     )
 
 

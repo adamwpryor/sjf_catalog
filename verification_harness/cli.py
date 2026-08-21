@@ -1,4 +1,4 @@
-"""Pipeline entry point: source pages + database → findings.
+"""Pipeline entry point: source pages + database -> findings.
 
 Runs the whole deterministic pass for one or more catalog versions:
 
@@ -303,7 +303,7 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help=(
             "refute only `critical` findings. Chosen 2026-08-06 after the FP gate measured Tier 2 "
-            "at ~3% false positives: full scope costs ~9h to refute findings that are mostly real. "
+            "at ~3%% false positives: full scope costs ~9h to refute findings that are mostly real. "
             "Everything outside the scope keeps refuters.n=0 and reports as not-verified."
         ),
     )

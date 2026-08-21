@@ -1,0 +1,52 @@
+PROPRIETARY SOFTWARE — ALL RIGHTS RESERVED
+
+Copyright (c) 2025-2026 Pryor Consulting. All rights reserved.
+
+This software is proprietary. It is not open source, and no open-source license
+is granted by its presence in this repository.
+
+OWNERSHIP AND SCOPE
+
+Copyright is held by Pryor Consulting.
+
+The governing agreement between St. John Fisher University and Pryor Consulting
+for the Academic Catalog AI Ecosystem project defines its deliverables as a set
+of modular AI bots, together with supporting documentation and training
+materials. Its assignment clause — under which work product becomes client
+property upon final payment — reaches that commissioned work product.
+
+The platform in this repository is broader than those deliverables. The web
+application, the verification harness, the ingestion pipeline, the spoke
+generator, and the database schema were not commissioned under that agreement.
+They are Pryor Consulting's own work, and they are provided to St. John Fisher
+University for its use as a grant beyond the agreed scope rather than by
+assignment.
+
+Separately, final payment for the final submission of the work has not been
+made, so the assignment condition has not been satisfied in any case.
+
+ST. JOHN FISHER UNIVERSITY'S RIGHTS
+
+St. John Fisher University may use, operate, modify, and maintain this system
+for its own institutional purposes, including after the transfer of hosting
+accounts and credentials described in TRANSFER_RUNBOOK.md. This grant is not
+exclusive and does not transfer copyright.
+
+RETAINED RIGHTS
+
+Pryor Consulting retains all rights in the general machinery — including the
+verification harness, the ingestion pipeline, the spoke generator, and the
+application framework — and may reuse it in future engagements of a
+conceptually similar kind.
+
+Any such reuse must be de-identified: no St. John Fisher University name, brand,
+domain, project reference, bucket name, deployment URL, tenant identifier, or
+catalog content may appear in a derived work for another institution. This is the
+same rule stated in CLAUDE.md section 5, applied in the outbound direction.
+
+Client-specific material is excluded from that reuse right: catalog data,
+branding, institutional configuration, and content authored by or for the
+university.
+
+See docs/IP_AND_OWNERSHIP.md for the reasoning and for the one term that should
+still be written into the finalized Statement of Work.

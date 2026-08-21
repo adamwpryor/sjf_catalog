@@ -23,6 +23,8 @@ dependencies:
       - supabase
       - fastapi
       - uvicorn[standard]
+      - python-multipart     # required by FastAPI's UploadFile/File endpoints (render-pdf,
+                             # extract-minutes). Without it the swarm raises at import time.
       - pydantic
       - marko                # Markdown AST parser for the verification_harness (parser-independent from the Node backfill)
       - pyyaml
@@ -31,7 +33,6 @@ dependencies:
       - gitpython            # git commit/branch metadata in logs
       - requests
       - google-genai         # Vertex AI (keyless) generation LLM for the swarm
-      - anthropic            # swarm generation-LLM SDK (vendored src/server/main.py); Vertex shim maps onto it
       - python-docx          # committee-minutes / uploaded-doc parsing (import name: docx)
       - ruff                 # lint
       - mypy                 # type-check

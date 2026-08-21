@@ -34,8 +34,13 @@ async function rewriteChunk(instruction: string, chunkContent: string): Promise<
  *
  * For each applied correction, finds the affected semantic_chunks in the draft, rewrites their
  * `content` to match the change (via the Cloud Run agent), and creates course-description chunks
- * for ADDed courses. Every changed/created chunk gets `embedding = NULL` so the upstream 4096-d
- * ingestion pipeline re-embeds exactly those. No embeddings are generated here.
+ * for ADDed courses. Every changed or created chunk is then re-embedded here with
+ * `gemini-embedding-001` at 1536 dimensions and written back in the same transaction, so the row
+ * never sits with content and vector out of step.
+ *
+ * (This docstring previously said the opposite — that chunks were left with `embedding = NULL` for
+ * an upstream 4096-d pipeline to backfill. That described an earlier design, contradicted the code
+ * immediately below it, and had already misled one pass of the handoff documentation.)
  */
 export async function POST(req: Request) {
   const supabase = await createClient();

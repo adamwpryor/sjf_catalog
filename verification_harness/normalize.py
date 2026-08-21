@@ -96,7 +96,7 @@ def bucket_and_version_from_url(url: str | None) -> tuple[str | None, str | None
 
     Used by the cross-contamination check (C5): a row whose url names a different version — or a
     bucket other than the configured one — points at the wrong source (the exact failure that put
-    every row on ``ccsj-assets``/page 1 before the backfill).
+    every row on a ``legacy-bucket``/page 1 before the backfill).
 
     Args:
         url: A ``gs://<bucket>/catalogs/SJFU/<version>/...`` string, or ``None``.

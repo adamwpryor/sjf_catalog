@@ -51,7 +51,7 @@
       "PowerShell(Start-Sleep -Seconds 5; $r = Invoke-WebRequest -Uri http://localhost:3000/api/db -Method POST -ContentType 'application/json' -Body '{\"action\":\"get_graph\",\"catalogId\":\"4c5af1e3-90b9-533e-8cf3-88590a9fcf4e\",\"mode\":\"curriculum\"}' -UseBasicParsing -TimeoutSec 300; $j = $r.Content | ConvertFrom-Json; \"nodes=$\\($j.nodes.Count\\) links=$\\($j.links.Count\\)\"; $j.links | Group-Object type | ForEach-Object { \"$\\($_.Name\\): $\\($_.Count\\)\" }; $progLinked = @{}; foreach \\($l in $j.links\\) { if \\($l.type -eq 'BELONGS_TO'\\) { $progLinked[$l.target] = $true } }; \"distinct courses in requirement blocks: $\\($progLinked.Keys.Count\\)\")",
       "Bash(export CLOUDSDK_PYTHON=python)",
       "Bash(gcloud config *)",
-      "Bash(curl -s -m 40 -o /dev/null -w \"HTTP %{http_code}\\\\n\" \"https://ccsj-catalog.vercel.app/api/markdown?url=gs%3A%2F%2Fccsj-assets%2Fcatalogs%2FCCSJ%2F__probe__.md\")",
+
       "Bash(curl -s -m 40 -o /dev/null -w \"HTTP %{http_code}\\\\n\" \"https://sjf-catalog-bice.vercel.app/api/markdown?url=gs%3A%2F%2Fsjfu-assets%2Fcatalogs%2FSJFU%2F2025-2026-undergraduate%2Fpages%2Fpage_0360.md\")",
       "Bash(curl -s -m 40 -w \"\\\\nHTTP %{http_code}  time=%{time_total}s\\\\n\" \"https://sjf-catalog-bice.vercel.app/api/markdown?url=gs%3A%2F%2Fsjfu-assets%2Fcatalogs%2FSJFU%2F2025-2026-undergraduate%2Fpages%2Fpage_0360.md\")",
       "Bash(curl -s -m 20 -o /dev/null -w \"app page HTTP %{http_code}\\\\n\" \"https://sjf-catalog-bice.vercel.app/\")",

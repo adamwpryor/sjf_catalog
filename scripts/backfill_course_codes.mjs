@@ -32,8 +32,7 @@ import path from 'path';
 const APPLY = process.argv.includes('--apply');
 const verIdx = process.argv.indexOf('--version');
 const VERSION = verIdx !== -1 ? process.argv[verIdx + 1] : '2025-2026-undergraduate';
-const SCRATCH = process.env.SCRATCH_DIR ||
-  'C:/Users/adamw/AppData/Local/Temp/claude/c--Users-adamw-coding-workspaces-sjf-catalog/f7eab86e-173f-4719-9f19-19bb5cb29180/scratchpad';
+const SCRATCH = process.env.SCRATCH_DIR || './artifacts/scratch';
 
 function loadDbUrl() {
   const envFile = path.resolve(process.cwd(), '.env.local');

@@ -18,9 +18,9 @@ Fidelity notes (why this is more than a passthrough):
     so the vendored refusal guards (which return HTTP 502) still fire.
 """
 
-import os
 import base64
 import logging
+import os
 
 from google import genai
 from google.genai import types
@@ -112,8 +112,8 @@ class VertexMessagesShim:
         # ADC / env (GOOGLE_CLOUD_PROJECT, GOOGLE_CLOUD_LOCATION) — never an API key.
         self.client = genai.Client(vertexai=True, location=VERTEX_LOCATION)
 
-    def create(self, model: str, max_tokens: int, system: str = None,
-               messages: list = None, **kwargs) -> VertexMessageResponse:
+    def create(self, model: str, max_tokens: int, system: str | None = None,
+               messages: list | None = None, **kwargs) -> VertexMessageResponse:
         vertex_model = DEFAULT_VERTEX_MODEL
 
         output_config = kwargs.get("output_config", {}) or {}
@@ -156,7 +156,7 @@ class VertexMessagesShim:
         # `.text` can raise when there is no text part; fall back to an empty string.
         try:
             text = response.text or ""
-        except Exception as exc:  # pragma: no cover - defensive
+        except Exception as exc:  # noqa: BLE001  # pragma: no cover - defensive
             logger.error("Vertex response had no text part: %s", exc)
             text = ""
         return VertexMessageResponse(text)

@@ -19,7 +19,7 @@ brand:                                    # source: https://www.sjf.edu/services
     accent:    "#FFCC33"   # Gold
     # --- below are the dark Cardinal Red theme surfaces (built from the official red). ---
     # The app shell renders a deep Cardinal Red gradient (see --sjf-gradient in globals.css);
-    # `bg` is the flat fallback behind it. Distinct from CCSJ AND from the cool-navy shell it shipped with.
+    # `bg` is the flat fallback behind it. Distinct from the cool-navy shell it originally shipped with.
     bg:        "#3d0f0f"   # deep Cardinal Red — flat fallback under the app-shell gradient
     surface:   "#521a1a"   # deep maroon panel / sidebar / header surface
     ink:       "#f8ede1"   # warm parchment body text on red
@@ -45,15 +45,15 @@ supabase:
   # anon key + service key + DATABASE_URL → secret store only
 
 embedding:
-  provider: "gemini"                      # hosted API — matches CCSJ; NO self-hosted GPU
+  provider: "gemini"                      # hosted API; NO self-hosted GPU
   model: "gemini-embedding-001"
   dimension: 1536                         # MRL output_dimensionality; HNSW-indexable
   api_key_env: "GEMINI_API_KEY"           # or Vertex AI service account
-  reembed_on_load: true                   # spoke re-embeds hub chunks with Gemini (like CCSJ);
+  reembed_on_load: true                   # spoke re-embeds hub chunks with Gemini;
                                           # query + stored vectors share one Gemini space
 
 swarm:
-  fastapi_base_env: "SJFU_SWARM_URL"
+  fastapi_base_env: "NEXT_PUBLIC_SWARM_API_URL"
   generation_llm: "gcp-hosted"            # Vertex Gemini or self-hosted Cloud Run GPU (picked at P8)
   features: { production_agent: true, remediation: true, assistant: true, intake_gcs: true, pdf: true }
 

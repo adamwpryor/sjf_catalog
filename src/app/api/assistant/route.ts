@@ -273,7 +273,7 @@ export async function retrieveGroundedChunks(
       const prefix = match[1].toUpperCase();
       const num = match[2];
 
-      // No institution-specific prefix rewriting here (the old CCSJ ACT/ACC/CT ➔ ACCT
+      // No institution-specific prefix rewriting here (the old ACT/ACC/CT ➔ ACCT
       // map does not generalize to SJFU). Typos are absorbed downstream by the courses
       // lookup, which also matches on the numeric portion (course_code ILIKE %num%).
       const cleanCode = `${prefix} ${num}`;

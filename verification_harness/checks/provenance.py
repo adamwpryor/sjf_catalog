@@ -139,7 +139,7 @@ def c4_sequence_order_unique(ctx: CheckContext) -> Iterator[Finding]:
 def c5_cross_catalog_contamination(ctx: CheckContext) -> Iterator[Finding]:
     """Flag any row whose url points at a different version or a foreign bucket.
 
-    This is the exact defect class from before the backfill (rows pointing at ``ccsj-assets`` and at
+    This is the exact defect class from before the backfill (rows pointing at a ``legacy-bucket`` and at
     the wrong catalog year). High severity: the row would render another catalog's page.
     """
     expected_bucket = config.GCS_BUCKET

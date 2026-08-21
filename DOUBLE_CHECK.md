@@ -374,7 +374,7 @@ Must be **independently rediscovered** (P6). Do not seed the checker with answer
 5. **Dual-numbering regex defect** — `\d{3}` dropped 4-digit codes. `A1` with a permissive AST
    parser must surface any residue.
 6. **Historical:** all `semantic_chunks.page_number` were `1`; all `markdown_url` pointed at a
-   nonexistent `ccsj-assets` bucket. Repaired; `C1`/`C5` guard regression.
+   nonexistent `legacy-assets` bucket. Repaired; `C1`/`C5` guard regression.
 
 ---
 

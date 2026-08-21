@@ -15,7 +15,14 @@
  * @returns An object containing the GCP projectId, location, and an access token.
  */
 export async function getGcpCredentials(req: Request) {
-  const gcpProjectId = process.env.GCP_PROJECT_ID || 'ccsj-catalog-production';
+  const gcpProjectId = process.env.GCP_PROJECT_ID;
+  if (!gcpProjectId) throw new Error('GCP_PROJECT_ID environment variable is missing');
+  // Matches scripts/reembed.mjs, which produces the stored vectors this call's query vectors are
+  // compared against. Probed 2026-08-13: us-central1 and us-east5 both serve gemini-embedding-001
+  // at 1536-d and return *identical* vectors (cosine 1.0000000000, zero component difference), so
+  // the region is not load-bearing for retrieval and the two may be mixed safely. The Python
+  // services (swarm, harness) default to us-east5 via GOOGLE_CLOUD_LOCATION — a separate variable.
+  // If you consolidate on one region, set both variables; neither reads the other.
   const gcpLocation = process.env.GCP_LOCATION || 'us-central1';
   let accessToken = process.env.VERTEX_AI_ACCESS_TOKEN || '';
 
@@ -26,7 +33,7 @@ export async function getGcpCredentials(req: Request) {
       console.log(`[Vertex AI OIDC] Initiating keyless Workload Identity exchange...`);
       const projectNumber = process.env.GCP_PROJECT_NUMBER;
       const poolId = process.env.GCP_WORKLOAD_IDENTITY_POOL_ID;
-      const providerId = process.env.GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID || 'vercel';
+      const providerId = process.env.GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID || 'vercel-team';
       const saEmail = process.env.GCP_SERVICE_ACCOUNT_EMAIL;
 
       const providerPath = `projects/${projectNumber}/locations/global/workloadIdentityPools/${poolId}/providers/${providerId}`;

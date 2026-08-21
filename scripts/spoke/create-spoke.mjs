@@ -8,7 +8,6 @@ const __dirname = path.dirname(__filename);
 // scripts/spoke -> scripts -> sjf_catalog -> sjf_catalog -> coding_workspaces
 const WORKSPACES_DIR = path.resolve(__dirname, '../../../..');
 const CDI_FACTORY_DIR = path.join(WORKSPACES_DIR, 'cdi-factory');
-const CCSJ_CATALOG_DIR = path.join(WORKSPACES_DIR, 'ccsj-catalog');
 const TARGET_MIGRATIONS_DIR = path.resolve(__dirname, '../../supabase/migrations');
 
 const args = process.argv.slice(2);
@@ -21,6 +20,36 @@ if (phase !== 'schema') {
 }
 
 console.log('==> Starting Phase: schema');
+
+const localAllowList = [
+  'rls_policies',
+  'improvement_plans',
+  'relationship_tables_rls',
+  'corrections_target_row_id_nullable',
+  'corrections_apply_audit_columns',
+  'documents_catalog_pdf_url',
+  'embedding_1536_hnsw',
+  'documents_presentation_overrides',
+  'catalog_agent_usage'
+];
+
+// Backup local migrations in memory before erasing TARGET_MIGRATIONS_DIR
+const localMigrations = [];
+if (fs.existsSync(TARGET_MIGRATIONS_DIR)) {
+  const files = fs.readdirSync(TARGET_MIGRATIONS_DIR).filter(f => f.endsWith('.sql'));
+  for (const file of files) {
+    if (file.includes('accreditor') || file.includes('accreditation')) {
+      continue;
+    }
+    const isAllowed = localAllowList.some(allowed => file.includes(allowed));
+    if (isAllowed) {
+      localMigrations.push({
+        name: file,
+        content: fs.readFileSync(path.join(TARGET_MIGRATIONS_DIR, file), 'utf-8')
+      });
+    }
+  }
+}
 
 if (fs.existsSync(TARGET_MIGRATIONS_DIR)) {
   fs.rmSync(TARGET_MIGRATIONS_DIR, { recursive: true, force: true });
@@ -50,38 +79,10 @@ for (const file of cdiFiles) {
   fs.writeFileSync(path.join(TARGET_MIGRATIONS_DIR, file), content);
 }
 
-const ccsjMigrationsDir = path.join(CCSJ_CATALOG_DIR, 'supabase/migrations');
-const ccsjAllowList = [
-  'rls_policies',
-  'improvement_plans',
-  'relationship_tables_rls',
-  'corrections_target_row_id_nullable',
-  'corrections_apply_audit_columns',
-  'documents_catalog_pdf_url',
-  'embedding_1536_hnsw',
-  'documents_presentation_overrides',
-  'catalog_agent_usage'
-];
-
-if (fs.existsSync(ccsjMigrationsDir)) {
-  const ccsjFiles = fs.readdirSync(ccsjMigrationsDir).filter(f => f.endsWith('.sql'));
-  for (const file of ccsjFiles) {
-    if (file.includes('accreditor') || file.includes('accreditation')) {
-      console.log(`Skipping: ${file} (Delta #2)`);
-      continue;
-    }
-    
-    const isAllowed = ccsjAllowList.some(allowed => file.includes(allowed));
-    if (isAllowed) {
-      console.log(`Processing CCSJ migration: ${file}`);
-      
-      let content = fs.readFileSync(path.join(ccsjMigrationsDir, file), 'utf-8');
-      
-      fs.writeFileSync(path.join(TARGET_MIGRATIONS_DIR, file), content);
-    }
-  }
-} else {
-  console.warn(`WARNING: Cannot find ccsj-catalog migrations at ${ccsjMigrationsDir}`);
+// Restore local migrations
+for (const migration of localMigrations) {
+  console.log(`Processing local spoke migration: ${migration.name}`);
+  fs.writeFileSync(path.join(TARGET_MIGRATIONS_DIR, migration.name), migration.content);
 }
 
 console.log('==> Schema assembly complete.');

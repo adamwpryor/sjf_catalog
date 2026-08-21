@@ -40,27 +40,7 @@ export default function LoginPage() {
       const supabase = createClient();
       const signIn = () => supabase.auth.signInWithPassword({ email, password });
 
-      let { error } = await signIn();
-
-      // Institutional testers: an @sjf.edu email plus the shared access
-      // password provisions an account on first sign-in, then retries the
-      // normal flow. Wrong shared password falls through to the original error.
-      if (error && email.trim().toLowerCase().endsWith(`@${INSTITUTION.emailDomain}`)) {
-        const res = await fetch('/api/auth/tester', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password }),
-        });
-        if (res.ok) {
-          ({ error } = await signIn());
-          if (error) {
-            setError(
-              'This email already has an account with its own password. Sign in with that password, or use "Forgot password?" to reset it.'
-            );
-            return;
-          }
-        }
-      }
+      const { error } = await signIn();
 
       if (error) {
         setError(error.message);

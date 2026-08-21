@@ -1,47 +1,23 @@
-# Developer Guidelines — The "Adam Pryor Standard" (SJF Spoke)
+# Developer Guidelines — moved
 
-All work on this repo follows these non-negotiables. They mirror the CCSJ standard and the
-global engineering standard.
+The engineering standards that lived here are now maintained in
+**[MAINTENANCE_GUIDELINES.md](MAINTENANCE_GUIDELINES.md)**, which is the single authoritative
+version. This file is a pointer so that older references keep resolving.
 
-## 1. Conda-First
-- All local Python runs in the `sjfu-catalog` Conda env (`environment.yml`). Never `pip install`
-  into `base`. New Python deps go into `environment.yml`, not a stray `requirements.txt`.
-- Node is pinned via `.nvmrc` (20).
+Nothing was dropped in the move. `MAINTENANCE_GUIDELINES.md` carries the same non-negotiables —
+Conda-first environments, zero-trust secrets with no configuration fallbacks, single-tenant RLS and
+`queryWithAuth`, SOLID route separation, structured logging, formatting that matches the file rather
+than reformatting it, scope discipline, and Conventional Commits — and adds the verification
+discipline that earlier revisions lacked.
 
-## 2. Zero-Trust secrets
-- **No hardcoded secrets, ever.** No secret in source, config, or scratch files.
-- **No fallback secrets** (e.g. `process.env.X || "default"` is prohibited). If a required env var
-  is missing, throw an explicit configuration error at startup.
-- Real values live ONLY in an untracked `.env.local` or Conda env config vars. The committed
-  template is `.env.example`. `.gitignore` ignores `.env*` except `.env.example`.
-- Python: load sensitive vars via a `load_secure_key()` helper, not raw `os.getenv`.
-- No PII in logs, files, or outputs.
+Two related documents:
 
-## 3. Row-Level Security (single-tenant spoke)
-- The spoke DB holds one tenant (`SJFU`); RLS uses the `auth.uid()` + `user_roles` model
-  (NOT the hub's `app.current_tenant`). See `BUILD_PLAN.md` §3 delta #3.
-- Tenant/role-scoped queries go through `queryWithAuth(text, params, userId)`; a missing/invalid
-  `userId` must abort, never fall through to an owner connection. Roles come from `user_roles`,
-  never hardcoded.
+- **[CLAUDE.md](CLAUDE.md)** — the same ground rules written for AI coding assistants, organised
+  around the specific ways work in this repository has gone wrong.
+- **[HANDOFF.md](HANDOFF.md)** — architecture, ownership model, and how the auditability mechanisms
+  fit together.
 
-## 4. SOLID & clean routes
-- API routes handle HTTP only; business logic lives in dedicated modules/services (SRP).
-- No multi-thousand-line endpoint files.
-- Never return raw DB errors / stack traces to clients — generic message + correlation id.
-
-## 5. Structured logging
-- No bare `print()` / `console.log` in production paths. Use JSON structured logging
-  (`pino` in JS, `python-json-logger` in Python). Include Git commit hash + branch
-  (via `gitpython`) where practical.
-
-## 6. Code quality
-- Python: PEP 8, type hints on all signatures, Google-style docstrings, Black + Ruff + MyPy.
-- TS/JS: ESLint clean, `tsc --noEmit` clean, Prettier formatting.
-
-## 7. Git
-- Conventional Commits (`feat:`, `fix:`, `docs:`, `refactor:`, `chore:` …).
-- Never force-push `main` or skip hooks without explicit confirmation.
-
-## 8. Hand-off note
-This repo is built to be handed off. Anyone cloning it should reach a running app from
-`README.md` alone, supplying their own `.env.local`. Keep that true.
+> Why this file is a stub rather than a deletion: several planning documents and prompts cite
+> `DEVELOPER_GUIDELINES.md` by name, and a few cite it by line number. A pointer keeps those
+> references meaningful. Maintaining two copies of the standards would not — that is how the two
+> versions drift apart and a reader ends up following the stale one.

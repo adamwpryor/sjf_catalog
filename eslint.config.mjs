@@ -7,7 +7,7 @@ const eslintConfig = defineConfig([
   ...nextTs,
   globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts"]),
   // Lifted-code posture (BUILD_PLAN §P4): the web layer is lifted ~verbatim from
-  // CCSJ. These rules flag pervasive stylistic debt in that upstream code
+  // the platform this was adapted from. These rules flag pervasive stylistic debt in that code
   // (untyped `any`, hook smells). They are downgraded to warnings — surfaced,
   // not silenced — so the build stays clean while the debt remains visible.
   // Do NOT downgrade correctness rules here; retype/refactor upstream instead.

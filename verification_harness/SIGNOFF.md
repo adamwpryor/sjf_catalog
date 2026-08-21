@@ -220,7 +220,7 @@ catalog. B1 (credits) lands first, end-to-end, as proof of life.
   C2=136, C3=132, C6=2, D1=202, D5/D6=5/6, D7=33, E1=1, E4=3. E2/E3 = 0 (match the DB diagnostic:
   subject prefixes all consistent, no orphaned children — FK-enforced). Class C/D/E complete.
 - **Backfill held (0 findings, as it should):** C1, C4, C5, D2 all clean — page numbers match urls,
-  no duplicate sequence_order, no cross-catalog/`ccsj-assets` contamination, no duplicate courses.
+  no duplicate sequence_order, no cross-catalog/legacy-bucket contamination, no duplicate courses.
   These validate the earlier repair *and* prove the checks run without false positives.
 - **P6 known-answer:** **E4 independently rediscovered 19 non-program rows** (the §11 section-header
   class: `Degrees and Certificates`, `B.A. Language Proficiency Requirement`, …) — more complete than
@@ -284,7 +284,7 @@ one catalog to eight unsafe. Full table in Phase 3's evidence. Cost of adjudicat
 ## Phase 2 — Full Tier 1 Sweep + Regression Set
 
 **Scope.** All 8 catalogs. Harness must **independently rediscover** the §11 seeded defects (183
-unlinked courses, 12 non-program rows, ToC ambiguity, dual-numbering residue, page-1/ccsj regression).
+unlinked courses, 12 non-program rows, ToC ambiguity, dual-numbering residue, page-1/legacy-bucket regression).
 
 **Exit criteria (gate).**
 
@@ -340,7 +340,7 @@ in the test, derived from §3/§11; no check is seeded with them.
 | 3 | 9 library-staff bios pruned 2026-07-13 | Rows are gone from `programs`, so E4 cannot fire live. The gate replays all **9** names from `bio_program_prune_backup` through E4's classifier: **9/9 → `staff_bio`**. The *class* is validated, not a row list. |
 | 4 | ToC/content ambiguity must be reproduced, not guessed | **A1 fires on 0 toc/index pages** (trap T4/T5 holds); all **1,911** D1 findings carry their page list, so the ambiguity is actionable. The original mislink signature is gone: no page carries 4+ programs, and every Fast-Track program sits on its own page. |
 | 5 | Dual-numbering residue (`\d{3}` dropped 4-digit codes) | **171 four-digit codes** surfaced by A1 (AFAM 1003, AMST 2140, ARTS 2325, …). The permissive AST parser sees what the old regex dropped. |
-| 6 | All `page_number` = 1; all urls → `ccsj-assets` | **C1 = 0, C5 = 0** across all 8 catalogs. The repair held. |
+| 6 | All `page_number` = 1; all urls → `legacy-bucket` | **C1 = 0, C5 = 0** across all 8 catalogs. The repair held. |
 
 ### Defects the sweep found in the harness itself (fixed)
 

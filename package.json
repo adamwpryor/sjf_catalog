@@ -2,7 +2,7 @@
   "name": "sjf-catalog",
   "version": "0.1.0",
   "private": true,
-  "description": "St. John Fisher University catalog spoke — lift-and-adapt of the CCSJ catalog platform.",
+  "description": "St. John Fisher University academic catalog platform.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

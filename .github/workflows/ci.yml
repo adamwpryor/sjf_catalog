@@ -1,0 +1,52 @@
+name: CI
+
+# Runs on every branch, not just main. All work on this project happens on feature branches
+# before it reaches main, so a main-only trigger would leave exactly the changes that most need
+# checking unchecked. workflow_dispatch lets a maintainer run the suite from the Actions tab
+# without pushing anything.
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -el {0}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Run NPM typecheck
+        run: npm run typecheck
+
+      - name: Run NPM lint
+        run: npm run lint
+
+      - name: Setup Miniconda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          environment-file: environment.yml
+          activate-environment: sjfu-catalog
+          auto-activate-base: false
+
+      - name: Run Pytest
+        run: pytest verification_harness/tests
+
+      - name: Run Ruff
+        run: ruff check verification_harness/
+
+      - name: Swarm Smoke Test
+        run: |
+          python -c "import services.swarm.main as m; assert type(m._anthropic_client()).__name__ == 'VertexShimClient'; print('swarm ok')"

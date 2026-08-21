@@ -417,7 +417,7 @@ if __name__ == "__main__":
         "--tenant-id",
         type=str,
         required=True,
-        help="The unique tenant ID/code of the client to push (e.g. 'CCSJ', 'SJFU')"
+        help="The unique tenant ID/code of the client to push (e.g. 'SJFU')"
     )
     parser.add_argument(
         "--cloud-db-url",

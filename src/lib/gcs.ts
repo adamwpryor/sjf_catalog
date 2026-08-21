@@ -151,8 +151,8 @@ export async function getStorageClient(req?: Request): Promise<Storage> {
  * Resolves the institution's configured asset bucket.
  *
  * The configured bucket ALWAYS wins over `legacyName`. Stored `markdown_url`
- * values are historical data, not configuration: rows carried over from the CCSJ
- * hub still say `gs://ccsj-assets/...`, a bucket that holds no SJFU objects. Honouring
+ * values are historical data, not configuration: rows carried over from a previous
+ * system may point to a bucket other than the configured one. Honouring
  * the bucket parsed out of such a URL sends every read to a dead path, so a legacy
  * name is treated as a hint to be healed rather than an override to be obeyed.
  *

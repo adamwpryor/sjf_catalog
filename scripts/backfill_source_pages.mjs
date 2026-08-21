@@ -3,9 +3,9 @@
  *
  * THE TWO DEFECTS THIS FIXES
  *
- *   1. WRONG BUCKET. Every stored URL says `gs://ccsj-assets/catalogs/SJFU/...`, a
- *      bucket that contains no SJFU objects at all (it holds CCSJ/ and GLOBAL/ only).
- *      The SJFU assets live in `gs://sjfu-assets/` under the identical path suffix,
+ *   1. WRONG BUCKET. Stored URLs may point to a legacy or misconfigured bucket
+ *      that contains no objects for the current deployment.
+ *      The valid assets live in the configured bucket under the identical path suffix,
  *      so only the bucket segment is wrong.
  *
  *   2. EVERY COURSE AND CHUNK POINTS AT PAGE 1. `semantic_chunks.page_number` is 1

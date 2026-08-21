@@ -1091,7 +1091,7 @@ export async function POST(req: Request) {
         
         // 1. Fetch academic programs joined with degree classifications.
         // NOTE: department_chairperson, program_director, mission_statement,
-        // program_outcome_objectives, and additional_details are CCSJ-era denormalized
+        // program_outcome_objectives, and additional_details are denormalized legacy
         // columns that were never ported to the spoke schema. They are selected as NULL
         // so the response shape stays stable without 42703 errors. The try/catch only
         // guards the optional markdown_url column, which some spokes may still lack.
@@ -1575,7 +1575,7 @@ export async function POST(req: Request) {
       case 'get_semantic_chunks': {
         if (!catalogId) return NextResponse.json({ error: "Catalog ID required." }, { status: 400 });
         // Fetch semantic chunks joined with Toulmin, Deontic, and Quinean lookups with safe markdown_url check.
-        // NOTE: hypothetical_questions is a CCSJ-era column absent from the spoke schema; selected as NULL to
+        // NOTE: hypothetical_questions is a legacy column absent from the spoke schema; selected as NULL to
         // keep the response shape stable without a 42703 error. The try/catch guards only the optional markdown_url.
         let res;
         try {

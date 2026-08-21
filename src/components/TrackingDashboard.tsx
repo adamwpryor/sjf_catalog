@@ -53,7 +53,6 @@ export default function TrackingDashboard({ catalogId, catalogs }: TrackingDashb
   });
   const [submittingManual, setSubmittingManual] = useState(false);
 
-  const API_BASE_URL = process.env.NEXT_PUBLIC_SWARM_API_URL || 'http://localhost:8080';
 
   const currentCatalog = catalogs?.find(c => c.id === catalogId);
   const isDraftCatalog = currentCatalog?.version?.toLowerCase().includes('draft') || false;
@@ -249,7 +248,7 @@ export default function TrackingDashboard({ catalogId, catalogs }: TrackingDashb
     setMarkdownPreview(null);
     
     try {
-      const res = await fetch(`${API_BASE_URL}/api/agent/manual-entry-assistant`, {
+      const res = await fetch(`/api/swarm/manual-entry-assistant`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
