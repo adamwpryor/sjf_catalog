@@ -29,8 +29,6 @@ Nothing is revoked before §F.
 
 ## B. Repository and access
 
-| # | Item | Notes |
-| --- | --- | --- |
 **Chosen model:** the delivery repository is a staging artifact. The client creates their own
 repository in their organisation and takes a copy from it; they never work from ours. This settles
 the ownership question by severance rather than by transfer — once they have their copy, ours can be
