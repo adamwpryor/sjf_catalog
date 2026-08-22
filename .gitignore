@@ -63,3 +63,6 @@ scratch_*
 
 # Scratch output from one-shot repair scripts (SCRATCH_DIR default)
 artifacts/
+
+# Local agent tool permissions - per-developer, not shared configuration
+.claude/
