@@ -1,0 +1,3 @@
+# Internal execution notes are tracked here but excluded from the handoff archive
+# built with `git archive` (see docs/internal/HANDOFF_CHECKLIST.md).
+docs/internal/ export-ignore
