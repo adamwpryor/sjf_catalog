@@ -21,6 +21,7 @@ The St. John Fisher University (SJFU) catalog platform is a single-tenant academ
 
 ## 2. Core Documentation Index
 
+* [docs/REPOSITORY_SETUP.md](docs/REPOSITORY_SETUP.md) — **Start here on handover:** creating your own repository and working copy.
 * [MAINTENANCE_GUIDELINES.md](MAINTENANCE_GUIDELINES.md) — System engineering standards, zero-trust security, and verification discipline guidelines.
 * [AI_ASSISTANTS.md](AI_ASSISTANTS.md) — Detailed guide to all 7 shipping AI features, model pathways, database safety matrix, and deterministic non-AI features.
 * [TRANSFER_RUNBOOK.md](TRANSFER_RUNBOOK.md) — Step-by-step account, billing, and infrastructure transfer runbook for transitioning ownership to SJFU or a successor vendor.
@@ -35,6 +36,12 @@ The St. John Fisher University (SJFU) catalog platform is a single-tenant academ
 ---
 
 ## 3. Environment Setup (Conda-First, Zero-Trust)
+
+> [!IMPORTANT]
+> **If you are receiving this repository as part of an ownership handover, start with
+> [docs/REPOSITORY_SETUP.md](docs/REPOSITORY_SETUP.md).** It covers creating your own repository,
+> moving the code into it without creating a fork, and cloning a working copy you control. The steps
+> below assume you are already working from your own remote.
 
 ### 1. Configuration & Secrets
 Copy the committed configuration template to an untracked local environment file:

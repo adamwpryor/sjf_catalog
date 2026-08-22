@@ -23,7 +23,7 @@ Nothing is revoked before §F.
 | A2 | Confirm whether a finalized SOW supersedes the 2025-11-19 Project Charter | If one exists it governs, and the ownership note should be re-read against it. |
 | A3 | Confirm charter execution status | The client signature and date lines are blank as filed. |
 | A4 | Stand up the client-facing contact address | Belongs in `OPERATIONS.md` §6 beside the named escalation contact, which currently has a name and no contact method. |
-| A5 | Decide the repository's permanent name and owner | See B2 and B4 — not only a naming question. |
+| A5 | Advise on the permanent repository name | Theirs to choose, but a name containing "handoff" names a moment they will live with for years. |
 
 ---
 
@@ -31,11 +31,19 @@ Nothing is revoked before §F.
 
 | # | Item | Notes |
 | --- | --- | --- |
-| B1 | Create the private GitHub repository and push | The prepared tree is at `sjf_catalog_handoff/`: one commit, no history, deliberately no remote. `git remote add origin <url> && git push -u origin main`. |
-| B2 | **Decide who owns that repository** | If it is created under a personal account and merely shared, ownership has changed location rather than hands — the problem this phase exists to solve. Prefer creation under the institution's GitHub organisation, or transfer ownership immediately after the push. |
-| B3 | Grant the client team access | Per their convention. |
-| B4 | Name it for what it becomes, not for the process | `SJF_Catalog_Handoff` names a moment; the team lives with the name for years. `sjf-catalog`, or their own convention, ages better. |
-| B5 | Archive or transfer the originating repository | `TRANSFER_RUNBOOK.md` §3.7 — after cutover, not before. |
+**Chosen model:** the delivery repository is a staging artifact. The client creates their own
+repository in their organisation and takes a copy from it; they never work from ours. This settles
+the ownership question by severance rather than by transfer — once they have their copy, ours can be
+archived without affecting them. `docs/REPOSITORY_SETUP.md` walks their team through it and is
+linked from the README as the first step on handover.
+
+| # | Item | Notes |
+| --- | --- | --- |
+| B1 | Push the prepared tree to the private delivery repository | It is at `sjf_catalog_handoff/`: one commit, no history, deliberately no remote. `git remote add origin <url> && git push -u origin main`. |
+| B2 | Share it read-only with the client team | Read access is sufficient — they are copying, not contributing. |
+| B3 | Walk them through `docs/REPOSITORY_SETUP.md` | Creating their own repository, moving the code without forking, cloning their working copy. |
+| B4 | **Confirm they did not fork** | A fork stays attached to our account permanently and defeats the severance. The document says so; verify it once rather than assume. |
+| B5 | Archive the delivery repository | After their copy is verified and cutover is complete — `TRANSFER_RUNBOOK.md` §3.7. |
 
 ---
 
