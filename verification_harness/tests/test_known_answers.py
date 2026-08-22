@@ -85,6 +85,25 @@ def findings() -> list[dict[str, Any]]:
     return loaded
 
 
+def _require_database() -> None:
+    """Skip when no catalog database is reachable.
+
+    Most of this suite is hermetic and runs from a clean checkout with no credentials. The two
+    checks below are the exception: they replay against the live catalog. Without this guard they
+    fail rather than skip on a fresh clone and in CI, because `db` falls back to reading
+    `.env.local` — a file that is deliberately untracked, so it exists on a developer's machine and
+    nowhere else. That fallback is also why unsetting the environment variables is not a valid
+    hermeticity check.
+
+    Raises:
+        pytest.skip.Exception: If no database connection string is configured.
+    """
+    try:
+        db._dsn()
+    except db.HarnessDBError as exc:
+        pytest.skip(f"no catalog database configured; this check replays against live data ({exc})")
+
+
 def _by_check(findings: list[dict[str, Any]], check: str) -> list[dict[str, Any]]:
     """Return every finding produced by one check."""
     return [f for f in findings if f["check"] == check]
@@ -173,6 +192,7 @@ def test_s11_3_staff_bio_class_is_detected(table: str) -> None:
     §11 requirement is "flag the class, not just these rows", so the detector, not the row list, is
     what must be validated.
     """
+    _require_database()
     with db.read_only_cursor() as cur:
         cur.execute(
             "SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name=%s",
@@ -255,6 +275,7 @@ def test_x5_corpus_inventory_matches_the_database() -> None:
 
     An unexplained corpus change between runs is itself a finding (§3), so it is a gate, not a note.
     """
+    _require_database()
     actual = set(db.list_versions())
     expected = set(config.EXPECTED_VERSIONS)
     assert actual == expected, (
