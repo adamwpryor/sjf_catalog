@@ -107,9 +107,11 @@ valuable. Fixing it silently is not.
 
 ## 8. Environment
 
-- `conda` is **not on PATH**. Use the interpreter directly:
-  `C:\Users\adamw\anaconda3\envs\sjfu-catalog\python.exe`. `pytest`, `ruff`, and `black` are in that
-  env's `Scripts\`. Run everything from the repo root.
+- **`conda` may not be on PATH.** If `conda activate` is unavailable, invoke the environment's
+  interpreter directly rather than the system Python — on Windows that is
+  `<conda-root>\envs\sjfu-catalog\python.exe`, with `pytest`, `ruff`, and `black` in the same
+  environment's `Scripts\`; on macOS or Linux, `<conda-root>/envs/sjfu-catalog/bin/python`. Locate
+  the root with `conda info --base`. Run everything from the repo root.
 - Python dependencies go in `environment.yml` (conda-first, `conda install -c conda-forge` before
   pip), never a stray `requirements.txt`.
 - Google Cloud auth is Application Default Credentials. If Vertex or GCS calls start failing while
