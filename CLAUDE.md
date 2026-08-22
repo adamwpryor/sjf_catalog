@@ -28,11 +28,16 @@ green and true and did not touch the broken thing.
 | Any documentation containing commands | Run every command in it, once |
 | Anything via scripted search-and-replace | Re-derive the search pattern from a source the script could not edit |
 | `src/` TypeScript | `npm run typecheck && npm run lint` |
-| Python anywhere | `python -m pytest verification_harness/tests` (108, hermetic — needs no credentials) |
+| Python anywhere | `python -m pytest verification_harness/tests` — 92 pass from a clean checkout with no credentials; 108 where artifacts and a database are present |
 
-The test suite is hermetic: it passes with `DATABASE_URL`, `GOOGLE_APPLICATION_CREDENTIALS`, and
-`GCP_PROJECT_ID` all unset. That is a feature — and it is exactly why it cannot tell you whether
-anything involving the database, the cloud, or the swarm still works.
+Most of the suite is hermetic and needs no credentials, which is a feature — and exactly why it
+cannot tell you whether anything involving the database, the cloud, or the swarm still works.
+
+**Do not test that hermeticity by unsetting environment variables.** `db.py` falls back to reading
+`DATABASE_URL` out of `.env.local`, so an `env -u DATABASE_URL` run still finds credentials on a
+developer machine and proves nothing. That check was run, believed, and wrong: two tests were
+hitting the live catalog, and only building a fresh tree from `git archive` exposed it. To test a
+clean checkout, extract one and run there.
 
 ## 2. Verify claims against the source, including claims in planning documents
 

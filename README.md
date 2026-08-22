@@ -95,7 +95,8 @@ This CLI-first playbook guides developers and administrators through auditing, v
 Before starting an update cycle, verify that all repository test suites and service imports pass cleanly:
 
 ```bash
-# Run 108 hermetic verification harness unit tests
+# Verification harness tests. 92 pass with no credentials; the rest need a database
+# or a completed sweep and skip with a message explaining which.
 python -m pytest verification_harness/tests
 
 # Run strict TypeScript typechecking and ESLint checks
