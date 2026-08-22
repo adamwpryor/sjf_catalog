@@ -59,6 +59,8 @@ be *run* first.
 
 ## D. Migration workstreams — one playbook each
 
+**All five are written.** They live in `docs/playbooks/` and ship with the client repository.
+
 > **Why these are separate documents when `TRANSFER_RUNBOOK.md` already exists.** The runbook is the
 > ordered checklist; these are the procedures. The risk of having both is that they drift and a
 > reader follows the stale one — this project has already hit exactly that with two guidelines
@@ -67,11 +69,11 @@ be *run* first.
 
 | # | Playbook | Covers | The failure it must prevent |
 | --- | --- | --- | --- |
-| D1 | **Catalog data migration** | Moving ~39.5k chunks, ~6.9k courses, programs, requirements and the prerequisite graph from the outgoing Supabase project to the client's | A partial restore that looks healthy. Must end by checking `docs/DATA_CONTRACT.md` counts and the non-zero link-table invariant. |
-| D2 | **GCS assets** | Copying `gs://sjfu-assets` — the per-page catalog markdown the harness treats as ground truth | Silent partial copy. Object counts must match per catalog version, and stored `markdown_url` values must resolve after the move. |
-| D3 | **Workload Identity Federation** | A new pool and provider in the client's GCP project, trusting the client's Vercel team | **Cannot be copied — the provider is scoped to a Vercel team's OIDC issuer.** Getting the issuer mode wrong fails only in deployment, never locally. |
-| D4 | **Supabase Auth** | Redirect allowlist, and the `user_roles` seed | Dashboard and table state that exists in no migration file. Without the seed, RLS locks everyone out of a technically-working deployment. |
-| D5 | **Cloud Run swarm service** — *added to your four* | Building `services/swarm/Dockerfile` into the client's Artifact Registry and deploying it, with `SWARM_API_TOKEN` set | If the token is unset the service refuses every request with 401 by design, and five of the seven AI features fail with no obvious cause. |
+| D1 | [**Catalog data migration**](docs/playbooks/D1_CATALOG_DATA.md) | Moving ~39.5k chunks, ~6.9k courses, programs, requirements and the prerequisite graph from the outgoing Supabase project to the client's | A partial restore that looks healthy. Must end by checking `docs/DATA_CONTRACT.md` counts and the non-zero link-table invariant. |
+| D2 | [**GCS assets**](docs/playbooks/D2_GCS_ASSETS.md) | Copying `gs://sjfu-assets` — the per-page catalog markdown the harness treats as ground truth | Silent partial copy. Object counts must match per catalog version, and stored `markdown_url` values must resolve after the move. |
+| D3 | [**Workload Identity Federation**](docs/playbooks/D3_WORKLOAD_IDENTITY.md) | A new pool and provider in the client's GCP project, trusting the client's Vercel team | **Cannot be copied — the provider is scoped to a Vercel team's OIDC issuer.** Getting the issuer mode wrong fails only in deployment, never locally. |
+| D4 | [**Supabase Auth**](docs/playbooks/D4_SUPABASE_AUTH.md) | Redirect allowlist, and the `user_roles` seed | Dashboard and table state that exists in no migration file. Without the seed, RLS locks everyone out of a technically-working deployment. |
+| D5 | [**Cloud Run swarm service** — *added to your four*](docs/playbooks/D5_CLOUD_RUN_SWARM.md) | Building `services/swarm/Dockerfile` into the client's Artifact Registry and deploying it, with `SWARM_API_TOKEN` set | If the token is unset the service refuses every request with 401 by design, and five of the seven AI features fail with no obvious cause. |
 
 Vercel project setup — all 30 variables from `.env.example` plus the cron schedule in `vercel.json` —
 is covered by `TRANSFER_RUNBOOK.md` §3.5 and does not need its own playbook.

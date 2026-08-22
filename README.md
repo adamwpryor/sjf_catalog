@@ -25,6 +25,7 @@ The St. John Fisher University (SJFU) catalog platform is a single-tenant academ
 * [MAINTENANCE_GUIDELINES.md](MAINTENANCE_GUIDELINES.md) — System engineering standards, zero-trust security, and verification discipline guidelines.
 * [AI_ASSISTANTS.md](AI_ASSISTANTS.md) — Detailed guide to all 7 shipping AI features, model pathways, database safety matrix, and deterministic non-AI features.
 * [TRANSFER_RUNBOOK.md](TRANSFER_RUNBOOK.md) — Step-by-step account, billing, and infrastructure transfer runbook for transitioning ownership to SJFU or a successor vendor.
+* [docs/playbooks/](docs/playbooks/) — Migration procedures the runbook links to: catalog data, GCS assets, workload identity, Supabase auth, and the Cloud Run service.
 * [SECURITY_HARDENING.md](SECURITY_HARDENING.md) — Security fixes, access control boundaries, and known operational guardrails.
 * [docs/DATA_CONTRACT.md](docs/DATA_CONTRACT.md) — Database schema contract invariants and expected row count baseline.
 * [docs/SELF_SERVE_INGESTION.md](docs/SELF_SERVE_INGESTION.md) — Architecture design for client-run catalog ingestion.

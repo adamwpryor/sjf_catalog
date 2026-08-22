@@ -85,6 +85,8 @@ Create accounts under the client's own organization and billing:
 - [ ] **GitHub:** Create or select the institutional target repository (e.g. `sjf-edu/sjf_catalog`).
 
 ### Step 3.2 — Storage & Data Migration
+
+> **Procedures:** [D1 — catalog data](docs/playbooks/D1_CATALOG_DATA.md) · [D2 — GCS assets](docs/playbooks/D2_GCS_ASSETS.md) · [D4 — Supabase Auth and roles](docs/playbooks/D4_SUPABASE_AUTH.md). This section keeps the ordering; those documents own the commands, verification, and rollback.
 - [ ] **GCS Bucket Copy:** Create the GCS asset bucket in the new GCP project. Copy all catalog assets from `gs://sjfu-assets` using `gcloud storage cp -r gs://sjfu-assets/* gs://<client-bucket-name>/`.
 - [ ] **Database Migrations:** Apply all 25 schema migration files in [supabase/migrations/](supabase/migrations/) sequentially to the new Supabase database instance.
 - [ ] **Auth Redirect Allowlist:** In Supabase Dashboard $\rightarrow$ Authentication $\rightarrow$ URL Configuration, add the client's Vercel production domain and local development URLs (`http://localhost:3000/*`).
@@ -94,6 +96,8 @@ Create accounts under the client's own organization and billing:
   ```
 
 ### Step 3.3 — Identity Plumbing & Workload Identity Federation (WIF)
+
+> **Procedure:** [D3 — Workload Identity Federation](docs/playbooks/D3_WORKLOAD_IDENTITY.md). The provider is bound to your Vercel team's OIDC issuer and cannot be copied from the outgoing project.
 - [ ] **GCP Service Account:** Create a service account `sjf-catalog-app@<client-gcp-project>.iam.gserviceaccount.com`. Grant IAM roles:
   * `Vertex AI User` (`roles/aiplatform.user`)
   * `Storage Object Admin` (`roles/storage.objectAdmin`)
@@ -106,6 +110,8 @@ Create accounts under the client's own organization and billing:
   ```
 
 ### Step 3.4 — Deploy Python Swarm Service to Cloud Run
+
+> **Procedure:** [D5 — Cloud Run swarm service](docs/playbooks/D5_CLOUD_RUN_SWARM.md). Note that an unset `SWARM_API_TOKEN` makes the service refuse every agent route with 401 by design.
 - [ ] **Build Image:** Build [services/swarm/Dockerfile](services/swarm/Dockerfile) into the client's GCP Artifact Registry:
   ```bash
   gcloud builds submit --tag us-east5-docker.pkg.dev/<client-gcp-project>/catalog/swarm-api:latest services/swarm/
