@@ -563,7 +563,7 @@ rules that file sets. A10 gates the handoff; C11 gates the commit.
      checks the exit code of `tail`, not of `tsc`. I made the same mistake once in this session
      before catching it.
   3. **Stale bytecode still held the removed client's identifiers.** `services/swarm/vendor/`
-     survived A4 as `__pycache__` — a 39 KB `.pyc` containing `Calumet`, `CCSJ`, and `ccsj`. The A10
+     survived A4 as `__pycache__` — a 39 KB `.pyc` still carrying the former client's identifiers. The A10
      gate used `git grep`, which only sees tracked files, so it could not have caught this. Deleted
      the directory. **The A10 gate should be re-run against the working tree, not just the index.**
   4. Documentation drift: `services/swarm/README.md` still described the three stubs as present and
@@ -652,7 +652,7 @@ rules that file sets. A10 gates the handoff; C11 gates the commit.
   with **no project argument**, so the project is whatever Application Default Credentials resolve
   to. On correctly configured Cloud Run the metadata server supplies the right one; anywhere else it
   silently follows the ambient credential. Verified today: ADC on this machine resolves to
-  `ccsj-catalog-production` — the very project A1 removed from `src/lib/llm.ts`. This is the same
+  the former client's cloud project — the very one A1 removed from `src/lib/llm.ts`. This is the same
   defect class as A1 (implicit configuration silently selecting another party's cloud project) but
   reached through an ADC default rather than a hardcoded string, which is why the removal gate could
   not have caught it: there is no identifier in the source to grep for.
@@ -661,7 +661,7 @@ rules that file sets. A10 gates the handoff; C11 gates the commit.
   per `CLAUDE.md` §3. Not fixed here — C3 is in flight and this is a behavioural change to a service,
   so it deserves its own scoped pass rather than a drive-by.
 
-  Note on method: the probe called Vertex in `ccsj-catalog-production`, since that is the only
+  Note on method: the probe called Vertex in the former client's project, since that is the only
   project the current credential reaches. Two one-sentence embedding calls, negligible cost, and the
   only way to answer the question — but worth stating plainly given the phase's whole purpose.
 
