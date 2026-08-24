@@ -4,7 +4,7 @@
 delivered scope is knowable without opening the client's copy. In `docs/internal/`, therefore
 excluded from that copy.
 
-Generated `2026-08-24` from the tracked tree. Regenerate after any change with the command in §5.
+Generated `2026-08-24` from the tracked tree; history withheld as of the same date. Regenerate after any change with the command in §5.
 
 ---
 
@@ -12,16 +12,20 @@ Generated `2026-08-24` from the tracked tree. Regenerate after any change with t
 
 | | Your repository | Delivered repository |
 | --- | ---: | ---: |
-| Tracked files | 208 | 207 |
+| Tracked files | 209 | 198 |
 | Commits | full history | 1 |
 | Location | `sjf_catalog/` | `sjf_catalog_handoff/` |
 
-**They differ by exactly one file:** `docs/internal/`, which `.gitattributes` marks `export-ignore`
-so `git archive` omits it. That directory holds this manifest and the execution checklist — the
-commercial items, decommissioning steps, and delivery record that are ours rather than theirs.
+**Two directories are withheld,** both marked `export-ignore` in `.gitattributes` so `git archive`
+omits them:
 
-Everything else is identical, byte for byte. The delivered repository is not a curated subset; it
-is the same tree with one internal directory withheld.
+- `docs/internal/` — this manifest and the execution checklist: commercial items, decommissioning
+  steps, and the delivery record.
+- `docs/history/` — nine planning and phase records, including the full Phase 7 work log. The
+  account of how the codebase reached its current state, retained rather than delivered.
+
+Everything else is identical, byte for byte. Seven references to the history from documents that do
+ship were rewritten, so the client copy contains no pointer to a file it does not have.
 
 ---
 
@@ -36,11 +40,10 @@ is the same tree with one internal directory withheld.
 | 12 | Root documentation |
 | 11 | Reference documentation (`docs/`) |
 | 10 | Swarm and ingestion services (`services/`) |
-| 9 | Historical record (`docs/history/`) |
 | 9 | Operational scripts |
 | 5 | Migration playbooks |
 | 1 | CI workflow |
-| **207** | **total** |
+| **198** | **total** |
 
 ---
 
@@ -87,9 +90,8 @@ is the same tree with one internal directory withheld.
 | `docs/IP_AND_OWNERSHIP.md` | Ownership position on two grounds, and the term still to be written into the SOW |
 | `docs/AI_PROMPT_INVENTORY.md` | Every prompt, marked commissioned / arguable / platform |
 
-**History** — `docs/history/` carries nine planning and phase records, including the full Phase 7
-work log. They are marked historical and describe superseded designs, but they are the record of
-how the codebase reached its current state.
+**History — withheld.** `docs/history/` carries nine planning and phase records including the full
+Phase 7 work log. Retained by Pryor Consulting and not delivered; see §4.
 
 ---
 
@@ -103,6 +105,7 @@ how the codebase reached its current state.
 | Catalog data | ~39.5k chunks, ~6.9k courses. Lives in Postgres, moves via playbook D1. |
 | GCS assets | The page markdown. Moves via playbook D2. |
 | `docs/internal/` | This manifest and the execution checklist. |
+| `docs/history/` | Planning and phase records, including the Phase 7 work log — the full account of what was found and corrected during the handover. |
 | Development history | The delivered repository is one commit. Ours retains the full sequence. |
 
 ---
@@ -124,7 +127,7 @@ Gates worth re-running after any regeneration:
 ```bash
 git grep -i -l "ccsj\|calumet" -- ':!package-lock.json'          # expect no output
 git ls-files | grep -E "^\.env\.local|^\.vercel|^\.claude"        # expect no output
-git ls-files | grep docs/internal                                 # expect no output
+git ls-files | grep -E 'docs/internal|docs/history'                # expect no output
 python -m pytest verification_harness/tests                       # 92 passed, 16 skipped
 ```
 
