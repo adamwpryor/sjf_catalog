@@ -94,7 +94,7 @@ In `services/swarm/main.py`, line 26 defines `LLM_MODEL = os.environ.get("EXTRAC
 * **Reality:** All five Python Swarm agents run `gemini-2.5-pro` keyless on Vertex AI in region `us-east5`. No Claude models or Anthropic API keys are used by the Python service.
 
 ### Trap 2: Codebase Evolution & Removed Endpoints
-Planning documents (such as early revisions of `docs/history/PHASE7_OWNERSHIP_TRANSFER.md`) described twelve AI endpoints. Three placeholder stub endpoints (`delta-processor`, `curriculum-auditor`, `diagnostics-analyst`) were **removed** during security hardening (Task C2). Furthermore, `/api/agent/manual-entry-assistant` is no longer called directly from the browser; it is proxied securely server-side via `src/app/api/swarm/manual-entry-assistant/route.ts`.
+Earlier planning documents described twelve AI endpoints. Three placeholder stub endpoints (`delta-processor`, `curriculum-auditor`, `diagnostics-analyst`) were **removed** during security hardening (Task C2). Furthermore, `/api/agent/manual-entry-assistant` is no longer called directly from the browser; it is proxied securely server-side via `src/app/api/swarm/manual-entry-assistant/route.ts`.
 * **Reality:** Exactly seven `@app` routes remain in `services/swarm/main.py`: `/health` (GET), `/api/agent/extract-minutes` (POST), `/api/agent/rewrite-chunk` (POST), `/api/agent/resolve-delta` (POST), `/api/agent/render-pdf` (POST - non-AI WeasyPrint), `/api/agent/manual-entry-assistant` (POST), and `/api/agent/catalog-correction` (POST).
 
 ### Trap 3: Two Vertex AI Regions, and They Are Interchangeable

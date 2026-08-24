@@ -3,8 +3,8 @@
 **Status:** **Stage B is built** (`scripts/ingest_self_serve.py`, `services/ingestion/`). Stage A —
 producing the markdown page set from a published catalog — is still a design. Program requirements
 are deliberately not derived; see §4 and run `scripts/backfill_program_requirements.mjs` after a
-load. Measured output against the hub for the same catalog version is recorded in
-`docs/history/PHASE7_OWNERSHIP_TRANSFER.md`.
+load. Measured output against the hub for the same catalog version is recorded in the project's
+transfer history, retained by Pryor Consulting.
 
 **Goal.** Let St. John Fisher produce a new catalog year themselves, on their own cloud and their
 own model billing, without the ingestion hub. The hub-spoke contract stays live and unchanged — the

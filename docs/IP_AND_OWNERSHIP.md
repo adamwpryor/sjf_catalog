@@ -37,7 +37,7 @@ The clause is both scope-limited and conditional, which is why §3 turns on two 
 | Owner today | Pryor Consulting (payment outstanding) | Pryor Consulting (never in scope) |
 | SJFU's position | Becomes client property on final payment | Granted use beyond scope |
 
-**The practical consequence worth surfacing now:** `docs/history/BUILD_PLAN.md` describes extracting a reusable
+**The practical consequence worth surfacing now:** the project's build plan describes extracting a reusable
 "spoke generator" from this work so that future institutions can be stood up from the same
 machinery, and `scripts/spoke/` exists for that purpose. Under an assignment clause with no retained
 licence, reusing SJFU-funded work product for a different client is not something this document
@@ -105,7 +105,7 @@ Two facts from this project make ownership more than a formality.
 frontend files were byte-pinned copies of a different client's codebase, and a fallback in
 `src/lib/llm.ts` pointed model calls at that client's cloud project. If that engagement carried an
 IP clause resembling this one, those files were that client's property and were sitting in SJFU's
-repository. They have been removed in full — see `docs/history/PHASE7_OWNERSHIP_TRANSFER.md` §2.1 — and
+repository. They have been removed in full, and
 `CLAUDE.md` §5 now forbids reintroducing any identifier belonging to another institution. This is
 the strongest practical argument for settling ownership terms explicitly per engagement.
 

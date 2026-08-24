@@ -153,8 +153,7 @@ Most of this codebase is read-only by construction and should stay that way.
 | `docs/SELF_SERVE_INGESTION.md` | Design for client-run ingestion. |
 | `MAINTENANCE_GUIDELINES.md` | Coding and engineering standards (`DEVELOPER_GUIDELINES.md` reframed). |
 | `DOUBLE_CHECK.md` / `DOUBLE_CHECK_IMPLEMENTATION.md` | The verification harness's own specification. |
-| `docs/history/PHASE7_OWNERSHIP_TRANSFER.md` | Live plan for transferring ownership. |
-| `docs/history/BUILD_PLAN.md` / `docs/history/IMPLEMENTATION_PLAN.md` | Historical record. Partly superseded — check for banners. |
+| `TRANSFER_RUNBOOK.md` + `docs/playbooks/` | Moving accounts, billing, and data to institutional ownership. |
 
 `STATUS.md` used to sit in this list. It was deleted in Phase 7 because it described a months-old
 scaffold state and would have misled a new team. If you find a document referring to it, that

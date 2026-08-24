@@ -1,3 +1,8 @@
-# Internal execution notes are tracked here but excluded from the handoff archive
-# built with `git archive` (see docs/internal/HANDOFF_CHECKLIST.md).
+# Tracked here, withheld from the handover archive built with `git archive`.
+#
+# docs/internal/  — execution checklist and delivery manifest: commercial items,
+#                   decommissioning steps, and the record of what was delivered.
+# docs/history/   — planning and phase records. The account of how this codebase
+#                   reached its current state, retained by Pryor Consulting.
 docs/internal/ export-ignore
+docs/history/ export-ignore
