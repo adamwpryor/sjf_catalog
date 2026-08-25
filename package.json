@@ -13,7 +13,8 @@
     "test:rls": "node scripts/test-rls.mjs",
     "user:list": "node scripts/invite_user.mjs --list",
     "user:invite": "node scripts/invite_user.mjs",
-    "user:link": "node scripts/invite_user.mjs --link"
+    "user:link": "node scripts/invite_user.mjs --link",
+    "user:check": "node scripts/check_auth_setup.mjs"
   },
   "dependencies": {
     "@google-cloud/storage": "^7.19.0",

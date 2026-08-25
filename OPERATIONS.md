@@ -239,6 +239,27 @@ somewhere that cannot sign them in. `npm run user:link` prints a warning when it
 
 Keep `NEXT_PUBLIC_SITE_URL` in your environment matching that same address.
 
+**Check both with one command:**
+
+```bash
+npm run user:check
+```
+
+It asks Supabase for a real sign-in link and inspects where that link points, which is the only way
+to observe the allowlist from outside the dashboard. It creates nothing, changes nothing, sends
+nothing, and exits non-zero when the redirect is wrong — so it can gate a migration checklist. Run
+it after any change to the dashboard settings, and whenever someone reports that a link did not work.
+
+A failure prints the exact values to enter:
+
+```text
+  FAIL  sign-in links return to http://localhost:3000, not https://catalog.example.edu
+        Supabase substitutes its Site URL when the origin is not allowlisted.
+```
+
+It cannot check email delivery — nothing outside Supabase can observe a message that was accepted
+and then discarded. Test that by inviting one address that is not on the project team.
+
 Playbook `docs/playbooks/D4_SUPABASE_AUTH.md` covers both in full, with verification steps.
 
 ---

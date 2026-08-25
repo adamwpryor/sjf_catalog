@@ -177,7 +177,23 @@ most day-to-day staff need.
 
 ## 3. Verification
 
-### 3.1 A role row exists for every user who needs one
+### 3.1 The scripted preflight — run this first
+
+```bash
+npm run user:check
+```
+
+It confirms the credentials work, then asks Supabase for a real sign-in link and inspects where the
+link points. That is the only way to observe the redirect allowlist from outside the dashboard: a
+missing origin produces no error, just a link that quietly returns to the Site URL instead.
+
+Read-only — it creates no users, changes no settings, and sends nothing. It exits non-zero on
+failure and prints the values to enter, so it can gate this playbook's completion.
+
+It deliberately does not check email delivery. A message that Supabase accepts and then discards is
+not observable from outside; §2.3 covers testing that by hand.
+
+### 3.2 A role row exists for every user who needs one
 
 ```sql
 SELECT u.email, COALESCE(r.role, '(none)') AS role
@@ -190,18 +206,18 @@ Anyone showing `(none)` can sign in and will see an empty application. That is t
 playbook exists to prevent, and it looks like a data migration problem rather than a permissions
 one.
 
-### 3.2 Sign in, and confirm you can see catalog data
+### 3.3 Sign in, and confirm you can see catalog data
 
 Open the deployed application and sign in. You should reach the dashboard **and** see courses and
 programs. Reaching the dashboard alone proves authentication; seeing rows proves authorisation,
 and only the second one exercises RLS.
 
-### 3.3 Write access, if the account is meant to have it
+### 3.4 Write access, if the account is meant to have it
 
 As a `registrar` or `owner`, submit a correction through the catalog tools. A permission error here
 points at the role row, not at the feature.
 
-### 3.4 The scripted check
+### 3.5 The scripted RLS check
 
 The repository ships a row-level-security test:
 
