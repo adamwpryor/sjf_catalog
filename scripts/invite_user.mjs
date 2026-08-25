@@ -107,7 +107,7 @@ function parseArgs(argv) {
   const args = {
     email: null, role: 'viewer', file: null,
     send: false, list: false, redirect: null, allowExternal: false, link: false, help: false,
-    out: null,
+    out: null, remove: false, confirm: false,
   };
   for (let i = 0; i < argv.length; i += 1) {
     const a = argv[i];
@@ -115,6 +115,8 @@ function parseArgs(argv) {
     else if (a === '--allow-external') args.allowExternal = true;
     else if (a === '--link') args.link = true;
     else if (a === '--out') args.out = argv[++i];
+    else if (a === '--remove') args.remove = true;
+    else if (a === '--confirm') args.confirm = true;
     else if (a === '--help' || a === '-h') args.help = true;
     else if (a === '--list') args.list = true;
     else if (a === '--email') args.email = argv[++i];
@@ -174,6 +176,7 @@ Options:
   --send                send invitation emails (omit for a dry run)
   --link                mint links to a file instead of emailing
   --list                show existing accounts and roles
+  --remove --email <a>  delete an account and its role (add --confirm to apply)
   --redirect <url>      override where the link returns to
   --out <path>          write links somewhere other than the default file
   --allow-external      permit a non-institutional address (deliberate exceptions only)
@@ -208,6 +211,38 @@ async function main() {
       console.log(`  ${u.email.padEnd(34)} ${(roleFor.get(u.id) ?? 'NO ROLE').padEnd(10)} ${confirmed.padEnd(15)} ${seen}`);
     }
     console.log('\nNO ROLE means the user can sign in and will see nothing.\n');
+    return;
+  }
+
+  if (args.remove) {
+    if (!args.email) {
+      console.error('--remove needs --email <address>.');
+      process.exit(2);
+    }
+    const email = args.email.toLowerCase();
+    const { data: all, error: listErr } = await admin.auth.admin.listUsers({ perPage: 200 });
+    if (listErr) throw listErr;
+    const found = all?.users?.find((u) => u.email?.toLowerCase() === email);
+
+    if (!found) {
+      console.log(`\n  ${email} has no account; nothing to remove.\n`);
+      return;
+    }
+    if (!args.confirm) {
+      console.log(`\n  DRY RUN — would delete ${email} (created ${found.created_at?.slice(0, 10)}).`);
+      console.log('  Their role row goes with it. Re-run with --confirm to delete.\n');
+      return;
+    }
+
+    // Deleting the auth user cascades to user_roles via ON DELETE CASCADE.
+    const { error: delErr } = await admin.auth.admin.deleteUser(found.id);
+    if (delErr) {
+      console.error(`  FAILED to delete ${email}: ${delErr.message}`);
+      process.exit(1);
+    }
+    console.log(`\n  deleted  ${email}`);
+    const { data: orphan } = await admin.from('user_roles').select('user_id').eq('user_id', found.id);
+    console.log(`  role row removed: ${(orphan?.length ?? 0) === 0}\n`);
     return;
   }
 
