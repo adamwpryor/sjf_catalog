@@ -116,17 +116,36 @@ async function main() {
   }
 
   const got = new URL(data.properties.action_link).searchParams.get('redirect_to') ?? '';
-  const wantOrigin = new URL(expected).origin;
+  const want = new URL(expected);
+  const trim = (p) => p.replace(/\/$/, '');
+  let landing = null;
+  try {
+    landing = new URL(got);
+  } catch {
+    landing = null;
+  }
 
-  if (got.startsWith(wantOrigin)) {
-    pass(`sign-in links return to ${wantOrigin}`);
-  } else {
-    fail(`sign-in links return to ${got || '(nothing)'}, not ${wantOrigin}`);
+  // Check the origin and the path separately. Supabase can honour the origin while
+  // dropping the path, which sends the recipient to the home page with no session —
+  // an origin-only check calls that a pass and it is not one.
+  if (!landing) {
+    fail('sign-in links carry no destination at all');
+    failed = true;
+  } else if (landing.origin !== want.origin) {
+    fail(`sign-in links return to ${landing.origin}, not ${want.origin}`);
     console.log('        Supabase substitutes its Site URL when the origin is not allowlisted.');
     console.log('        Dashboard > Authentication > URL Configuration:');
-    console.log(`          Site URL      ${wantOrigin}`);
-    console.log(`          Redirect URLs ${wantOrigin}/**`);
+    console.log(`          Site URL      ${want.origin}`);
+    console.log(`          Redirect URLs ${want.origin}/**`);
     failed = true;
+  } else if (trim(landing.pathname) !== trim(want.pathname)) {
+    fail(`sign-in links reach ${landing.origin} but land on ${landing.pathname}, not ${want.pathname}`);
+    console.log('        The origin is accepted and the path is being dropped, so recipients arrive');
+    console.log('        signed out. Add a wildcard entry to the redirect allowlist:');
+    console.log(`          ${want.origin}/**`);
+    failed = true;
+  } else {
+    pass(`sign-in links return to ${landing.origin}${landing.pathname}`);
   }
 
   // Email delivery cannot be observed directly; report what can be checked.
