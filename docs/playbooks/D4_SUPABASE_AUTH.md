@@ -65,13 +65,43 @@ Confirm under **Authentication → Providers** that the sign-in method you inten
 email confirmation matches your institutional policy. The application uses password sign-in with a
 PKCE callback and does not assume any particular provider beyond that.
 
-### 2.3 Create the first account
+### 2.3 Inviting users — the supported path
+
+Accounts are created by invitation. `scripts/invite_user.mjs` sends the invitation *and* writes the
+`user_roles` row in one run, because doing only the first half is the failure this section exists to
+prevent.
+
+```bash
+# See who exists and which accounts have no role
+node scripts/invite_user.mjs --list
+
+# Preview (dry run by default — nothing sent, nothing written)
+node scripts/invite_user.mjs --email someone@sjf.edu --role registrar
+
+# Send
+node scripts/invite_user.mjs --email someone@sjf.edu --role registrar --send
+
+# Or in bulk, from a file of "email,role" lines
+node scripts/invite_user.mjs --file invites.txt --send
+```
+
+It validates against **both** institutional mail domains before sending anything — staff addresses
+exist on `sjf.edu` and `sjfc.edu`, and a check that allows only one silently rejects real people.
+
+**Set `NEXT_PUBLIC_SITE_URL` first,** and make sure that URL is on the redirect allowlist from §2.1.
+Invitation links are single-use: if they resolve to the wrong origin, the invitation is spent and the
+recipient has to be invited again.
+
+The recipient clicks the emailed link, lands on `/auth/callback` (which handles `type=invite`), and
+is forwarded to `/update-password` to choose their own password. Nobody shares a password.
+
+### 2.4 Create the first account manually, if you prefer
 
 Create it through the dashboard (**Authentication → Users → Add user**) or by signing up through the
 deployed application. Either way, the account exists in `auth.users` with **no role**, and can see
-nothing until §2.4.
+nothing until §2.5.
 
-### 2.4 Seed the roles — the step nothing does for you
+### 2.5 Seed the roles by hand, if you did not use the invite script
 
 ```sql
 -- Find the user id

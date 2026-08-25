@@ -215,9 +215,8 @@ export default function LoginPage() {
                   to set your password for the first time, then sign in.
                 </div>
                 <div>
-                  Testing the pilot? Sign in with your{' '}
-                  <span className="text-slate-300 font-semibold">@{INSTITUTION.emailDomain}</span>{' '}
-                  email and the shared access password from the project team — your account is created automatically.
+                  Accounts are created by invitation. If you have not received one,
+                  contact your catalog administrator — self-service sign-up is not available.
                 </div>
               </>
             ) : (

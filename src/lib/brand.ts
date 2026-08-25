@@ -20,7 +20,15 @@ export const INSTITUTION = {
   legalName: 'St. John Fisher University',
   shortName: 'Fisher',
   appTitle: 'Fisher Catalog',
+  /** Primary domain, used for the sign-in placeholder. */
   emailDomain: 'sjf.edu',
+  /**
+   * Every institutional mail domain in use. Staff addresses exist on both: the
+   * institution was a College before it was a University and the older domain is
+   * still issued. Any check that gates on a single domain will silently reject
+   * real staff, so validate against this list rather than `emailDomain`.
+   */
+  emailDomains: ['sjf.edu', 'sjfc.edu'],
 } as const;
 
 /** Feature flags (from institution.config.yaml → institution/swarm). */
