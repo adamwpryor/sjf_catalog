@@ -313,21 +313,33 @@ async function main() {
         .from('user_roles')
         .upsert({ user_id: res.data?.user?.id, role }, { onConflict: 'user_id' });
 
-      // Supabase silently substitutes the project's Site URL when the redirect it was
-      // handed is not on the allowlist. The link still works and returns the user to the
-      // wrong origin, so compare what came back against what was asked for.
-      const actionLink = res.data.properties.action_link;
-      if (redirectTo) {
-        const got = new URL(actionLink).searchParams.get('redirect_to') ?? '';
-        if (!got.startsWith(new URL(redirectTo).origin)) {
-          console.error(`  WARNING: Supabase returned this link pointing at ${got || '(nothing)'}`);
-          console.error(`           not ${new URL(redirectTo).origin}. That origin is missing from`);
-          console.error('           Authentication > URL Configuration. Add it, or the recipient');
-          console.error('           lands somewhere that cannot complete their sign-in.');
-        }
+      // Do NOT hand out properties.action_link. That points at Supabase's own /verify
+      // endpoint, which completes the exchange and then redirects to the application
+      // with the session in the URL *fragment*. Fragments are never sent to a server,
+      // so /auth/callback — a server route — receives an empty query string and
+      // correctly reports the link as invalid. It never worked, rather than expiring.
+      //
+      // properties.hashed_token is the same verification in the form that route already
+      // handles: it reads token_hash + type and calls verifyOtp. Build that URL here.
+      const props = res.data.properties;
+      const verificationType = props.verification_type ?? kind;
+      let link;
+
+      if (siteUrl) {
+        const target = new URL('/auth/callback', siteUrl);
+        target.searchParams.set('token_hash', props.hashed_token);
+        target.searchParams.set('type', verificationType);
+        target.searchParams.set('next', '/update-password');
+        link = target.toString();
+      } else {
+        // Without a site URL there is nothing to point at; the Supabase link is wrong
+        // for this application but is better than emitting nothing.
+        link = props.action_link;
+        console.error('  WARNING: NEXT_PUBLIC_SITE_URL is not set, so this link goes to Supabase');
+        console.error('           rather than the application, and will not sign anyone in.');
       }
 
-      lines.push(`${email}   role=${role}   (${kind} link)`, actionLink, '');
+      lines.push(`${email}   role=${role}   (${verificationType} link)`, link, '');
       console.log(
         `  link      ${email.padEnd(34)} role=${role} ${kind}`
         + `${roleError ? `  ROLE FAILED: ${roleError.message}` : ''}`,
