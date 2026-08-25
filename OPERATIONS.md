@@ -144,7 +144,106 @@ python -m verification_harness.remediate --checks B1 --apply
 python -m verification_harness.remediate --restore
 ```
 
-## 6. Escalation and Ownership
+## 6. User Access Administration
+
+Accounts are created by invitation. There is no sign-up page, and no shared password — a route that
+worked that way was removed during security hardening.
+
+Adding someone takes one command, and it does **two** things that both have to happen: it creates
+the account, and it writes the row that says what they are allowed to see. A user with an account
+but no role signs in successfully and finds an empty application. That looks like a broken database
+and is not one, so the tooling never does one half without the other.
+
+### 6.1 Who has access
+
+```bash
+npm run user:list
+```
+
+Anything reading `NO ROLE` is the failure described above. `PENDING INVITE` means the account exists
+but the person has not yet followed their link.
+
+### 6.2 The roles
+
+| Role | Can read the catalog | Can edit the catalog |
+| --- | :---: | :---: |
+| `viewer` | yes | no |
+| `admin` | yes | no |
+| `registrar` | yes | **yes** |
+| `owner` | yes | **yes** |
+
+`registrar` is the working role for staff who maintain catalog content. Grant `owner` sparingly.
+One role per person: promoting someone is an update, not a second row.
+
+### 6.3 Adding a user
+
+**If email is configured** (§6.5), send an invitation. Leave off `--send` first — it dry-runs and
+shows you exactly what it will do:
+
+```bash
+npm run user:invite -- --email someone@sjf.edu --role registrar          # preview
+npm run user:invite -- --email someone@sjf.edu --role registrar --send   # send
+```
+
+**If email is not configured, or a message is not arriving,** mint the sign-in link and deliver it
+yourself. This does not involve email at all and always works:
+
+```bash
+npm run user:link -- --email someone@sjf.edu --role registrar
+```
+
+The link is written to `artifacts/scratch/invite_links.txt`, which is excluded from version control.
+**Each link is a credential**: whoever opens it becomes that user. Send one link to one person over a
+channel you trust, then delete the file. Links are single-use and expire.
+
+Either way the recipient chooses their own password, and nobody — including you — ever knows it.
+
+To add several people at once, put one `email,role` per line in a file:
+
+```text
+bsosa@sjf.edu,owner
+cbiehn@sjfc.edu,viewer
+```
+
+```bash
+npm run user:invite -- --file invites.txt --send     # or: npm run user:link -- --file invites.txt
+```
+
+Staff addresses exist on **both** `sjf.edu` and `sjfc.edu` — the institution was a College before it
+was a University and the older domain is still issued. Both are accepted. Anything else is refused
+as a likely typo, because a mistyped address costs a wasted invitation and a support call;
+`--allow-external` overrides that for deliberate exceptions, and names every address it admitted.
+
+### 6.4 Removing a user
+
+Delete the account in the Supabase dashboard under **Authentication → Users**. The role row is
+removed automatically. To remove someone's access without deleting their account, drop their role —
+see `docs/playbooks/D4_SUPABASE_AUTH.md` §4.
+
+### 6.5 Two settings that make all of this work, and fail silently when wrong
+
+Both live in the Supabase dashboard, not in this repository, so neither is covered by any test here.
+Both were misconfigured at handover and are worth checking first whenever sign-in misbehaves.
+
+**Email delivery.** Supabase's built-in mail service refuses to deliver to anyone who is not a member
+of the Supabase project team, and refuses *after* reporting success. Invitations and "Forgot
+password?" both appear to work and silently reach nobody. Configure custom SMTP under
+**Authentication → Emails → SMTP Settings** — your own Microsoft 365 or Google Workspace mailbox is
+the natural choice, since mail then arrives from a real institutional address. Test with an address
+that is **not** on the project team; a team address would have worked anyway and proves nothing.
+
+**The redirect allowlist.** Under **Authentication → URL Configuration**, the Site URL and Redirect
+URLs must include the deployed application's address. When they do not, Supabase quietly rewrites
+every invitation and password-reset link to point at whatever the Site URL says, and recipients land
+somewhere that cannot sign them in. `npm run user:link` prints a warning when it detects this.
+
+Keep `NEXT_PUBLIC_SITE_URL` in your environment matching that same address.
+
+Playbook `docs/playbooks/D4_SUPABASE_AUTH.md` covers both in full, with verification steps.
+
+---
+
+## 7. Escalation and Ownership
 
 ### Who to contact
 

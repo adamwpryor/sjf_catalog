@@ -107,10 +107,11 @@ node scripts/invite_user.mjs --list      # should read "confirmed" once they fol
 If SMTP is not configured yet, or a message is not arriving, mint the link and deliver it yourself:
 
 ```bash
-node scripts/invite_user.mjs --email someone@sjf.edu --role viewer --link
+npm run user:link -- --email someone@sjf.edu --role viewer
 ```
 
 No email is sent. The link is written to `artifacts/scratch/invite_links.txt`, which is gitignored.
+It also warns if Supabase rewrote the link's destination, which is what happens when §2.1 is wrong.
 **Each link is a credential** — whoever opens it becomes that user — so send each one to its own
 recipient over a channel you trust, and delete the file afterwards. Links are single-use and expire.
 

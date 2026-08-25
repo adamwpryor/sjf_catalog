@@ -106,13 +106,14 @@ function validate(email, allowExternal = false) {
 function parseArgs(argv) {
   const args = {
     email: null, role: 'viewer', file: null,
-    send: false, list: false, redirect: null, allowExternal: false, link: false,
+    send: false, list: false, redirect: null, allowExternal: false, link: false, help: false,
   };
   for (let i = 0; i < argv.length; i += 1) {
     const a = argv[i];
     if (a === '--send') args.send = true;
     else if (a === '--allow-external') args.allowExternal = true;
     else if (a === '--link') args.link = true;
+    else if (a === '--help' || a === '-h') args.help = true;
     else if (a === '--list') args.list = true;
     else if (a === '--email') args.email = argv[++i];
     else if (a === '--role') args.role = argv[++i];
@@ -140,8 +141,53 @@ function parseFile(file) {
     });
 }
 
+const HELP = `
+Add a user to the catalog, and give them a role.
+
+  npm run user:list                          who has an account, and what role
+  npm run user:invite -- --email a@sjf.edu --role viewer --send
+  npm run user:link   -- --email a@sjf.edu --role viewer
+
+Two ways to add someone:
+
+  --send    Supabase emails them an invitation. Needs custom SMTP configured
+            (Authentication > Emails > SMTP Settings). Without it Supabase
+            accepts the request, reports success, and delivers nothing to
+            anyone outside the project team.
+
+  --link    Mints the sign-in link and writes it to
+            artifacts/scratch/invite_links.txt for you to deliver yourself.
+            No email is involved. Use this when SMTP is not set up, or when a
+            message is not arriving. Each link signs its holder in as that
+            user: send one per recipient, then delete the file.
+
+Both create the account AND write the role row. A user without a role can sign
+in and will see an empty application.
+
+Options:
+  --email <address>     one person
+  --file <path>         many, one "email,role" per line ("#" comments allowed)
+  --role <role>         viewer | admin | registrar | owner   (default: viewer)
+                        registrar and owner can edit the catalog; the others cannot
+  --send                send invitation emails (omit for a dry run)
+  --link                mint links to a file instead of emailing
+  --list                show existing accounts and roles
+  --redirect <url>      override where the link returns to
+  --allow-external      permit a non-institutional address (deliberate exceptions only)
+  --help                this text
+
+Environment: NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, and
+NEXT_PUBLIC_SITE_URL, read from the environment or .env.local. The site URL must
+also be on the Supabase redirect allowlist, or links silently return to whatever
+the project's Site URL is set to.
+`;
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
+  if (args.help || process.argv.length === 2) {
+    console.log(HELP);
+    return;
+  }
   const url = requireEnv('NEXT_PUBLIC_SUPABASE_URL');
   const admin = createClient(url, requireEnv('SUPABASE_SERVICE_ROLE_KEY'), {
     auth: { autoRefreshToken: false, persistSession: false },
@@ -253,7 +299,21 @@ async function main() {
         .from('user_roles')
         .upsert({ user_id: res.data?.user?.id, role }, { onConflict: 'user_id' });
 
-      lines.push(`${email}   role=${role}   (${kind} link)`, res.data.properties.action_link, '');
+      // Supabase silently substitutes the project's Site URL when the redirect it was
+      // handed is not on the allowlist. The link still works and returns the user to the
+      // wrong origin, so compare what came back against what was asked for.
+      const actionLink = res.data.properties.action_link;
+      if (redirectTo) {
+        const got = new URL(actionLink).searchParams.get('redirect_to') ?? '';
+        if (!got.startsWith(new URL(redirectTo).origin)) {
+          console.error(`  WARNING: Supabase returned this link pointing at ${got || '(nothing)'}`);
+          console.error(`           not ${new URL(redirectTo).origin}. That origin is missing from`);
+          console.error('           Authentication > URL Configuration. Add it, or the recipient');
+          console.error('           lands somewhere that cannot complete their sign-in.');
+        }
+      }
+
+      lines.push(`${email}   role=${role}   (${kind} link)`, actionLink, '');
       console.log(
         `  link      ${email.padEnd(34)} role=${role} ${kind}`
         + `${roleError ? `  ROLE FAILED: ${roleError.message}` : ''}`,

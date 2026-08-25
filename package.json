@@ -10,7 +10,10 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "reembed": "node scripts/reembed.mjs",
-    "test:rls": "node scripts/test-rls.mjs"
+    "test:rls": "node scripts/test-rls.mjs",
+    "user:list": "node scripts/invite_user.mjs --list",
+    "user:invite": "node scripts/invite_user.mjs",
+    "user:link": "node scripts/invite_user.mjs --link"
   },
   "dependencies": {
     "@google-cloud/storage": "^7.19.0",
