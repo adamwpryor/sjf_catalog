@@ -65,7 +65,58 @@ Confirm under **Authentication → Providers** that the sign-in method you inten
 email confirmation matches your institutional policy. The application uses password sign-in with a
 PKCE callback and does not assume any particular provider beyond that.
 
-### 2.3 Inviting users — the supported path
+### 2.3 Email delivery — do this before inviting anyone
+
+**Nothing that sends email works until this is configured.** That includes invitations *and* the
+"Forgot password?" link on the sign-in page.
+
+Supabase ships a built-in mail service for development. It refuses to deliver to any address that is
+not a member of the Supabase project's team, and it refuses *after* returning HTTP 200 — the
+invitation is recorded, the user appears in the dashboard as `PENDING INVITE`, and no message is
+ever sent. There is no error to find. From the Supabase documentation:
+
+> Unless you configure a custom SMTP server for your project, Supabase Auth will refuse to deliver
+> messages to addresses that are not part of the project's team.
+
+It is additionally capped at a few messages per hour and is documented as unsuitable for production.
+
+**Configure custom SMTP:** dashboard → **Authentication → Emails → SMTP Settings**. Supply the host,
+port, username, password, and sender address for whichever service sends your mail. Two sensible
+choices:
+
+- **Your own institutional mail** (Microsoft 365 or Google Workspace). Messages arrive from a real
+  institutional address, which is what staff expect and what survives spam filtering. Requires a
+  mailbox or app password from IT.
+- **A transactional provider** (Resend, SendGrid, Amazon SES). Faster to set up, better delivery
+  reporting, and one more vendor relationship to own.
+
+After saving, raise the send limit under **Authentication → Rate Limits** — it defaults to 30/hour
+to protect a new sender's reputation.
+
+**Verify it before trusting it.** Invite one address that is *not* on the project team and confirm
+the message arrives. An address that is on the team would have worked even with the built-in
+service, so testing with one proves nothing:
+
+```bash
+node scripts/invite_user.mjs --email someone@sjf.edu --role viewer --send
+node scripts/invite_user.mjs --list      # should read "confirmed" once they follow the link
+```
+
+### 2.3.1 Adding a user when email is not available
+
+If SMTP is not configured yet, or a message is not arriving, mint the link and deliver it yourself:
+
+```bash
+node scripts/invite_user.mjs --email someone@sjf.edu --role viewer --link
+```
+
+No email is sent. The link is written to `artifacts/scratch/invite_links.txt`, which is gitignored.
+**Each link is a credential** — whoever opens it becomes that user — so send each one to its own
+recipient over a channel you trust, and delete the file afterwards. Links are single-use and expire.
+
+This is the fallback, not the routine. Configure SMTP.
+
+### 2.4 Inviting users — the supported path
 
 Accounts are created by invitation. `scripts/invite_user.mjs` sends the invitation *and* writes the
 `user_roles` row in one run, because doing only the first half is the failure this section exists to
@@ -95,13 +146,13 @@ recipient has to be invited again.
 The recipient clicks the emailed link, lands on `/auth/callback` (which handles `type=invite`), and
 is forwarded to `/update-password` to choose their own password. Nobody shares a password.
 
-### 2.4 Create the first account manually, if you prefer
+### 2.5 Create the first account manually, if you prefer
 
 Create it through the dashboard (**Authentication → Users → Add user**) or by signing up through the
 deployed application. Either way, the account exists in `auth.users` with **no role**, and can see
-nothing until §2.5.
+nothing until §2.6.
 
-### 2.5 Seed the roles by hand, if you did not use the invite script
+### 2.6 Seed the roles by hand, if you did not use the invite script
 
 ```sql
 -- Find the user id

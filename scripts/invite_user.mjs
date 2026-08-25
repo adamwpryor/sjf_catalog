@@ -106,12 +106,13 @@ function validate(email, allowExternal = false) {
 function parseArgs(argv) {
   const args = {
     email: null, role: 'viewer', file: null,
-    send: false, list: false, redirect: null, allowExternal: false,
+    send: false, list: false, redirect: null, allowExternal: false, link: false,
   };
   for (let i = 0; i < argv.length; i += 1) {
     const a = argv[i];
     if (a === '--send') args.send = true;
     else if (a === '--allow-external') args.allowExternal = true;
+    else if (a === '--link') args.link = true;
     else if (a === '--list') args.list = true;
     else if (a === '--email') args.email = argv[++i];
     else if (a === '--role') args.role = argv[++i];
@@ -192,7 +193,12 @@ async function main() {
   const siteUrl = args.redirect ?? optionalEnv('NEXT_PUBLIC_SITE_URL');
   const redirectTo = siteUrl ? `${siteUrl.replace(/\/$/, '')}/auth/callback?next=/update-password` : null;
 
-  console.log(`\n${args.send ? 'SENDING INVITATIONS' : 'DRY RUN — nothing will be sent or written'}`);
+  const header = args.link
+    ? 'GENERATING LINKS — no email is sent; you deliver them'
+    : args.send
+      ? 'SENDING INVITATIONS'
+      : 'DRY RUN — nothing will be sent or written';
+  console.log(`\n${header}`);
   console.log(`Supabase project : ${url}`);
   console.log(`Invite redirect  : ${redirectTo || '(Supabase project default)'}\n`);
 
@@ -202,6 +208,62 @@ async function main() {
     for (const t of external) console.log(`        ${t.email}`);
     console.log('        Remove these accounts when they are no longer needed.');
     console.log('');
+  }
+
+  if (args.link) {
+    // Supabase's built-in mailer refuses any address that is not on the project team,
+    // and does so *after* returning 200 — the invitation looks sent and never arrives.
+    // Minting the link here skips the mailer entirely: delivery becomes the operator's
+    // problem, which is the only thing that works before custom SMTP is configured.
+    const outDir = path.join(ROOT, 'artifacts', 'scratch');
+    fs.mkdirSync(outDir, { recursive: true });
+    const outFile = path.join(outDir, 'invite_links.txt');
+    const lines = [
+      'One-time sign-in links.',
+      '',
+      'Each line below is a CREDENTIAL: whoever opens it becomes that user. Send each',
+      'to its own recipient over a channel you trust, then delete this file. Each link',
+      'works once and expires.',
+      '',
+    ];
+
+    for (const { email, role } of targets) {
+      let kind = 'invite';
+      let res = await admin.auth.admin.generateLink({
+        type: 'invite',
+        email,
+        options: redirectTo ? { redirectTo } : undefined,
+      });
+      if (res.error) {
+        // Already present — commonly a previous invitation that was never delivered.
+        // A recovery link reaches the same /update-password destination.
+        kind = 'recovery';
+        res = await admin.auth.admin.generateLink({
+          type: 'recovery',
+          email,
+          options: redirectTo ? { redirectTo } : undefined,
+        });
+      }
+      if (res.error) {
+        console.error(`  FAILED    ${email.padEnd(34)} ${res.error.message}`);
+        continue;
+      }
+
+      const { error: roleError } = await admin
+        .from('user_roles')
+        .upsert({ user_id: res.data?.user?.id, role }, { onConflict: 'user_id' });
+
+      lines.push(`${email}   role=${role}   (${kind} link)`, res.data.properties.action_link, '');
+      console.log(
+        `  link      ${email.padEnd(34)} role=${role} ${kind}`
+        + `${roleError ? `  ROLE FAILED: ${roleError.message}` : ''}`,
+      );
+    }
+
+    fs.writeFileSync(outFile, lines.join('\n'), { mode: 0o600 });
+    console.log(`\nWritten to ${path.relative(ROOT, outFile).replace(/\\/g, '/')} (gitignored).`);
+    console.log('Deliver each link to its recipient, then delete the file.');
+    return;
   }
 
   for (const { email, role } of targets) {
