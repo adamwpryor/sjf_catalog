@@ -23,6 +23,7 @@
  *   node scripts/invite_user.mjs --email a@sjf.edu --role registrar
  *   node scripts/invite_user.mjs --file invites.txt --send
  *   node scripts/invite_user.mjs --list
+ *   node scripts/invite_user.mjs --email me@example.com --allow-external --send   # smoke test
  *
  * Requires SUPABASE_SERVICE_ROLE_KEY and NEXT_PUBLIC_SUPABASE_URL. The service-role key
  * bypasses row-level security entirely — run this from an operator machine, never from the
@@ -67,25 +68,50 @@ function requireEnv(name) {
 }
 
 /**
+ * Read an optional variable, from the environment or .env.local.
+ *
+ * @param {string} name - Variable name.
+ * @returns {string|null} The value, or null when unset.
+ */
+function optionalEnv(name) {
+  try {
+    return requireEnv(name);
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Validate an address against the institutional domains.
  *
+ * The domain check is a typo guard: an invitation is single-use, so a mistyped
+ * address is a wasted invitation and a support request. `allowExternal` lifts it
+ * for the deliberate exceptions - smoke-testing the flow, or an outside
+ * contractor - and is never the default.
+ *
  * @param {string} email - Address to check.
+ * @param {boolean} [allowExternal=false] - Permit a non-institutional domain.
  * @returns {string|null} An error message, or null when acceptable.
  */
-function validate(email) {
+function validate(email, allowExternal = false) {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return 'not a valid email address';
   const domain = email.split('@')[1].toLowerCase();
-  if (!ALLOWED_DOMAINS.includes(domain)) {
-    return `domain "${domain}" is not institutional (expected ${ALLOWED_DOMAINS.join(' or ')})`;
+  if (!ALLOWED_DOMAINS.includes(domain) && !allowExternal) {
+    return `domain "${domain}" is not institutional (expected ${ALLOWED_DOMAINS.join(' or ')}). `
+      + 'Pass --allow-external if this is deliberate.';
   }
   return null;
 }
 
 function parseArgs(argv) {
-  const args = { email: null, role: 'viewer', file: null, send: false, list: false, redirect: null };
+  const args = {
+    email: null, role: 'viewer', file: null,
+    send: false, list: false, redirect: null, allowExternal: false,
+  };
   for (let i = 0; i < argv.length; i += 1) {
     const a = argv[i];
     if (a === '--send') args.send = true;
+    else if (a === '--allow-external') args.allowExternal = true;
     else if (a === '--list') args.list = true;
     else if (a === '--email') args.email = argv[++i];
     else if (a === '--role') args.role = argv[++i];
@@ -150,7 +176,7 @@ async function main() {
   // should not leave half the invitations sent.
   const problems = [];
   for (const t of targets) {
-    const bad = validate(t.email);
+    const bad = validate(t.email, args.allowExternal);
     if (bad) problems.push(`${t.email}: ${bad}`);
     if (!ROLES.includes(t.role)) problems.push(`${t.email}: role "${t.role}" is not one of ${ROLES.join(', ')}`);
   }
@@ -163,12 +189,20 @@ async function main() {
   // Supabase requires an absolute URL and only honours one on its redirect allowlist.
   // With no site URL configured, fall back to the project default rather than sending a
   // relative path, which Supabase rejects.
-  const siteUrl = args.redirect ?? process.env.NEXT_PUBLIC_SITE_URL ?? null;
+  const siteUrl = args.redirect ?? optionalEnv('NEXT_PUBLIC_SITE_URL');
   const redirectTo = siteUrl ? `${siteUrl.replace(/\/$/, '')}/auth/callback?next=/update-password` : null;
 
   console.log(`\n${args.send ? 'SENDING INVITATIONS' : 'DRY RUN — nothing will be sent or written'}`);
   console.log(`Supabase project : ${url}`);
   console.log(`Invite redirect  : ${redirectTo || '(Supabase project default)'}\n`);
+
+  const external = targets.filter((t) => !ALLOWED_DOMAINS.includes(t.email.split('@')[1]));
+  if (external.length) {
+    console.log(`  NOTE: ${external.length} non-institutional address(es) permitted by --allow-external:`);
+    for (const t of external) console.log(`        ${t.email}`);
+    console.log('        Remove these accounts when they are no longer needed.');
+    console.log('');
+  }
 
   for (const { email, role } of targets) {
     if (!args.send) {
