@@ -107,12 +107,14 @@ function parseArgs(argv) {
   const args = {
     email: null, role: 'viewer', file: null,
     send: false, list: false, redirect: null, allowExternal: false, link: false, help: false,
+    out: null,
   };
   for (let i = 0; i < argv.length; i += 1) {
     const a = argv[i];
     if (a === '--send') args.send = true;
     else if (a === '--allow-external') args.allowExternal = true;
     else if (a === '--link') args.link = true;
+    else if (a === '--out') args.out = argv[++i];
     else if (a === '--help' || a === '-h') args.help = true;
     else if (a === '--list') args.list = true;
     else if (a === '--email') args.email = argv[++i];
@@ -173,6 +175,7 @@ Options:
   --link                mint links to a file instead of emailing
   --list                show existing accounts and roles
   --redirect <url>      override where the link returns to
+  --out <path>          write links somewhere other than the default file
   --allow-external      permit a non-institutional address (deliberate exceptions only)
   --help                this text
 
@@ -261,9 +264,20 @@ async function main() {
     // and does so *after* returning 200 — the invitation looks sent and never arrives.
     // Minting the link here skips the mailer entirely: delivery becomes the operator's
     // problem, which is the only thing that works before custom SMTP is configured.
-    const outDir = path.join(ROOT, 'artifacts', 'scratch');
-    fs.mkdirSync(outDir, { recursive: true });
-    const outFile = path.join(outDir, 'invite_links.txt');
+    const outFile = args.out
+      ? path.resolve(ROOT, args.out)
+      : path.join(ROOT, 'artifacts', 'scratch', 'invite_links.txt');
+    fs.mkdirSync(path.dirname(outFile), { recursive: true });
+
+    // Refuse to overwrite. The previous batch may not have been delivered yet, and
+    // these are one-time credentials: silently replacing them loses links that were
+    // already generated and, if the earlier ones were sent, invalidates them.
+    if (fs.existsSync(outFile)) {
+      console.error(`\n  ${path.relative(ROOT, outFile).replace(/\\/g, '/')} already exists.`);
+      console.error('  It may hold links that have not been delivered yet, so this will not');
+      console.error('  overwrite it. Deliver and delete that file, or pass --out <path>.\n');
+      process.exit(1);
+    }
     const lines = [
       'One-time sign-in links.',
       '',

@@ -196,6 +196,9 @@ The link is written to `artifacts/scratch/invite_links.txt`, which is excluded f
 **Each link is a credential**: whoever opens it becomes that user. Send one link to one person over a
 channel you trust, then delete the file. Links are single-use and expire.
 
+If that file already exists the command stops rather than overwriting it, because the previous batch
+may not have been delivered yet. Deliver and delete it, or write elsewhere with `--out <path>`.
+
 Either way the recipient chooses their own password, and nobody — including you — ever knows it.
 
 To add several people at once, put one `email,role` per line in a file:
