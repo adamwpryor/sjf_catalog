@@ -15,6 +15,24 @@ import { createClient } from '@/utils/supabase/server'
  * @returns {Promise<NextResponse>} A redirect to `next` on success, or to
  *   `/login` with an `error` query param on failure.
  */
+/**
+ * Turn a Supabase verification error into something a recipient can act on.
+ *
+ * Supabase reports a spent token and a genuinely expired one with the same
+ * wording, and "expired" sends people to check the clock when the real cause is
+ * usually that the link was already opened once.
+ *
+ * @param {string} raw - The message from `verifyOtp`.
+ * @returns {string} A message naming both causes and the way out.
+ */
+function linkFailureMessage(raw: string): string {
+  const spentOrExpired = /token not found|expired|invalid/i.test(raw)
+  return spentOrExpired
+    ? 'That sign-in link has already been used or has expired. Each link works '
+      + 'once. Ask your catalog administrator for a new one.'
+    : raw
+}
+
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
@@ -59,8 +77,24 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     if (!error) {
       return NextResponse.redirect(`${base}${next}`)
     }
-    return loginWithError(error.message)
+    // The token is single-use, and this route gets requested more than once in
+    // ordinary conditions: a browser or mail-client prefetch, a corporate link
+    // scanner, a refresh, an impatient second click. The first request spends the
+    // token and sets the session cookies; every later one fails here. Reporting
+    // that as an error tells a user whose sign-in has *already succeeded* that
+    // their link is broken — which is exactly what happened to the first real
+    // invitation this system sent, one second after it worked.
+    //
+    // So before failing, ask whether this browser is already signed in.
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      return NextResponse.redirect(`${base}${next}`)
+    }
+    return loginWithError(linkFailureMessage(error.message))
   }
 
-  return loginWithError('This link is invalid or has expired. Please request a new one.')
+  return loginWithError(
+    'That sign-in link could not be read. Links work once and expire; ask your '
+    + 'catalog administrator for a new one.',
+  )
 }

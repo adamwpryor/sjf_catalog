@@ -319,14 +319,16 @@ async function main() {
       '',
       `Generated ${generatedAt.toISOString()}.`,
       '',
-      'THESE EXPIRE QUICKLY — after the project\'s email OTP window, which defaults to',
-      'ONE HOUR (Supabase dashboard > Authentication > Providers > Email). A link that',
-      'is delivered the next day will be refused as "invalid or has expired" even though',
-      'it was never used. Send these now, or regenerate them when you are ready to send.',
+      'THESE EXPIRE — after this project\'s email OTP window (Supabase dashboard >',
+      'Authentication > Providers > Email; the Supabase default is one hour). A link',
+      'delivered after that is refused as "invalid or has expired" even though nobody',
+      'used it. Send these now, or regenerate when you are ready to send.',
+      '',
+      'Each link also works ONCE, and anything that opens it counts — a mail scanner',
+      'or a browser prefetch can spend it before the recipient ever clicks.',
       '',
       'Each line below is a CREDENTIAL: whoever opens it becomes that user. Send each',
-      'to its own recipient over a channel you trust, then delete this file. Each link',
-      'works once.',
+      'to its own recipient over a channel you trust, then delete this file.',
       '',
     ];
 
@@ -392,8 +394,8 @@ async function main() {
     fs.writeFileSync(outFile, lines.join('\n'), { mode: 0o600 });
     console.log(`\nWritten to ${path.relative(ROOT, outFile).replace(/\\/g, '/')} (gitignored).`);
     console.log('Deliver each link to its recipient NOW, then delete the file.');
-    console.log('They expire after the project\'s email OTP window — one hour by default —');
-    console.log('and a stale link reports itself as invalid, not as expired.');
+    console.log('They expire after this project\'s email OTP window (Supabase dashboard >');
+    console.log('Authentication > Providers > Email), and each works only once.');
     return;
   }
 
