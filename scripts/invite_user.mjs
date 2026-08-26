@@ -313,12 +313,20 @@ async function main() {
       console.error('  overwrite it. Deliver and delete that file, or pass --out <path>.\n');
       process.exit(1);
     }
+    const generatedAt = new Date();
     const lines = [
       'One-time sign-in links.',
       '',
+      `Generated ${generatedAt.toISOString()}.`,
+      '',
+      'THESE EXPIRE QUICKLY — after the project\'s email OTP window, which defaults to',
+      'ONE HOUR (Supabase dashboard > Authentication > Providers > Email). A link that',
+      'is delivered the next day will be refused as "invalid or has expired" even though',
+      'it was never used. Send these now, or regenerate them when you are ready to send.',
+      '',
       'Each line below is a CREDENTIAL: whoever opens it becomes that user. Send each',
       'to its own recipient over a channel you trust, then delete this file. Each link',
-      'works once and expires.',
+      'works once.',
       '',
     ];
 
@@ -383,7 +391,9 @@ async function main() {
 
     fs.writeFileSync(outFile, lines.join('\n'), { mode: 0o600 });
     console.log(`\nWritten to ${path.relative(ROOT, outFile).replace(/\\/g, '/')} (gitignored).`);
-    console.log('Deliver each link to its recipient, then delete the file.');
+    console.log('Deliver each link to its recipient NOW, then delete the file.');
+    console.log('They expire after the project\'s email OTP window — one hour by default —');
+    console.log('and a stale link reports itself as invalid, not as expired.');
     return;
   }
 
