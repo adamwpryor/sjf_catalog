@@ -37,9 +37,93 @@ This document tracks the fixes applied during the Phase 7 Ownership Transfer to 
 
 ---
 
+## §2.3 Database Exposure (2026-08-26)
+
+Found by running Supabase's own database linter against the live project while provisioning the
+first real user accounts, then confirming each finding by hand against the REST API with nothing but
+the public anon key. Applied as `supabase/migrations/20260826130000_harden_exposed_tables.sql`.
+
+### 6. `user_roles` had no row-level security — privilege escalation
+
+The table every write policy depends on was the one table not protected.
+`20260605183000_rls_policies.sql` creates `user_roles`, then gates catalog writes on it:
+
+```sql
+auth.uid() IN (SELECT user_id FROM user_roles WHERE role IN ('registrar','owner'))
+```
+
+…and never enables RLS on `user_roles` itself. Verified against production: with only the anon key,
+which ships to every browser, an anonymous caller read every role assignment, and an `INSERT`
+granting `owner` **reached the table** — refused only by the foreign-key constraint, never by a
+policy. Every signed-in user knows a valid `auth.users` uuid, because it is their own and it is in
+their token. **Any `viewer` could have promoted themselves to `owner`.**
+
+Fixed by enabling RLS with a single `SELECT` policy: a user may read their own row and no other. No
+write policy exists, so no write is permitted. The browser needs exactly this much
+(`src/app/page.tsx`, `src/components/TrackingDashboard.tsx` each read the role for their own session
+user), and the write policies above still resolve, since proving your own role only requires seeing
+your own row.
+
+Verified after the change by signing in as a throwaway account: it reads its own role (1 row), sees
+no other role (0 rows), and a self-promotion `PATCH` returns `204` while leaving the role `viewer` —
+RLS matched no rows. **The status code alone looks like success**, which is why the check compares
+the resulting value.
+
+### 7. Runtime backup tables were world-readable
+
+`harness_remediation_backup`, `source_page_backfill_backup`, `bio_program_prune_backup`, and
+`bio_program_requirements_prune_backup` hold pre-change copies of catalog rows and were readable with
+the anon key. RLS is now enabled on all four, with no policy — nothing outside the owner connection
+may read them.
+
+These are created at runtime by tooling, not by any migration, so the migration guards each with
+`IF EXISTS` and `remediate.py` now enables RLS on the table it creates. Without that second half the
+protection would not survive: a fresh database gets an unprotected table on its first `--apply`.
+
+### 8. Trigger functions with a mutable `search_path`
+
+`sync_course_subject_id` and `sync_program_degree_classification_id` are now pinned to
+`public, pg_temp`. Neither is `SECURITY DEFINER`, so the exposure was small.
+
+### 9. Leaked-password protection was disabled
+
+Now enabled: Supabase checks new passwords against HaveIBeenPwned. Turned on before the first real
+users chose their passwords rather than after.
+
+**Result:** all five ERROR-level linter findings cleared, along with both `search_path` warnings and
+the leaked-password warning.
+
+---
+
 ## Known, Not Fixed
 
 Recording these deliberately. A hardening document that lists only what was fixed implies the rest is clean.
+
+### D. `vector` extension lives in the `public` schema
+
+The linter recommends moving it. Doing so means dropping and recreating the extension, which every
+`vector(1536)` column and every index depends on — a migration with real risk of leaving the catalog
+unsearchable, for a hardening benefit that is close to theoretical here. Left in place deliberately.
+
+### E. Email OTP expiry is 24 hours, not the recommended one hour
+
+Raised on purpose, and the linter flags it (`auth_otp_long_expiry`). Sign-in links have to be
+delivered by hand until custom SMTP is configured, and a one-hour window cannot survive that. **Once
+SMTP is configured, put this back to 3600** — links then arrive in seconds and the long window is
+pure exposure.
+
+### F. Nine tables report `rls_enabled_no_policy`
+
+Informational, and in most cases it is the intended state: RLS enabled with no policy denies
+everything, which is what the backup tables and `faculty`, `ghost_log`, `catalog_agent_usage`,
+`course_prereq_blocks` and `course_prereq_edges` should do. They are read through the API routes over
+an owner connection, which RLS does not apply to. Worth a review if any of them ever needs to be read
+directly from the browser.
+
+### G. Minimum password length is 6
+
+Supabase's default, below current guidance. Raising it is a one-line configuration change and was
+left alone because it was not among the flagged findings and changes behaviour for real users.
 
 ### A. Server-side session checks do not revalidate the token
 

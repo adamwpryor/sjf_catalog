@@ -317,6 +317,12 @@ def apply_changes(changes: list[Change], run_id: str) -> int:
                 )
                 """
             )
+            # This table is created here rather than by a migration, so nothing else
+            # protects it. Without this, a database that has never run the migration
+            # gets a PostgREST-reachable table of pre-change catalog values on the
+            # first apply. No policy is added, so no anon or authenticated access is
+            # permitted; this connection is the table owner and is unaffected.
+            cur.execute(f"ALTER TABLE {BACKUP_TABLE} ENABLE ROW LEVEL SECURITY")
             psycopg2.extras.execute_batch(
                 cur,
                 f"""INSERT INTO {BACKUP_TABLE}
