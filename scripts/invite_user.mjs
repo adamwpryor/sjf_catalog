@@ -371,7 +371,13 @@ async function main() {
       let link;
 
       if (siteUrl) {
-        const target = new URL('/auth/callback', siteUrl);
+        // /auth/confirm, not /auth/callback. The callback verifies on GET, and the
+        // token is spent by whatever fetches the URL first — a mail scanner, a browser
+        // prefetch, a preview fetcher. When that happened, the session went to the
+        // machine that fetched it and the recipient was told the link was invalid a
+        // second after their account was confirmed. /auth/confirm renders a button and
+        // verifies only when a person presses it, in their own browser.
+        const target = new URL('/auth/confirm', siteUrl);
         target.searchParams.set('token_hash', props.hashed_token);
         target.searchParams.set('type', verificationType);
         target.searchParams.set('next', '/update-password');
